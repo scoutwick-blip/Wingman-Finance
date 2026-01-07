@@ -1,30 +1,58 @@
 
-# Wingman Finance
+<div align="center">
+  <img src="icon.svg" width="120" height="120" alt="Wingman Finance Logo">
+  <h1>Wingman Finance</h1>
+  <p><strong>Precision-engineered budgeting. Your tactical financial co-pilot.</strong></p>
+</div>
 
-**Precision-engineered budgeting for the modern user.**
+---
 
-Wingman is a privacy-focused, offline-capable Progressive Web App (PWA) designed to replace complex spreadsheets with a clean, tactical interface. Manage pay, track allowances, and execute your financial flight plan with AI-driven tactical insights.
+## 📋 Mission Brief
 
-![Wingman App Icon](https://cdn-icons-png.flaticon.com/512/781/781760.png)
+**Wingman** is designed for those who need a robust, no-nonsense financial tool without the complexity of spreadsheets or the clutter of "free" apps that sell your data.
 
-## 🚀 Features
+Whether you are managing military pay, tracking allowances, or simply trying to get your personal finances in formation, Wingman provides a clear, tactical overview of your economic status. It operates entirely offline, respects your privacy, and utilizes advanced AI to provide actionable advice.
 
-*   **Tactical Dashboard:** High-level overview of net worth, income vs. expenses, and debt reduction.
-*   **AI Wingman:** Built-in AI Advisor (powered by Google Gemini) analyzes your spending to provide actionable financial tips and budget alerts.
-*   **Privacy First:** All data is stored locally on your device (`localStorage`). No external servers see your financial records.
-*   **Offline Capable:** Install as a PWA on iOS and Android for a native app-like experience without internet access.
-*   **Profile Management:** Support for multiple distinct profiles on a single device.
-*   **Data Portability:** Easy CSV import and export.
+## 🚀 Capabilities
 
-## 📱 How to Install (Mobile)
+*   **📊 Tactical Dashboard**: Get an instant read on your Net Worth, Income vs. Expenses, and Spending Allocation.
+*   **🤖 AI Wingman**: Built-in AI Advisor (powered by Google Gemini) analyzes your transaction history to spot trends, offer savings tips, and alert you to budget overruns.
+*   **🔒 Zero-Trust Privacy**: Your data never leaves your device. Wingman stores everything locally. No servers, no tracking, no selling your financial habits.
+*   **✈️ Offline Capable**: Works perfectly without an internet connection. Update your logbook anywhere.
+*   **👥 Multi-Profile Support**: Manage personal finances, a spouse's budget, or a business account from a single device.
+*   **📲 Instant Sync**: Transfer data between devices using a secure QR code handshake—no cloud account required.
 
-Wingman is designed to be installed directly from your browser:
+## 📱 Deployment (Installation)
 
-1.  Open the hosted link in **Safari** (iOS) or **Chrome** (Android).
-2.  Tap the **Share** button (iOS) or the **Menu** button (Android).
-3.  Select **"Add to Home Screen"**.
-4.  Wingman will appear in your app drawer and run like a native app.
+Wingman is a **Progressive Web App (PWA)**. It installs directly from your browser and functions like a native app.
 
-## 📄 License
+### iOS (iPhone/iPad)
+1.  Open the Wingman website in **Safari**.
+2.  Tap the **Share** button (box with an arrow pointing up).
+3.  Scroll down and tap **"Add to Home Screen"**.
+4.  Wingman is now installed on your home screen.
 
-This project is open source and available under the [MIT License](LICENSE).
+### Android
+1.  Open the Wingman website in **Chrome**.
+2.  Tap the **Menu** button (three dots in the top right).
+3.  Select **"Add to Home Screen"** or **"Install App"**.
+4.  Wingman is now available in your app drawer.
+
+## 🛠 Operations Manual
+
+1.  **Initialize Profile**: Create a callsign (username) and set your preferred currency.
+2.  **Establish Budgets**: Go to the **Budgets** tab to set monthly limits for Spending and goals for Savings/Debt.
+3.  **Log Activity**: Use the **Transactions** tab to record income and expenses.
+4.  **Review Intel**: Check the **Advisor** tab for AI-driven insights on how to optimize your cash flow.
+
+## 🔐 Security Protocol
+
+Wingman takes privacy seriously:
+*   **Local Storage**: Database exists only on your phone/computer.
+*   **Privacy Mode**: One-tap toggle to blur sensitive numbers when using the app in public.
+*   **Data Control**: Full export (CSV/JSON) and wipe capabilities are available in Settings.
+
+---
+<div align="center">
+  <em>Execute your financial flight plan.</em>
+</div>
