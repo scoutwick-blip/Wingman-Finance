@@ -25,7 +25,7 @@ export const Layout: React.FC<LayoutProps> = ({
 }) => {
   const [showNotifications, setShowNotifications] = useState(false);
   const notificationRef = useRef<HTMLDivElement>(null);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  const [dropdownPos, setDropdownPos] = useState({ top: 0, right: 0, isMobile: false });
 
   const unreadCount = notifications.filter(n => !n.isRead).length;
 
@@ -39,19 +39,37 @@ export const Layout: React.FC<LayoutProps> = ({
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      // Check if click is outside both the button (notificationRef) and the dropdown (dropdownRef)
-      if (
-        notificationRef.current && 
-        !notificationRef.current.contains(event.target as Node) &&
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node)
-      ) {
+      if (notificationRef.current && !notificationRef.current.contains(event.target as Node)) {
         setShowNotifications(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  useEffect(() => {
+    if (showNotifications && notificationRef.current) {
+      const updatePos = () => {
+        const rect = notificationRef.current?.getBoundingClientRect();
+        if (rect) {
+          setDropdownPos({
+            top: rect.bottom + 12,
+            right: window.innerWidth - rect.right,
+            isMobile: window.innerWidth < 768
+          });
+        }
+      };
+      
+      updatePos();
+      window.addEventListener('resize', updatePos);
+      window.addEventListener('scroll', updatePos, true);
+      
+      return () => {
+        window.removeEventListener('resize', updatePos);
+        window.removeEventListener('scroll', updatePos, true);
+      };
+    }
+  }, [showNotifications]);
 
   const getInitials = (name: string) => {
     return name.trim().split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
@@ -149,6 +167,51 @@ export const Layout: React.FC<LayoutProps> = ({
                   <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-white" />
                 )}
               </button>
+
+              {/* Notification Dropdown */}
+              {showNotifications && (
+                <div 
+                  className="bg-white rounded-[2rem] border border-slate-200 shadow-2xl overflow-hidden flex flex-col z-[100] animate-in fade-in slide-in-from-top-4 duration-200 fixed max-h-[70vh] md:max-h-[500px] md:w-80"
+                  style={{
+                    top: dropdownPos.top,
+                    right: dropdownPos.isMobile ? '1rem' : dropdownPos.right,
+                    left: dropdownPos.isMobile ? '1rem' : 'auto',
+                    maxWidth: dropdownPos.isMobile ? 'calc(100vw - 2rem)' : 'none'
+                  }}
+                >
+                  <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-900 shrink-0">
+                    <h3 className="font-black text-white text-xs tracking-[0.2em] uppercase">Notifications</h3>
+                    <button 
+                      onClick={onClearNotifications}
+                      className="text-[10px] font-black uppercase text-indigo-400 hover:text-indigo-300 tracking-widest"
+                    >
+                      Clear All
+                    </button>
+                  </div>
+                  <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                    {notifications.length > 0 ? (
+                      notifications.map(n => (
+                        <div 
+                          key={n.id} 
+                          className={`p-4 rounded-2xl border transition-all ${n.isRead ? 'opacity-50' : 'opacity-100 border-indigo-100 bg-indigo-50/20'}`}
+                        >
+                          <div className="flex gap-3">
+                            <span className="text-lg shrink-0">{getNotificationIcon(n.type)}</span>
+                            <div className="space-y-1">
+                              <p className="text-[10px] font-black tracking-tight text-slate-800 uppercase">{n.title}</p>
+                              <p className="text-[11px] leading-relaxed font-medium text-slate-600">{n.message}</p>
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="py-12 text-center space-y-3">
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">No notifications.</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
 
             <button 
@@ -167,57 +230,6 @@ export const Layout: React.FC<LayoutProps> = ({
             </button>
           </div>
         </header>
-
-        {/* Notification Dropdown - Using Fixed positioning to escape container overflow */}
-        {showNotifications && (
-          <div 
-            ref={dropdownRef}
-            className={`
-              bg-white rounded-[2rem] border border-slate-200 shadow-2xl overflow-hidden flex flex-col z-[100] animate-in fade-in slide-in-from-top-4 duration-200
-              
-              /* Universal: Fixed positioning to avoid overflow clipping from main container */
-              fixed top-[4.5rem]
-              
-              /* Mobile: Full width with margins */
-              left-4 right-4 max-h-[60vh]
-              
-              /* Desktop: Aligned right, specific width */
-              md:left-auto md:right-8 md:w-80 md:max-h-[500px]
-            `}
-          >
-            <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-900 shrink-0">
-              <h3 className="font-black text-white text-xs tracking-[0.2em] uppercase">Notifications</h3>
-              <button 
-                onClick={onClearNotifications}
-                className="text-[10px] font-black uppercase text-indigo-400 hover:text-indigo-300 tracking-widest"
-              >
-                Clear All
-              </button>
-            </div>
-            <div className="flex-1 overflow-y-auto p-4 space-y-3">
-              {notifications.length > 0 ? (
-                notifications.map(n => (
-                  <div 
-                    key={n.id} 
-                    className={`p-4 rounded-2xl border transition-all ${n.isRead ? 'opacity-50' : 'opacity-100 border-indigo-100 bg-indigo-50/20'}`}
-                  >
-                    <div className="flex gap-3">
-                      <span className="text-lg shrink-0">{getNotificationIcon(n.type)}</span>
-                      <div className="space-y-1">
-                        <p className="text-[10px] font-black tracking-tight text-slate-800 uppercase">{n.title}</p>
-                        <p className="text-[11px] leading-relaxed font-medium text-slate-600">{n.message}</p>
-                      </div>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <div className="py-12 text-center space-y-3">
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">No notifications.</p>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
 
         <div className="flex-1 overflow-y-auto bg-slate-50">
           <div className="p-4 md:p-10 max-w-6xl mx-auto w-full">
