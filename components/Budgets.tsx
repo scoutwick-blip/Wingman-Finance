@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
-import { Category, Transaction, UserPreferences, CategoryType } from '../types';
+import { Category, Transaction, UserPreferences, CategoryType, BudgetSuggestion } from '../types';
+import { getBudgetSuggestions } from '../services/geminiService';
 
 interface BudgetsProps {
   categories: Category[];
@@ -29,6 +30,47 @@ export const Budgets: React.FC<BudgetsProps> = ({
     initialBalance: 0 
   });
   const [editingNameId, setEditingNameId] = useState<string | null>(null);
+
+  // AI Suggestion State
+  const [suggestions, setSuggestions] = useState<BudgetSuggestion[]>([]);
+  const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+
+  const fetchSuggestions = async () => {
+    if (showSuggestions && suggestions.length > 0) {
+        setShowSuggestions(false);
+        return;
+    }
+    
+    setIsLoadingSuggestions(true);
+    setShowSuggestions(true);
+    try {
+        const results = await getBudgetSuggestions(transactions, categories);
+        setSuggestions(results);
+    } catch (e) {
+        console.error(e);
+    } finally {
+        setIsLoadingSuggestions(false);
+    }
+  };
+
+  const applySuggestion = (s: BudgetSuggestion) => {
+    const cat = categories.find(c => c.id === s.categoryId);
+    if (!cat) return;
+    
+    // For DEBT type, the 'budget' property is often treated as 'initialBalance' or total goal in the UI logic,
+    // but for the sake of AI suggestions, we update the primary tracking number.
+    // If it's spending, 'budget' is the limit.
+    // If it's savings, 'budget' is the goal.
+    onUpdateCategory(s.categoryId, { budget: s.suggestedAmount });
+    
+    setSuggestions(prev => prev.filter(item => item.categoryId !== s.categoryId));
+  };
+
+  const dismissSuggestions = () => {
+    setShowSuggestions(false);
+    setSuggestions([]);
+  };
 
   const getTargetLabel = (type: CategoryType) => {
     switch (type) {
@@ -182,19 +224,119 @@ export const Budgets: React.FC<BudgetsProps> = ({
 
   return (
     <div className="space-y-12 pb-20">
-      <section className="bg-white border border-slate-200 rounded-3xl p-8 relative overflow-hidden shadow-sm">
+      <section className="bg-white border border-slate-200 rounded-3xl p-8 relative shadow-sm transition-all">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
           <div className="space-y-1">
             <h3 className="text-2xl font-black text-slate-900 tracking-tighter uppercase">Budgets</h3>
             <p className="text-slate-500 text-xs font-bold uppercase tracking-widest">Plan your monthly limits and goals</p>
           </div>
-          <button 
-            onClick={() => setIsAdding(!isAdding)}
-            className="bg-slate-900 text-white px-8 py-3.5 rounded-xl font-bold shadow-lg hover:bg-slate-800 transition-all flex items-center gap-2 whitespace-nowrap text-xs uppercase tracking-widest"
-          >
-            {isAdding ? '✕ Close' : '+ New Category'}
-          </button>
+          
+          <div className="flex flex-wrap gap-2">
+            <button 
+                onClick={fetchSuggestions}
+                disabled={isLoadingSuggestions}
+                className={`px-6 py-3.5 rounded-xl font-bold shadow-lg transition-all flex items-center gap-2 whitespace-nowrap text-xs uppercase tracking-widest ${showSuggestions ? 'bg-indigo-600 text-white' : 'bg-white text-indigo-600 border border-indigo-100 hover:bg-indigo-50'}`}
+            >
+                {isLoadingSuggestions ? (
+                    <>
+                        <span className="w-3 h-3 border-2 border-indigo-600/30 border-t-indigo-600 rounded-full animate-spin"></span>
+                        Analyzing...
+                    </>
+                ) : (
+                    <>
+                        <span>🤖</span> Auto-Tune
+                    </>
+                )}
+            </button>
+
+            <button 
+                onClick={() => setIsAdding(!isAdding)}
+                className="bg-slate-900 text-white px-6 py-3.5 rounded-xl font-bold shadow-lg hover:bg-slate-800 transition-all flex items-center gap-2 whitespace-nowrap text-xs uppercase tracking-widest"
+            >
+                {isAdding ? '✕ Close' : '+ New Category'}
+            </button>
+          </div>
         </div>
+
+        {/* AI Suggestions Panel */}
+        {showSuggestions && (
+            <div className="mt-8 bg-slate-900 text-white p-6 rounded-2xl shadow-xl animate-in slide-in-from-top-4 relative overflow-hidden">
+                <div className="absolute top-0 right-0 p-12 bg-indigo-500/10 rounded-full blur-3xl transform translate-x-10 -translate-y-10"></div>
+                
+                <div className="flex justify-between items-start mb-6 relative z-10">
+                <div>
+                    <h4 className="font-black text-lg uppercase tracking-tight flex items-center gap-2">
+                        <span className="text-2xl">⚡</span> Tactical Budget Tuner
+                    </h4>
+                    <p className="text-indigo-200 text-xs font-medium mt-1">
+                        AI-optimized limits based on your actual spending history.
+                    </p>
+                </div>
+                <button 
+                    onClick={dismissSuggestions} 
+                    className="text-slate-500 hover:text-white transition-colors bg-white/5 rounded-lg px-3 py-1 text-[10px] font-bold uppercase tracking-widest"
+                >
+                    Dismiss
+                </button>
+                </div>
+
+                {isLoadingSuggestions ? (
+                    <div className="py-12 text-center space-y-4">
+                        <div className="w-10 h-10 border-4 border-indigo-500/30 border-t-indigo-400 rounded-full animate-spin mx-auto"></div>
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-indigo-300">Calibrating...</p>
+                    </div>
+                ) : suggestions.length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 relative z-10">
+                        {suggestions.map(s => {
+                            const cat = categories.find(c => c.id === s.categoryId);
+                            if (!cat) return null;
+                            const diff = s.suggestedAmount - cat.budget;
+                            const isIncrease = diff > 0;
+                            
+                            return (
+                                <div key={s.categoryId} className="bg-white/5 rounded-xl p-5 border border-white/5 hover:bg-white/10 transition-colors group">
+                                    <div className="flex justify-between items-start mb-3">
+                                        <div className="flex items-center gap-3">
+                                            <span className="text-2xl bg-white/10 w-10 h-10 flex items-center justify-center rounded-lg">{cat.icon}</span>
+                                            <div>
+                                                <span className="font-bold text-sm block">{cat.name}</span>
+                                                <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Current: {preferences.currency}{cat.budget.toLocaleString()}</span>
+                                            </div>
+                                        </div>
+                                        <div className="text-right">
+                                            <div className="text-[9px] text-indigo-300 font-bold uppercase tracking-wide">Proposed</div>
+                                            <div className="font-black text-xl text-emerald-400">{preferences.currency}{s.suggestedAmount.toLocaleString()}</div>
+                                        </div>
+                                    </div>
+                                    
+                                    <p className="text-[10px] text-slate-300 leading-relaxed italic border-l-2 border-indigo-500/50 pl-3 mb-4 opacity-80">
+                                        "{s.reason}"
+                                    </p>
+                                    
+                                    <div className="flex items-center justify-between border-t border-white/5 pt-3">
+                                        <span className={`text-[10px] font-bold uppercase tracking-widest ${isIncrease ? 'text-rose-400' : 'text-emerald-400'}`}>
+                                            {isIncrease ? 'Increase' : 'Decrease'} by {preferences.currency}{Math.abs(diff).toLocaleString()}
+                                        </span>
+                                        <button 
+                                            onClick={() => applySuggestion(s)}
+                                            className="bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all shadow-lg active:scale-95"
+                                        >
+                                            Apply
+                                        </button>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                ) : (
+                    <div className="py-12 text-center bg-white/5 rounded-2xl border border-white/5 border-dashed">
+                        <span className="text-2xl mb-2 block">🤷</span>
+                        <p className="text-xs font-bold text-slate-300">No suggestions available.</p>
+                        <p className="text-[10px] text-slate-500 mt-1">Try adding more transaction history first.</p>
+                    </div>
+                )}
+            </div>
+        )}
 
         {isAdding && (
           <form onSubmit={handleAdd} className="mt-8 bg-slate-50 p-6 rounded-2xl border border-slate-200 animate-in fade-in slide-in-from-top-4">
