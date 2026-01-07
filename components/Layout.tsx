@@ -75,17 +75,30 @@ export const Layout: React.FC<LayoutProps> = ({
     return name.trim().split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
   };
 
-  const Avatar = ({ size = '8' }: { size?: string }) => (
-    <div className={`w-${size} h-${size} rounded-full overflow-hidden border-2 border-slate-200 bg-slate-800 flex items-center justify-center shrink-0`}>
-      {preferences.profileImage ? (
-        <img src={preferences.profileImage} alt="Profile" className="w-full h-full object-cover" />
-      ) : (
-        <span className="text-[10px] font-black text-white uppercase tracking-tighter">
-          {getInitials(preferences.name || 'User')}
-        </span>
-      )}
-    </div>
-  );
+  const Avatar = ({ size = '8' }: { size?: string }) => {
+    // Explicit mapping to ensure Tailwind generates these classes
+    const sizeClasses: Record<string, string> = {
+      '6': 'w-6 h-6',
+      '8': 'w-8 h-8',
+      '10': 'w-10 h-10',
+      '12': 'w-12 h-12',
+      '14': 'w-14 h-14',
+      '16': 'w-16 h-16'
+    };
+    const dimensions = sizeClasses[size] || 'w-8 h-8';
+
+    return (
+      <div className={`${dimensions} rounded-full overflow-hidden border-2 border-slate-200 bg-slate-800 flex items-center justify-center shrink-0`}>
+        {preferences.profileImage ? (
+          <img src={preferences.profileImage} alt="Profile" className="w-full h-full object-cover block" />
+        ) : (
+          <span className="text-[10px] font-black text-white uppercase tracking-tighter">
+            {getInitials(preferences.name || 'User')}
+          </span>
+        )}
+      </div>
+    );
+  };
 
   const getNotificationIcon = (type: NotificationType) => {
     switch (type) {
@@ -106,7 +119,7 @@ export const Layout: React.FC<LayoutProps> = ({
             style={{ backgroundColor: preferences.accentColor }}
           >
             {preferences.profileImage ? (
-              <img src={preferences.profileImage} alt="Logo" className="w-full h-full object-cover" />
+              <img src={preferences.profileImage} alt="Logo" className="w-full h-full object-cover block" />
             ) : (
               'W'
             )}
