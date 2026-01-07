@@ -22,6 +22,7 @@ export const Settings: React.FC<SettingsProps> = ({
   const currencies = ['$', '€', '£', '¥', '₹', '₱', '₩', 'R$'];
   const fileInputRef = useRef<HTMLInputElement>(null);
   const csvInputRef = useRef<HTMLInputElement>(null);
+  const jsonInputRef = useRef<HTMLInputElement>(null);
   const [newTypeName, setNewTypeName] = useState('');
   const [newTypeBehavior, setNewTypeBehavior] = useState<TransactionBehavior>(TransactionBehavior.OUTFLOW);
   const [importStatus, setImportStatus] = useState<string>('');
@@ -42,6 +43,71 @@ export const Settings: React.FC<SettingsProps> = ({
       reader.readAsDataURL(file);
     }
   };
+
+  // --- JSON BACKUP LOGIC ---
+  const handleBackupJSON = () => {
+    const backupData = {
+      version: '1.0',
+      timestamp: new Date().toISOString(),
+      preferences,
+      categories,
+      transactions
+    };
+    
+    const jsonString = JSON.stringify(backupData, null, 2);
+    const blob = new Blob([jsonString], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `wingman_backup_${new Date().toISOString().split('T')[0]}.json`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleRestoreJSON = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const text = event.target?.result as string;
+        const data = JSON.parse(text);
+
+        if (!data.preferences || !data.categories || !data.transactions) {
+          setImportStatus('Error: Invalid Backup File Format.');
+          return;
+        }
+
+        // We aren't just importing transactions, we are doing a full state restore.
+        // The safest way here in the context of React state provided by parent:
+        // We actually need a way to restore *everything*. 
+        // Given the props structure, we can try to update preferences, but 
+        // replacing categories/transactions fully is tricky with current props (onImportTransactions appends).
+        // However, for "Simple", let's be smart. We will append the transactions and update preferences.
+        // A true "Restore" usually wipes existing data. 
+        
+        if (confirm('Restoring will merge settings and add transactions. Continue?')) {
+            onUpdatePreferences(data.preferences);
+            // We need to strip IDs to avoid conflicts if they exist, or keep them if we assume clean slate.
+            // Let's strip IDs for safety and treat as new import.
+            const cleanTransactions = data.transactions.map((t: any) => {
+                const { id, ...rest } = t; 
+                return rest;
+            });
+            onImportTransactions(cleanTransactions);
+            setImportStatus('Success: System Restored from Backup.');
+        }
+
+      } catch (err) {
+        setImportStatus('Error: Corrupt JSON file.');
+        console.error(err);
+      }
+    };
+    reader.readAsText(file);
+  };
+  // -------------------------
 
   const handleCSVUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -466,11 +532,42 @@ export const Settings: React.FC<SettingsProps> = ({
       <section className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-6">
         <h4 className="font-bold text-slate-800 border-b border-slate-50 pb-4 text-[10px] uppercase tracking-[0.2em]">Data Management</h4>
         
-        {/* Import */}
+        {/* Full JSON Backup/Restore */}
+        <div className="p-5 bg-emerald-50 rounded-2xl border border-emerald-100 space-y-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-bold text-slate-800 text-sm">Full System Backup</p>
+              <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Save/Restore Everything (JSON)</p>
+            </div>
+            <div className="flex gap-2">
+               <button 
+                onClick={() => jsonInputRef.current?.click()}
+                className="bg-white border border-emerald-200 text-emerald-700 px-4 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-emerald-100 transition-all shadow-sm"
+              >
+                Restore
+              </button>
+              <button 
+                onClick={handleBackupJSON}
+                className="bg-emerald-600 text-white px-4 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-md"
+              >
+                Backup
+              </button>
+            </div>
+          </div>
+           <input 
+             type="file" 
+             ref={jsonInputRef}
+             accept=".json"
+             onChange={handleRestoreJSON}
+             className="hidden" 
+           />
+        </div>
+
+        {/* CSV Import */}
         <div className="p-5 bg-slate-50 rounded-2xl border border-slate-100 space-y-3">
            <div className="flex items-center justify-between">
               <div>
-                <p className="font-bold text-slate-800 text-sm">Import History</p>
+                <p className="font-bold text-slate-800 text-sm">Import Transactions</p>
                 <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Upload CSV (Date, Description, Amount)</p>
               </div>
               <button 
@@ -498,8 +595,8 @@ export const Settings: React.FC<SettingsProps> = ({
         <div className="p-5 bg-indigo-50 rounded-2xl border border-indigo-100 space-y-3">
            <div className="flex items-center justify-between">
               <div>
-                <p className="font-bold text-slate-800 text-sm">Export Data</p>
-                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Download all records as CSV</p>
+                <p className="font-bold text-slate-800 text-sm">Export History</p>
+                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Download transactions as CSV</p>
               </div>
               <button 
                 onClick={handleExportCSV}
