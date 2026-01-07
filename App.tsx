@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { SpeedInsights } from '@vercel/speed-insights/react';
 import { Layout } from './components/Layout';
 import { Dashboard } from './components/Dashboard';
 import { Transactions } from './components/Transactions';
@@ -416,6 +417,7 @@ const App: React.FC = () => {
       onSwitchProfile={() => setActiveProfileId(null)}
     >
       {renderContent()}
+      <SpeedInsights />
     </Layout>
   );
 };
