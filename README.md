@@ -1,20 +1,60 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
 
-# Run and deploy your AI Studio app
+# Wingman Finance
 
-This contains everything you need to run your app locally.
+**Precision-engineered budgeting for the modern user.**
 
-View your app in AI Studio: https://ai.studio/apps/drive/1snHpM-x5OV7OqUJddvx0ust9-j9Ip2k0
+Wingman is a privacy-focused, offline-capable Progressive Web App (PWA) designed to replace complex spreadsheets with a clean, tactical interface. Manage pay, track allowances, and execute your financial flight plan with AI-driven tactical insights.
 
-## Run Locally
+![Wingman App Icon](https://cdn-icons-png.flaticon.com/512/781/781760.png)
 
-**Prerequisites:**  Node.js
+## 🚀 Features
 
+*   **Tactical Dashboard:** High-level overview of net worth, income vs. expenses, and debt reduction.
+*   **AI Wingman:** Built-in AI Advisor (powered by Google Gemini) analyzes your spending to provide actionable financial tips and budget alerts.
+*   **Privacy First:** All data is stored locally on your device (`localStorage`). No external servers see your financial records.
+*   **Offline Capable:** Install as a PWA on iOS and Android for a native app-like experience without internet access.
+*   **Profile Management:** Support for multiple distinct profiles on a single device.
+*   **Data Portability:** Easy CSV import and export.
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+## 🛠️ Tech Stack
+
+*   React 19
+*   TypeScript
+*   Vite
+*   Tailwind CSS
+*   Google Gemini API (for AI insights)
+
+## 💻 Getting Started
+
+1.  **Clone the repository**
+    ```bash
+    git clone https://github.com/yourusername/wingman-finance.git
+    cd wingman-finance
+    ```
+
+2.  **Install dependencies**
+    ```bash
+    npm install
+    ```
+
+3.  **Set up Environment Variables**
+    Create a `.env` file in the root directory:
+    ```env
+    API_KEY=your_gemini_api_key_here
+    ```
+
+4.  **Run the development server**
+    ```bash
+    npm run dev
+    ```
+
+## 📱 Installing on Mobile
+
+1.  Deploy the app (e.g., to Vercel).
+2.  Open the website in Safari (iOS) or Chrome (Android).
+3.  Tap **Share** -> **Add to Home Screen**.
+4.  Wingman will install as a standalone app.
+
+## 📄 License
+
+This project is open source and available under the [MIT License](LICENSE).
