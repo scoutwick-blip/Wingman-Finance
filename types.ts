@@ -73,8 +73,17 @@ export interface UserPreferences {
   profileImage?: string;
   notificationSettings: {
     budgetWarnings: boolean;
+    budgetWarningThreshold: number;
     largeTransactions: boolean;
+    largeTransactionThreshold: number;
   };
+}
+
+export interface UserProfile {
+  id: string;
+  name: string;
+  avatar?: string;
+  lastActive: string;
 }
 
 export interface AIAdvice {

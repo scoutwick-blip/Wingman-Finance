@@ -28,7 +28,9 @@ export const DEFAULT_PREFERENCES: UserPreferences = {
   profileImage: undefined,
   notificationSettings: {
     budgetWarnings: true,
-    largeTransactions: true
+    budgetWarningThreshold: 80,
+    largeTransactions: true,
+    largeTransactionThreshold: 500
   }
 };
 
@@ -36,3 +38,4 @@ export const STORAGE_KEY_TRANSACTIONS = 'wingman_transactions';
 export const STORAGE_KEY_CATEGORIES = 'wingman_categories';
 export const STORAGE_KEY_PREFERENCES = 'wingman_preferences';
 export const STORAGE_KEY_NOTIFICATIONS = 'wingman_notifications';
+export const STORAGE_KEY_PROFILES = 'wingman_profiles';

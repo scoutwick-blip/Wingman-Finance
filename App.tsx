@@ -7,37 +7,92 @@ import { Budgets } from './components/Budgets';
 import { AIAdvisor } from './components/AIAdvisor';
 import { Settings } from './components/Settings';
 import { SetupWizard } from './components/SetupWizard';
-import { Transaction, Category, UserPreferences, Notification, NotificationType, TransactionBehavior } from './types';
+import { ProfileSelector } from './components/ProfileSelector';
+import { Transaction, Category, UserPreferences, Notification, NotificationType, TransactionBehavior, UserProfile } from './types';
 import { 
   INITIAL_CATEGORIES, 
   STORAGE_KEY_TRANSACTIONS, 
   STORAGE_KEY_CATEGORIES, 
   STORAGE_KEY_PREFERENCES, 
   STORAGE_KEY_NOTIFICATIONS,
+  STORAGE_KEY_PROFILES,
   DEFAULT_PREFERENCES 
 } from './constants';
 
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [activeProfileId, setActiveProfileId] = useState<string | null>(null);
+  const [profiles, setProfiles] = useState<UserProfile[]>([]);
+  const [isSetupMode, setIsSetupMode] = useState(false);
+
+  // Per-profile state
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [categories, setCategories] = useState<Category[]>(INITIAL_CATEGORIES);
   const [preferences, setPreferences] = useState<UserPreferences>(DEFAULT_PREFERENCES);
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  
   const [isLoading, setIsLoading] = useState(true);
 
-  // Load from localStorage on mount
+  // Initial Boot: Load Profiles and Check for Legacy Data
   useEffect(() => {
-    const storedTransactions = localStorage.getItem(STORAGE_KEY_TRANSACTIONS);
-    const storedCategories = localStorage.getItem(STORAGE_KEY_CATEGORIES);
-    const storedPrefs = localStorage.getItem(STORAGE_KEY_PREFERENCES);
-    const storedNotes = localStorage.getItem(STORAGE_KEY_NOTIFICATIONS);
+    const storedProfiles = localStorage.getItem(STORAGE_KEY_PROFILES);
+    let loadedProfiles: UserProfile[] = storedProfiles ? JSON.parse(storedProfiles) : [];
+
+    // Legacy Migration
+    if (loadedProfiles.length === 0) {
+      const legacyPrefs = localStorage.getItem(STORAGE_KEY_PREFERENCES);
+      if (legacyPrefs) {
+        // We have legacy data but no profile system. Create a profile for the legacy user.
+        const parsedPrefs = JSON.parse(legacyPrefs);
+        const legacyId = 'user-' + Date.now();
+        const legacyProfile: UserProfile = {
+          id: legacyId,
+          name: parsedPrefs.name || 'Pilot',
+          avatar: parsedPrefs.profileImage,
+          lastActive: new Date().toISOString()
+        };
+        loadedProfiles = [legacyProfile];
+        localStorage.setItem(STORAGE_KEY_PROFILES, JSON.stringify(loadedProfiles));
+        
+        // Migrate Data keys
+        const t = localStorage.getItem(STORAGE_KEY_TRANSACTIONS);
+        const c = localStorage.getItem(STORAGE_KEY_CATEGORIES);
+        const n = localStorage.getItem(STORAGE_KEY_NOTIFICATIONS);
+
+        if(t) localStorage.setItem(`${STORAGE_KEY_TRANSACTIONS}_${legacyId}`, t);
+        if(c) localStorage.setItem(`${STORAGE_KEY_CATEGORIES}_${legacyId}`, c);
+        if(n) localStorage.setItem(`${STORAGE_KEY_NOTIFICATIONS}_${legacyId}`, n);
+        localStorage.setItem(`${STORAGE_KEY_PREFERENCES}_${legacyId}`, legacyPrefs);
+      }
+    }
+
+    setProfiles(loadedProfiles);
+    if (loadedProfiles.length > 0) {
+      // Don't auto-login, show selector
+    } else {
+      setIsSetupMode(true);
+    }
+    setIsLoading(false);
+  }, []);
+
+  // Load Profile Data when activeProfileId changes
+  useEffect(() => {
+    if (!activeProfileId) return;
+
+    const t = localStorage.getItem(`${STORAGE_KEY_TRANSACTIONS}_${activeProfileId}`);
+    const c = localStorage.getItem(`${STORAGE_KEY_CATEGORIES}_${activeProfileId}`);
+    const p = localStorage.getItem(`${STORAGE_KEY_PREFERENCES}_${activeProfileId}`);
+    const n = localStorage.getItem(`${STORAGE_KEY_NOTIFICATIONS}_${activeProfileId}`);
+
+    setTransactions(t ? JSON.parse(t) : []);
     
-    if (storedTransactions) setTransactions(JSON.parse(storedTransactions));
-    if (storedCategories) setCategories(JSON.parse(storedCategories));
+    // If loading categories, use them. If not (shouldn't happen for new profiles), use INITIAL.
+    setCategories(c ? JSON.parse(c) : INITIAL_CATEGORIES);
     
-    if (storedPrefs) {
-      const parsed = JSON.parse(storedPrefs);
-      // Deep merge with defaults to handle version updates
+    setNotifications(n ? JSON.parse(n) : []);
+
+    if (p) {
+      const parsed = JSON.parse(p);
       setPreferences({
         ...DEFAULT_PREFERENCES,
         ...parsed,
@@ -46,39 +101,112 @@ const App: React.FC = () => {
           ...(parsed.notificationSettings || {})
         }
       });
+    } else {
+      setPreferences(DEFAULT_PREFERENCES);
     }
+  }, [activeProfileId]);
+
+  // Persistent Storage for Active Profile
+  useEffect(() => {
+    if (!activeProfileId || isLoading) return;
+    localStorage.setItem(`${STORAGE_KEY_TRANSACTIONS}_${activeProfileId}`, JSON.stringify(transactions));
+  }, [transactions, activeProfileId, isLoading]);
+
+  useEffect(() => {
+    if (!activeProfileId || isLoading) return;
+    localStorage.setItem(`${STORAGE_KEY_CATEGORIES}_${activeProfileId}`, JSON.stringify(categories));
+  }, [categories, activeProfileId, isLoading]);
+
+  useEffect(() => {
+    if (!activeProfileId || isLoading) return;
+    localStorage.setItem(`${STORAGE_KEY_PREFERENCES}_${activeProfileId}`, JSON.stringify(preferences));
     
-    if (storedNotes) setNotifications(JSON.parse(storedNotes));
+    // Update profile list metadata (name/avatar update)
+    const updatedProfiles = profiles.map(p => 
+      p.id === activeProfileId 
+        ? { ...p, name: preferences.name, avatar: preferences.profileImage, lastActive: new Date().toISOString() } 
+        : p
+    );
+    // Only write if changed to avoid loop? Simple compare
+    const currentP = profiles.find(p => p.id === activeProfileId);
+    if (currentP && (currentP.name !== preferences.name || currentP.avatar !== preferences.profileImage)) {
+      setProfiles(updatedProfiles);
+      localStorage.setItem(STORAGE_KEY_PROFILES, JSON.stringify(updatedProfiles));
+    }
+  }, [preferences, activeProfileId, isLoading]);
+
+  useEffect(() => {
+    if (!activeProfileId || isLoading) return;
+    localStorage.setItem(`${STORAGE_KEY_NOTIFICATIONS}_${activeProfileId}`, JSON.stringify(notifications));
+  }, [notifications, activeProfileId, isLoading]);
+
+  // Profile Management Methods
+  const handleProfileSelect = (id: string) => {
+    setActiveProfileId(id);
+    setIsSetupMode(false);
+    // Update last active
+    const updatedProfiles = profiles.map(p => p.id === id ? { ...p, lastActive: new Date().toISOString() } : p);
+    setProfiles(updatedProfiles);
+    localStorage.setItem(STORAGE_KEY_PROFILES, JSON.stringify(updatedProfiles));
+  };
+
+  const handleCreateProfile = (prefs: UserPreferences) => {
+    const newId = 'user-' + Date.now();
+    const newProfile: UserProfile = {
+      id: newId,
+      name: prefs.name,
+      avatar: prefs.profileImage,
+      lastActive: new Date().toISOString()
+    };
     
-    setIsLoading(false);
-  }, []);
+    const updatedProfiles = [...profiles, newProfile];
+    setProfiles(updatedProfiles);
+    localStorage.setItem(STORAGE_KEY_PROFILES, JSON.stringify(updatedProfiles));
+    
+    // Initialize Data for new user
+    localStorage.setItem(`${STORAGE_KEY_PREFERENCES}_${newId}`, JSON.stringify(prefs));
+    
+    // ZERO OUT DEFAULT CATEGORIES for fresh start
+    const zeroedCategories = INITIAL_CATEGORIES.map(c => ({
+      ...c,
+      budget: 0,
+      initialBalance: 0
+    }));
+    localStorage.setItem(`${STORAGE_KEY_CATEGORIES}_${newId}`, JSON.stringify(zeroedCategories));
+    
+    // Empty transaction and notification history
+    localStorage.setItem(`${STORAGE_KEY_TRANSACTIONS}_${newId}`, JSON.stringify([]));
+    localStorage.setItem(`${STORAGE_KEY_NOTIFICATIONS}_${newId}`, JSON.stringify([]));
+    
+    setActiveProfileId(newId);
+    setIsSetupMode(false);
+  };
 
-  // Persistent storage updates
-  useEffect(() => {
-    if (!isLoading) localStorage.setItem(STORAGE_KEY_TRANSACTIONS, JSON.stringify(transactions));
-  }, [transactions, isLoading]);
+  const handleDeleteProfile = (id: string) => {
+    const updatedProfiles = profiles.filter(p => p.id !== id);
+    setProfiles(updatedProfiles);
+    localStorage.setItem(STORAGE_KEY_PROFILES, JSON.stringify(updatedProfiles));
+    
+    // Clean data
+    localStorage.removeItem(`${STORAGE_KEY_TRANSACTIONS}_${id}`);
+    localStorage.removeItem(`${STORAGE_KEY_CATEGORIES}_${id}`);
+    localStorage.removeItem(`${STORAGE_KEY_PREFERENCES}_${id}`);
+    localStorage.removeItem(`${STORAGE_KEY_NOTIFICATIONS}_${id}`);
 
-  useEffect(() => {
-    if (!isLoading) localStorage.setItem(STORAGE_KEY_CATEGORIES, JSON.stringify(categories));
-  }, [categories, isLoading]);
+    if (activeProfileId === id) {
+      setActiveProfileId(null);
+    }
+  };
 
-  useEffect(() => {
-    if (!isLoading) localStorage.setItem(STORAGE_KEY_PREFERENCES, JSON.stringify(preferences));
-  }, [preferences, isLoading]);
-
-  useEffect(() => {
-    if (!isLoading) localStorage.setItem(STORAGE_KEY_NOTIFICATIONS, JSON.stringify(notifications));
-  }, [notifications, isLoading]);
 
   // Notification Engine
   const checkFinancialHealth = useCallback(() => {
-    // Check if budget warnings are enabled
     if (!preferences.notificationSettings?.budgetWarnings) return;
 
     const newNotifications: Notification[] = [];
     const timestamp = new Date().toISOString();
+    const warningThreshold = (preferences.notificationSettings?.budgetWarningThreshold ?? 80) / 100;
 
-    // Check category budgets
     categories.forEach(cat => {
       if (cat.name === 'Income') return;
 
@@ -92,7 +220,6 @@ const App: React.FC = () => {
 
       const ratio = spent / budget;
 
-      // 100%+ Over budget
       if (ratio >= 1.0) {
         const title = `Over Budget: ${cat.name}`;
         if (!notifications.some(n => n.title === title && new Date(n.timestamp).toDateString() === new Date().toDateString())) {
@@ -105,9 +232,7 @@ const App: React.FC = () => {
             isRead: false
           });
         }
-      } 
-      // 80% Warning
-      else if (ratio >= 0.8) {
+      } else if (ratio >= warningThreshold) {
         const title = `Budget Warning: ${cat.name}`;
         if (!notifications.some(n => n.title === title && new Date(n.timestamp).toDateString() === new Date().toDateString())) {
           newNotifications.push({
@@ -127,12 +252,11 @@ const App: React.FC = () => {
     }
   }, [transactions, categories, preferences, notifications]);
 
-  // Run health check when data changes
   useEffect(() => {
-    if (!isLoading && transactions.length > 0) {
+    if (!isLoading && activeProfileId && transactions.length > 0) {
       checkFinancialHealth();
     }
-  }, [transactions, categories, isLoading]);
+  }, [transactions, categories, isLoading, activeProfileId]);
 
   const addTransaction = (newT: Omit<Transaction, 'id'>) => {
     const transaction: Transaction = {
@@ -140,8 +264,9 @@ const App: React.FC = () => {
       id: Math.random().toString(36).substring(2, 9)
     };
     
-    // Check for large transaction alert based on user preference
-    if (preferences.notificationSettings?.largeTransactions && transaction.amount > 500) {
+    const largeThreshold = preferences.notificationSettings?.largeTransactionThreshold ?? 500;
+    
+    if (preferences.notificationSettings?.largeTransactions && transaction.amount > largeThreshold) {
       const note: Notification = {
         id: Math.random().toString(36).substring(2, 9),
         type: NotificationType.INFO,
@@ -154,6 +279,23 @@ const App: React.FC = () => {
     }
 
     setTransactions(prev => [transaction, ...prev]);
+  };
+
+  const importTransactions = (newTransactions: Omit<Transaction, 'id'>[]) => {
+    const transactionsWithIds = newTransactions.map(t => ({
+      ...t,
+      id: Math.random().toString(36).substring(2, 9)
+    }));
+    setTransactions(prev => [...transactionsWithIds, ...prev]);
+    const note: Notification = {
+      id: Math.random().toString(36).substring(2, 9),
+      type: NotificationType.SUCCESS,
+      title: 'Import Successful',
+      message: `Successfully imported ${transactionsWithIds.length} records to your history.`,
+      timestamp: new Date().toISOString(),
+      isRead: false
+    };
+    setNotifications(prev => [note, ...prev]);
   };
 
   const deleteTransaction = (id: string) => {
@@ -176,13 +318,15 @@ const App: React.FC = () => {
     setCategories(prev => prev.filter(c => c.id !== id));
   };
 
-  const navigateToCategory = (categoryId: string) => {
-    setActiveTab('budgets');
-  };
-
   const handleClearData = () => {
-    localStorage.clear();
-    window.location.reload();
+    if (!activeProfileId) return;
+    localStorage.removeItem(`${STORAGE_KEY_TRANSACTIONS}_${activeProfileId}`);
+    localStorage.removeItem(`${STORAGE_KEY_CATEGORIES}_${activeProfileId}`);
+    localStorage.removeItem(`${STORAGE_KEY_PREFERENCES}_${activeProfileId}`);
+    localStorage.removeItem(`${STORAGE_KEY_NOTIFICATIONS}_${activeProfileId}`);
+    
+    // Also remove from profile list
+    handleDeleteProfile(activeProfileId);
   };
 
   const markNotificationsRead = () => {
@@ -195,8 +339,26 @@ const App: React.FC = () => {
 
   if (isLoading) return null;
 
-  if (!preferences.setupComplete) {
-    return <SetupWizard onComplete={setPreferences} />;
+  // View Routing
+  if (isSetupMode) {
+    return (
+      <SetupWizard 
+        onComplete={handleCreateProfile} 
+        onCancel={profiles.length > 0 ? () => setIsSetupMode(false) : undefined}
+        canCancel={profiles.length > 0}
+      />
+    );
+  }
+
+  if (!activeProfileId) {
+    return (
+      <ProfileSelector 
+        profiles={profiles} 
+        onSelectProfile={handleProfileSelect} 
+        onCreateProfile={() => setIsSetupMode(true)}
+        onDeleteProfile={handleDeleteProfile}
+      />
+    );
   }
 
   const renderContent = () => {
@@ -210,7 +372,7 @@ const App: React.FC = () => {
             categories={categories} 
             onAdd={addTransaction} 
             onDelete={deleteTransaction}
-            onNavigateToCategory={navigateToCategory}
+            onNavigateToCategory={(id) => setActiveTab('budgets')}
             preferences={preferences}
           />
         );
@@ -231,7 +393,10 @@ const App: React.FC = () => {
         return (
           <Settings 
             preferences={preferences} 
+            categories={categories}
+            transactions={transactions}
             onUpdatePreferences={(updates) => setPreferences(prev => ({...prev, ...updates}))} 
+            onImportTransactions={importTransactions}
             onClearData={handleClearData}
           />
         );
@@ -248,6 +413,7 @@ const App: React.FC = () => {
       notifications={notifications}
       onMarkRead={markNotificationsRead}
       onClearNotifications={clearNotifications}
+      onSwitchProfile={() => setActiveProfileId(null)}
     >
       {renderContent()}
     </Layout>

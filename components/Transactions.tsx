@@ -179,7 +179,7 @@ export const Transactions: React.FC<TransactionsProps> = ({
                 value={formData.description}
                 onChange={e => setFormData({...formData, description: e.target.value})}
                 placeholder="What was this for?" 
-                className="bg-slate-50 border-none rounded-2xl px-4 py-3 text-sm font-semibold outline-none focus:ring-2 ring-indigo-500/20"
+                className="bg-slate-50 border-none rounded-2xl px-4 py-3 text-sm font-semibold text-slate-900 outline-none focus:ring-2 ring-indigo-500/20"
                 required
               />
             </div>
@@ -191,7 +191,7 @@ export const Transactions: React.FC<TransactionsProps> = ({
                 value={formData.amount}
                 onChange={e => setFormData({...formData, amount: e.target.value})}
                 placeholder="0.00" 
-                className="bg-slate-50 border-none rounded-2xl px-4 py-3 text-sm font-semibold outline-none focus:ring-2 ring-indigo-500/20"
+                className="bg-slate-50 border-none rounded-2xl px-4 py-3 text-sm font-semibold text-slate-900 outline-none focus:ring-2 ring-indigo-500/20"
                 required
               />
             </div>
@@ -201,7 +201,7 @@ export const Transactions: React.FC<TransactionsProps> = ({
               <select 
                 value={formData.categoryId}
                 onChange={e => setFormData({...formData, categoryId: e.target.value})}
-                className="bg-slate-50 border-none rounded-2xl px-4 py-3 text-sm font-semibold outline-none focus:ring-2 ring-indigo-500/20"
+                className="bg-slate-50 border-none rounded-2xl px-4 py-3 text-sm font-semibold text-slate-900 outline-none focus:ring-2 ring-indigo-500/20"
               >
                 <optgroup label="Income Streams">
                   {categories.filter(c => c.type === CategoryType.INCOME).map(c => <option key={c.id} value={c.id}>{c.icon} {c.name}</option>)}
@@ -220,7 +220,7 @@ export const Transactions: React.FC<TransactionsProps> = ({
                 type="date" 
                 value={formData.date}
                 onChange={e => setFormData({...formData, date: e.target.value})}
-                className="bg-slate-50 border-none rounded-2xl px-4 py-3 text-sm font-semibold outline-none focus:ring-2 ring-indigo-500/20"
+                className="bg-slate-50 border-none rounded-2xl px-4 py-3 text-sm font-semibold text-slate-900 outline-none focus:ring-2 ring-indigo-500/20"
               />
             </div>
           </div>
@@ -244,7 +244,7 @@ export const Transactions: React.FC<TransactionsProps> = ({
                     <select 
                       value={formData.frequency}
                       onChange={e => setFormData({...formData, frequency: e.target.value as RecurringFrequency})}
-                      className="bg-slate-100 border-none rounded-xl px-4 py-2.5 text-[11px] font-black uppercase tracking-widest outline-none focus:ring-2 ring-indigo-500/10"
+                      className="bg-slate-100 border-none rounded-xl px-4 py-2.5 text-[11px] font-black text-slate-900 uppercase tracking-widest outline-none focus:ring-2 ring-indigo-500/10"
                     >
                       {Object.values(RecurringFrequency).map(f => <option key={f} value={f}>{f}</option>)}
                     </select>
@@ -256,7 +256,7 @@ export const Transactions: React.FC<TransactionsProps> = ({
                       type="date" 
                       value={formData.recurringEndDate}
                       onChange={e => setFormData({...formData, recurringEndDate: e.target.value})}
-                      className="bg-slate-100 border-none rounded-xl px-4 py-2.5 text-[11px] font-black outline-none focus:ring-2 ring-indigo-500/10"
+                      className="bg-slate-100 border-none rounded-xl px-4 py-2.5 text-[11px] font-black text-slate-900 outline-none focus:ring-2 ring-indigo-500/10"
                     />
                   </div>
 
@@ -288,7 +288,7 @@ export const Transactions: React.FC<TransactionsProps> = ({
             placeholder="Search by description..."
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
-            className="w-full bg-white border border-slate-200 rounded-[2rem] py-4 pl-14 pr-14 outline-none focus:ring-4 ring-indigo-500/10 transition-all shadow-sm"
+            className="w-full bg-white border border-slate-200 rounded-[2rem] py-4 pl-14 pr-14 text-slate-900 outline-none focus:ring-4 ring-indigo-500/10 transition-all shadow-sm"
           />
           {searchQuery && (
             <button 
@@ -323,7 +323,7 @@ export const Transactions: React.FC<TransactionsProps> = ({
               type="date" 
               value={filters.startDate}
               onChange={e => setFilters({...filters, startDate: e.target.value})}
-              className="bg-white border border-slate-100 rounded-xl px-3 py-1.5 text-xs font-bold outline-none"
+              className="bg-white border border-slate-100 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-900 outline-none"
             />
           </div>
           <div className="flex flex-col gap-1 min-w-[140px]">
@@ -332,7 +332,7 @@ export const Transactions: React.FC<TransactionsProps> = ({
               type="date" 
               value={filters.endDate}
               onChange={e => setFilters({...filters, endDate: e.target.value})}
-              className="bg-white border border-slate-100 rounded-xl px-3 py-1.5 text-xs font-bold outline-none"
+              className="bg-white border border-slate-100 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-900 outline-none"
             />
           </div>
           <div className="flex flex-col gap-1 min-w-[140px]">
@@ -340,7 +340,7 @@ export const Transactions: React.FC<TransactionsProps> = ({
             <select 
               value={filters.categoryId}
               onChange={e => setFilters({...filters, categoryId: e.target.value})}
-              className="bg-white border border-slate-100 rounded-xl px-3 py-1.5 text-xs font-bold outline-none"
+              className="bg-white border border-slate-100 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-900 outline-none"
             >
               <option value="all">All Categories</option>
               {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
@@ -351,7 +351,7 @@ export const Transactions: React.FC<TransactionsProps> = ({
             <select 
               value={filters.typeId}
               onChange={e => setFilters({...filters, typeId: e.target.value})}
-              className="bg-white border border-slate-100 rounded-xl px-3 py-1.5 text-xs font-bold outline-none"
+              className="bg-white border border-slate-100 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-900 outline-none"
             >
               <option value="all">All Types</option>
               {preferences.transactionTypes.map(type => (

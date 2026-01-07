@@ -10,6 +10,7 @@ interface LayoutProps {
   notifications: Notification[];
   onMarkRead: () => void;
   onClearNotifications: () => void;
+  onSwitchProfile: () => void;
 }
 
 export const Layout: React.FC<LayoutProps> = ({ 
@@ -19,7 +20,8 @@ export const Layout: React.FC<LayoutProps> = ({
   preferences,
   notifications,
   onMarkRead,
-  onClearNotifications
+  onClearNotifications,
+  onSwitchProfile
 }) => {
   const [showNotifications, setShowNotifications] = useState(false);
   const notificationRef = useRef<HTMLDivElement>(null);
@@ -105,11 +107,17 @@ export const Layout: React.FC<LayoutProps> = ({
             </button>
           ))}
         </nav>
-        <div className="p-6 border-t border-slate-800 hidden md:block">
+        <div className="p-6 border-t border-slate-800 hidden md:block space-y-4">
           <div className="bg-slate-800 rounded-2xl p-4 border border-slate-700">
             <p className="text-[10px] text-slate-400 mb-1 uppercase tracking-widest font-black">Profile</p>
-            <p className="text-xs font-bold text-white uppercase">{preferences.name || 'GUEST'}</p>
+            <p className="text-xs font-bold text-white uppercase truncate">{preferences.name || 'GUEST'}</p>
           </div>
+          <button 
+            onClick={onSwitchProfile}
+            className="w-full text-center text-[9px] font-bold text-slate-500 hover:text-white uppercase tracking-widest transition-colors py-2"
+          >
+            Switch Profile
+          </button>
         </div>
       </aside>
 
@@ -173,7 +181,20 @@ export const Layout: React.FC<LayoutProps> = ({
               )}
             </div>
 
-            <Avatar size="8" />
+            <button 
+              onClick={() => setActiveTab('settings')}
+              className="hover:scale-105 active:scale-95 transition-transform cursor-pointer"
+              title="Go to Settings"
+            >
+              <Avatar size="8" />
+            </button>
+            <button
+               onClick={onSwitchProfile}
+               className="md:hidden text-xl text-slate-400 ml-2"
+               title="Switch Profile"
+            >
+              🚪
+            </button>
           </div>
         </header>
 

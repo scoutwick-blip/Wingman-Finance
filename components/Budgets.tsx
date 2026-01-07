@@ -129,9 +129,10 @@ export const Budgets: React.FC<BudgetsProps> = ({
               <span className="text-slate-400 text-xs font-bold">{preferences.currency}</span>
               <input 
                 type="number"
-                value={cat.type === CategoryType.DEBT ? cat.initialBalance : cat.budget}
+                value={(cat.type === CategoryType.DEBT ? cat.initialBalance : cat.budget) || ''}
+                placeholder="0"
                 onChange={(e) => {
-                  const val = parseFloat(e.target.value) || 0;
+                  const val = e.target.value === '' ? 0 : parseFloat(e.target.value);
                   onUpdateCategory(cat.id, cat.type === CategoryType.DEBT ? { initialBalance: val } : { budget: val });
                 }}
                 className="w-full bg-transparent text-sm font-bold text-slate-800 outline-none"
@@ -220,7 +221,7 @@ export const Budgets: React.FC<BudgetsProps> = ({
                   placeholder="e.g. Dining Out"
                   value={newCat.name}
                   onChange={e => setNewCat({...newCat, name: e.target.value})}
-                  className="w-full bg-white border border-slate-200 rounded-lg px-4 py-2 text-sm font-bold outline-none"
+                  className="w-full bg-white border border-slate-200 rounded-lg px-4 py-2 text-sm font-bold text-slate-900 outline-none"
                   required
                 />
               </div>
@@ -232,13 +233,13 @@ export const Budgets: React.FC<BudgetsProps> = ({
                 <input 
                   type="number"
                   placeholder="0.00"
-                  value={newCat.type === CategoryType.DEBT ? newCat.initialBalance : newCat.budget}
+                  value={(newCat.type === CategoryType.DEBT ? newCat.initialBalance : newCat.budget) || ''}
                   onChange={e => {
-                    const val = parseFloat(e.target.value) || 0;
+                    const val = e.target.value === '' ? 0 : parseFloat(e.target.value);
                     if (newCat.type === CategoryType.DEBT) setNewCat({...newCat, initialBalance: val, budget: val});
                     else setNewCat({...newCat, budget: val});
                   }}
-                  className="w-full bg-white border border-slate-200 rounded-lg px-4 py-2 text-sm font-bold outline-none"
+                  className="w-full bg-white border border-slate-200 rounded-lg px-4 py-2 text-sm font-bold text-slate-900 outline-none"
                 />
               </div>
             </div>

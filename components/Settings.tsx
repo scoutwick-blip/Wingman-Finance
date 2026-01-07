@@ -1,22 +1,36 @@
 
 import React, { useState, useRef } from 'react';
-import { UserPreferences, TransactionBehavior, TransactionTypeDefinition } from '../types';
+import { UserPreferences, TransactionBehavior, TransactionTypeDefinition, Category, Transaction } from '../types';
 
 interface SettingsProps {
   preferences: UserPreferences;
+  categories: Category[];
+  transactions: Transaction[];
   onUpdatePreferences: (updates: Partial<UserPreferences>) => void;
+  onImportTransactions: (transactions: Omit<Transaction, 'id'>[]) => void;
   onClearData: () => void;
 }
 
-export const Settings: React.FC<SettingsProps> = ({ preferences, onUpdatePreferences, onClearData }) => {
+export const Settings: React.FC<SettingsProps> = ({ 
+  preferences, 
+  categories,
+  transactions,
+  onUpdatePreferences, 
+  onImportTransactions,
+  onClearData 
+}) => {
   const currencies = ['$', '€', '£', '¥', '₹', '₱', '₩', 'R$'];
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const csvInputRef = useRef<HTMLInputElement>(null);
   const [newTypeName, setNewTypeName] = useState('');
   const [newTypeBehavior, setNewTypeBehavior] = useState<TransactionBehavior>(TransactionBehavior.OUTFLOW);
+  const [importStatus, setImportStatus] = useState<string>('');
 
   // Safety fallbacks for notification settings
   const budgetWarnings = preferences.notificationSettings?.budgetWarnings ?? true;
+  const budgetWarningThreshold = preferences.notificationSettings?.budgetWarningThreshold ?? 80;
   const largeTransactions = preferences.notificationSettings?.largeTransactions ?? true;
+  const largeTransactionThreshold = preferences.notificationSettings?.largeTransactionThreshold ?? 500;
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -27,6 +41,150 @@ export const Settings: React.FC<SettingsProps> = ({ preferences, onUpdatePrefere
       };
       reader.readAsDataURL(file);
     }
+  };
+
+  const handleCSVUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const text = event.target?.result as string;
+      if (!text) return;
+      
+      try {
+        const lines = text.split(/\r?\n/);
+        if (lines.length < 2) {
+          setImportStatus('Error: File appears empty or invalid.');
+          return;
+        }
+
+        const headers = lines[0].toLowerCase().split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+        
+        // Basic column mapping
+        const dateIdx = headers.findIndex(h => h.includes('date'));
+        const descIdx = headers.findIndex(h => h.includes('desc') || h.includes('memo') || h.includes('narrative'));
+        const amountIdx = headers.findIndex(h => h.includes('amount') || h.includes('value'));
+        const catIdx = headers.findIndex(h => h.includes('category') || h.includes('tag'));
+
+        if (dateIdx === -1 || descIdx === -1 || amountIdx === -1) {
+          setImportStatus('Error: Could not identify Date, Description, or Amount columns.');
+          return;
+        }
+
+        const newTransactions: Omit<Transaction, 'id'>[] = [];
+        let successCount = 0;
+
+        // Skip header, process rows
+        for (let i = 1; i < lines.length; i++) {
+          const line = lines[i].trim();
+          if (!line) continue;
+
+          // Simple split, handling basic quoted commas is complex, simple split for now
+          // A robust solution uses a CSV parser library, but for "simple but in-depth" we try regex split
+          const cols = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(c => c.trim().replace(/^"|"$/g, ''));
+          
+          if (cols.length < headers.length) continue;
+
+          const dateStr = cols[dateIdx];
+          const desc = cols[descIdx];
+          const amountStr = cols[amountIdx];
+          
+          // Parse amount
+          let amount = parseFloat(amountStr.replace(/[^0-9.-]/g, ''));
+          if (isNaN(amount)) continue;
+
+          const isExpense = amount < 0;
+          amount = Math.abs(amount); // Store absolute value
+
+          // Determine Category
+          let categoryId = categories[0].id; // Default
+          if (catIdx !== -1 && cols[catIdx]) {
+            const catName = cols[catIdx].toLowerCase();
+            const matchedCat = categories.find(c => c.name.toLowerCase() === catName);
+            if (matchedCat) categoryId = matchedCat.id;
+          }
+
+          // Determine Type based on sign
+          let typeId = '';
+          if (isExpense) {
+            const type = preferences.transactionTypes.find(t => t.behavior === TransactionBehavior.OUTFLOW);
+            typeId = type ? type.id : preferences.transactionTypes[0].id;
+          } else {
+            const type = preferences.transactionTypes.find(t => t.behavior === TransactionBehavior.INFLOW);
+            typeId = type ? type.id : preferences.transactionTypes[0].id;
+          }
+
+          // Parse Date (Attempt YYYY-MM-DD or MM/DD/YYYY)
+          let dateObj = new Date(dateStr);
+          if (isNaN(dateObj.getTime())) {
+             dateObj = new Date(); // Fallback to today if invalid
+          }
+          const formattedDate = dateObj.toISOString().split('T')[0];
+
+          newTransactions.push({
+            date: formattedDate,
+            description: desc,
+            amount: amount,
+            categoryId: categoryId,
+            typeId: typeId,
+            isRecurring: false
+          });
+          successCount++;
+        }
+
+        if (successCount > 0) {
+          onImportTransactions(newTransactions);
+          setImportStatus(`Success: Imported ${successCount} transactions.`);
+          // Clear input
+          if (csvInputRef.current) csvInputRef.current.value = '';
+        } else {
+          setImportStatus('Error: No valid transactions found.');
+        }
+
+      } catch (err) {
+        setImportStatus('Error parsing file. Ensure it is a valid CSV.');
+        console.error(err);
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  const handleExportCSV = () => {
+    if (transactions.length === 0) {
+      alert('No transactions to export.');
+      return;
+    }
+
+    const headers = ['Date', 'Description', 'Amount', 'Category', 'Type', 'Recurring', 'Frequency'];
+    const rows = transactions.map(t => {
+      const category = categories.find(c => c.id === t.categoryId)?.name || 'Unknown';
+      const type = preferences.transactionTypes.find(type => type.id === t.typeId)?.label || 'Unknown';
+      
+      // Escape quotes in strings and wrap in quotes to handle commas
+      const cleanDesc = t.description.replace(/"/g, '""');
+      const cleanCat = category.replace(/"/g, '""');
+      
+      return [
+        t.date,
+        `"${cleanDesc}"`,
+        t.amount,
+        `"${cleanCat}"`,
+        type,
+        t.isRecurring ? 'Yes' : 'No',
+        t.frequency || ''
+      ].join(',');
+    });
+
+    const csvContent = [headers.join(','), ...rows].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `wingman_export_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const handleAddType = () => {
@@ -49,12 +207,17 @@ export const Settings: React.FC<SettingsProps> = ({ preferences, onUpdatePrefere
     });
   };
 
-  const toggleNotification = (key: keyof UserPreferences['notificationSettings']) => {
-    const currentSettings = preferences.notificationSettings || { budgetWarnings: true, largeTransactions: true };
+  const updateNotificationSetting = (updates: Partial<UserPreferences['notificationSettings']>) => {
+    const currentSettings = preferences.notificationSettings || { 
+      budgetWarnings: true, 
+      budgetWarningThreshold: 80,
+      largeTransactions: true,
+      largeTransactionThreshold: 500
+    };
     onUpdatePreferences({
       notificationSettings: {
         ...currentSettings,
-        [key]: !currentSettings[key]
+        ...updates
       }
     });
   };
@@ -101,7 +264,7 @@ export const Settings: React.FC<SettingsProps> = ({ preferences, onUpdatePrefere
                 value={preferences.name || ''}
                 onChange={e => onUpdatePreferences({ name: e.target.value })}
                 placeholder="RANK / NAME" 
-                className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 ring-indigo-500/10"
+                className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold text-slate-900 outline-none focus:ring-2 ring-indigo-500/10"
               />
             </div>
             {preferences.profileImage && (
@@ -142,38 +305,83 @@ export const Settings: React.FC<SettingsProps> = ({ preferences, onUpdatePrefere
         <h4 className="font-bold text-slate-800 border-b border-slate-50 pb-4 text-[10px] uppercase tracking-[0.2em]">Notification Preferences</h4>
         
         <div className="space-y-3">
-          <div 
-            className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl hover:bg-slate-100 transition-colors cursor-pointer group gap-4"
-            onClick={() => toggleNotification('budgetWarnings')}
-          >
-            <div className="flex-1 min-w-0">
-              <p className="font-bold text-slate-800 text-sm">Budget Warnings</p>
-              <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest leading-tight">Alert me when I reach 80% or 100% of a budget</p>
-            </div>
-            <div className="shrink-0">
-              <div 
-                className={`w-11 h-6 rounded-full transition-colors relative ${budgetWarnings ? 'bg-indigo-600' : 'bg-slate-300'}`}
-              >
-                <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all duration-300 shadow-sm ${budgetWarnings ? 'left-6' : 'left-1'}`} />
+          {/* Budget Warnings */}
+          <div className="bg-slate-50 rounded-2xl overflow-hidden transition-all">
+            <div 
+              className="flex items-center justify-between p-4 cursor-pointer hover:bg-slate-100 transition-colors gap-4"
+              onClick={() => updateNotificationSetting({ budgetWarnings: !budgetWarnings })}
+            >
+              <div className="flex-1 min-w-0">
+                <p className="font-bold text-slate-800 text-sm">Budget Warnings</p>
+                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest leading-tight">
+                  Alert when spending approaches limits
+                </p>
+              </div>
+              <div className="shrink-0">
+                <div className={`w-11 h-6 rounded-full transition-colors relative ${budgetWarnings ? 'bg-indigo-600' : 'bg-slate-300'}`}>
+                  <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all duration-300 shadow-sm ${budgetWarnings ? 'left-6' : 'left-1'}`} />
+                </div>
               </div>
             </div>
+            
+            {budgetWarnings && (
+              <div className="px-4 pb-4 pt-2 border-t border-slate-100 animate-in slide-in-from-top-2">
+                <div className="flex flex-col gap-2">
+                  <div className="flex justify-between items-center">
+                    <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Warning Threshold</label>
+                    <span className="text-xs font-black text-indigo-600">{budgetWarningThreshold}%</span>
+                  </div>
+                  <input 
+                    type="range" 
+                    min="50" 
+                    max="100" 
+                    step="5"
+                    value={budgetWarningThreshold}
+                    onChange={(e) => updateNotificationSetting({ budgetWarningThreshold: parseInt(e.target.value) })}
+                    className="w-full accent-indigo-600 h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer"
+                  />
+                  <p className="text-[9px] text-slate-400 italic">You will be notified when you reach {budgetWarningThreshold}% of any budget.</p>
+                </div>
+              </div>
+            )}
           </div>
 
-          <div 
-            className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl hover:bg-slate-100 transition-colors cursor-pointer group gap-4"
-            onClick={() => toggleNotification('largeTransactions')}
-          >
-            <div className="flex-1 min-w-0">
-              <p className="font-bold text-slate-800 text-sm">Large Transactions</p>
-              <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest leading-tight">Notify me for transactions over {preferences.currency}500</p>
-            </div>
-            <div className="shrink-0">
-              <div 
-                className={`w-11 h-6 rounded-full transition-colors relative ${largeTransactions ? 'bg-indigo-600' : 'bg-slate-300'}`}
-              >
-                <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all duration-300 shadow-sm ${largeTransactions ? 'left-6' : 'left-1'}`} />
+          {/* Large Transactions */}
+          <div className="bg-slate-50 rounded-2xl overflow-hidden transition-all">
+            <div 
+              className="flex items-center justify-between p-4 cursor-pointer hover:bg-slate-100 transition-colors gap-4"
+              onClick={() => updateNotificationSetting({ largeTransactions: !largeTransactions })}
+            >
+              <div className="flex-1 min-w-0">
+                <p className="font-bold text-slate-800 text-sm">Large Transactions</p>
+                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest leading-tight">
+                  Flag significant account activity
+                </p>
+              </div>
+              <div className="shrink-0">
+                <div className={`w-11 h-6 rounded-full transition-colors relative ${largeTransactions ? 'bg-indigo-600' : 'bg-slate-300'}`}>
+                  <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all duration-300 shadow-sm ${largeTransactions ? 'left-6' : 'left-1'}`} />
+                </div>
               </div>
             </div>
+
+            {largeTransactions && (
+              <div className="px-4 pb-4 pt-2 border-t border-slate-100 animate-in slide-in-from-top-2">
+                <div className="flex flex-col gap-2">
+                  <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Transaction Threshold</label>
+                  <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-3 py-2">
+                    <span className="text-slate-500 font-bold text-sm">{preferences.currency}</span>
+                    <input 
+                      type="number" 
+                      value={largeTransactionThreshold}
+                      onChange={(e) => updateNotificationSetting({ largeTransactionThreshold: parseInt(e.target.value) || 0 })}
+                      className="w-full bg-transparent text-sm font-bold text-slate-800 outline-none"
+                    />
+                  </div>
+                  <p className="text-[9px] text-slate-400 italic">Alerts trigger for transactions over {preferences.currency}{largeTransactionThreshold}.</p>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </section>
@@ -213,13 +421,13 @@ export const Settings: React.FC<SettingsProps> = ({ preferences, onUpdatePrefere
               value={newTypeName}
               onChange={e => setNewTypeName(e.target.value)}
               placeholder="e.g. Dividend"
-              className="flex-1 bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold outline-none"
+              className="flex-1 bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-900 outline-none"
             />
             <div className="flex gap-2">
               <select 
                 value={newTypeBehavior}
                 onChange={e => setNewTypeBehavior(e.target.value as TransactionBehavior)}
-                className="flex-1 sm:flex-none bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-[10px] font-bold outline-none cursor-pointer uppercase"
+                className="flex-1 sm:flex-none bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-[10px] font-bold text-slate-900 outline-none cursor-pointer uppercase"
               >
                 <option value={TransactionBehavior.INFLOW}>Inflow (+)</option>
                 <option value={TransactionBehavior.OUTFLOW}>Outflow (-)</option>
@@ -254,21 +462,70 @@ export const Settings: React.FC<SettingsProps> = ({ preferences, onUpdatePrefere
         </div>
       </section>
 
-      {/* Data Management */}
-      <section className="bg-rose-50 p-6 rounded-3xl border border-rose-100 space-y-4">
-        <div className="flex items-center gap-2 text-rose-800">
-          <span className="text-xl">🚨</span>
-          <h4 className="font-black text-xs uppercase tracking-widest">Clear Data</h4>
+      {/* Data Management & Import */}
+      <section className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-6">
+        <h4 className="font-bold text-slate-800 border-b border-slate-50 pb-4 text-[10px] uppercase tracking-[0.2em]">Data Management</h4>
+        
+        {/* Import */}
+        <div className="p-5 bg-slate-50 rounded-2xl border border-slate-100 space-y-3">
+           <div className="flex items-center justify-between">
+              <div>
+                <p className="font-bold text-slate-800 text-sm">Import History</p>
+                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Upload CSV (Date, Description, Amount)</p>
+              </div>
+              <button 
+                onClick={() => csvInputRef.current?.click()}
+                className="bg-slate-900 text-white px-5 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-slate-800 transition-all shadow-md"
+              >
+                Upload CSV
+              </button>
+           </div>
+           <input 
+             type="file" 
+             ref={csvInputRef}
+             accept=".csv"
+             onChange={handleCSVUpload}
+             className="hidden" 
+           />
+           {importStatus && (
+             <div className={`text-[10px] font-bold uppercase tracking-widest px-3 py-2 rounded-lg ${importStatus.startsWith('Error') ? 'bg-rose-100 text-rose-600' : 'bg-emerald-100 text-emerald-600'}`}>
+               {importStatus}
+             </div>
+           )}
         </div>
-        <p className="text-[10px] text-rose-600 font-bold uppercase tracking-widest leading-relaxed">This will permanently delete all logs and settings from this device. This action cannot be reversed.</p>
-        <button 
-          onClick={() => {
-            if(confirm('Confirm total data deletion? This action is permanent.')) onClearData();
-          }}
-          className="bg-rose-600 text-white px-8 py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-rose-700 transition-all shadow-lg shadow-rose-200"
-        >
-          Reset All Data
-        </button>
+
+        {/* Export Data */}
+        <div className="p-5 bg-indigo-50 rounded-2xl border border-indigo-100 space-y-3">
+           <div className="flex items-center justify-between">
+              <div>
+                <p className="font-bold text-slate-800 text-sm">Export Data</p>
+                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Download all records as CSV</p>
+              </div>
+              <button 
+                onClick={handleExportCSV}
+                className="bg-indigo-600 text-white px-5 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-indigo-700 transition-all shadow-md"
+              >
+                Download CSV
+              </button>
+           </div>
+        </div>
+
+        {/* Clear Data */}
+        <div className="p-5 bg-rose-50 rounded-2xl border border-rose-100 space-y-3">
+          <div className="flex items-center gap-2 text-rose-800">
+            <span className="text-xl">🚨</span>
+            <p className="font-bold text-sm">Reset Application</p>
+          </div>
+          <p className="text-[10px] text-rose-600 font-bold uppercase tracking-widest leading-relaxed">Permanently delete all logs and settings.</p>
+          <button 
+            onClick={() => {
+              if(confirm('Confirm total data deletion? This action is permanent.')) onClearData();
+            }}
+            className="w-full bg-rose-600 text-white px-8 py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-rose-700 transition-all shadow-lg shadow-rose-200"
+          >
+            Reset All Data
+          </button>
+        </div>
       </section>
     </div>
   );
