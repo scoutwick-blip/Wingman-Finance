@@ -86,7 +86,8 @@ const App: React.FC = () => {
                 id: newId,
                 name: (data.preferences?.name || 'Imported User') + ' (Imported)',
                 avatar: data.preferences?.profileImage,
-                lastActive: new Date().toISOString()
+                lastActive: new Date().toISOString(),
+                pin: data.preferences?.pin
              };
              
              // Save to storage immediately
@@ -182,12 +183,18 @@ const App: React.FC = () => {
       // Update profile list metadata (name/avatar update)
       const updatedProfiles = profiles.map(p => 
         p.id === activeProfileId 
-          ? { ...p, name: preferences.name, avatar: preferences.profileImage, lastActive: new Date().toISOString() } 
+          ? { 
+              ...p, 
+              name: preferences.name, 
+              avatar: preferences.profileImage, 
+              pin: preferences.pin, // Sync PIN if changed in settings
+              lastActive: new Date().toISOString() 
+            } 
           : p
       );
       // Only write if changed to avoid loop? Simple compare
       const currentP = profiles.find(p => p.id === activeProfileId);
-      if (currentP && (currentP.name !== preferences.name || currentP.avatar !== preferences.profileImage)) {
+      if (currentP && (currentP.name !== preferences.name || currentP.avatar !== preferences.profileImage || currentP.pin !== preferences.pin)) {
         setProfiles(updatedProfiles);
         localStorage.setItem(STORAGE_KEY_PROFILES, JSON.stringify(updatedProfiles));
       }
@@ -222,6 +229,7 @@ const App: React.FC = () => {
       id: newId,
       name: prefs.name,
       avatar: prefs.profileImage,
+      pin: prefs.pin,
       lastActive: new Date().toISOString()
     };
     

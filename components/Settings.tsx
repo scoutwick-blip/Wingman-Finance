@@ -47,6 +47,10 @@ export const Settings: React.FC<SettingsProps> = ({
   const [qrData, setQrData] = useState<string>('');
   const [qrError, setQrError] = useState<string>('');
 
+  // PIN State
+  const [pinMode, setPinMode] = useState<'none' | 'set' | 'change'>('none');
+  const [pinInput, setPinInput] = useState('');
+
   // Safety fallbacks for notification settings
   const budgetWarnings = preferences.notificationSettings?.budgetWarnings ?? true;
   const budgetWarningThreshold = preferences.notificationSettings?.budgetWarningThreshold ?? 80;
@@ -470,6 +474,104 @@ export const Settings: React.FC<SettingsProps> = ({
             </div>
           )}
         </div>
+      </section>
+
+      {/* Security Section (PIN) */}
+      <section className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-6">
+        <h4 className="font-bold text-slate-800 border-b border-slate-50 pb-4 text-[10px] uppercase tracking-[0.2em]">Security</h4>
+        
+        <div className="flex items-center justify-between">
+            <div className="space-y-1">
+                <p className="font-bold text-slate-800 text-sm">Access PIN</p>
+                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">
+                    {preferences.pin ? 'Profile is secured' : 'No PIN configured'}
+                </p>
+            </div>
+            {preferences.pin ? (
+                <div className="flex gap-2">
+                     <button 
+                        onClick={() => {
+                            if(confirm("Remove security PIN?")) onUpdatePreferences({ pin: undefined });
+                        }}
+                        className="bg-rose-50 text-rose-600 px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-rose-100 transition-all"
+                    >
+                        Remove
+                    </button>
+                    <button 
+                        onClick={() => { setPinMode('set'); setPinInput(''); }}
+                        className="bg-slate-100 text-slate-600 px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-slate-200 transition-all"
+                    >
+                        Change
+                    </button>
+                </div>
+            ) : (
+                <button 
+                    onClick={() => { setPinMode('set'); setPinInput(''); }}
+                    className="bg-indigo-600 text-white px-6 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-indigo-700 transition-all"
+                >
+                    Set PIN
+                </button>
+            )}
+        </div>
+
+        {pinMode === 'set' && (
+            <div className="bg-slate-50 p-6 rounded-2xl animate-in fade-in slide-in-from-top-2">
+                <p className="text-center text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4">Enter 4-Digit PIN</p>
+                <div className="flex justify-center gap-4 mb-6">
+                    {[0, 1, 2, 3].map(i => (
+                        <div key={i} className={`w-3 h-3 rounded-full border-2 ${pinInput.length > i ? 'bg-indigo-600 border-indigo-600' : 'border-slate-300'}`} />
+                    ))}
+                </div>
+                <div className="grid grid-cols-3 gap-2 max-w-[200px] mx-auto">
+                    {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => (
+                        <button 
+                            key={num}
+                            onClick={() => {
+                                if (pinInput.length < 4) setPinInput(prev => prev + num);
+                            }}
+                            className="bg-white h-10 rounded-lg text-slate-800 font-bold text-lg shadow-sm hover:bg-slate-100"
+                        >
+                            {num}
+                        </button>
+                    ))}
+                    <div />
+                    <button 
+                         onClick={() => {
+                            if (pinInput.length < 4) setPinInput(prev => prev + '0');
+                         }}
+                         className="bg-white h-10 rounded-lg text-slate-800 font-bold text-lg shadow-sm hover:bg-slate-100"
+                    >
+                        0
+                    </button>
+                    <button 
+                         onClick={() => setPinInput(prev => prev.slice(0, -1))}
+                         className="bg-rose-50 h-10 rounded-lg text-rose-500 font-bold shadow-sm hover:bg-rose-100 flex items-center justify-center"
+                    >
+                        ⌫
+                    </button>
+                </div>
+                <div className="flex gap-2 mt-6">
+                    <button 
+                        onClick={() => setPinMode('none')}
+                        className="flex-1 py-3 text-slate-400 font-bold text-xs uppercase tracking-widest hover:text-slate-600"
+                    >
+                        Cancel
+                    </button>
+                    <button 
+                        onClick={() => {
+                            if (pinInput.length === 4) {
+                                onUpdatePreferences({ pin: pinInput });
+                                setPinMode('none');
+                            }
+                        }}
+                        disabled={pinInput.length !== 4}
+                        className="flex-1 bg-slate-900 text-white rounded-xl font-bold text-[10px] uppercase tracking-widest disabled:opacity-50"
+                    >
+                        Save PIN
+                    </button>
+                </div>
+            </div>
+        )}
       </section>
 
       {/* Data Management (Files) */}

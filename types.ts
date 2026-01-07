@@ -67,6 +67,7 @@ export interface UserPreferences {
   name: string;
   currency: string;
   privacyMode: boolean;
+  pin?: string;
   accentColor: string;
   setupComplete: boolean;
   transactionTypes: TransactionTypeDefinition[];
@@ -88,6 +89,7 @@ export interface UserProfile {
   id: string;
   name: string;
   avatar?: string;
+  pin?: string;
   lastActive: string;
 }
 

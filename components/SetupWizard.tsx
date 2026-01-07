@@ -14,19 +14,28 @@ export const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete, onCancel, 
   const [name, setName] = useState('');
   const [currency, setCurrency] = useState('$');
   const [privacyMode, setPrivacyMode] = useState(false);
+  const [pin, setPin] = useState('');
   
-  const totalSteps = 4;
+  const totalSteps = 5;
 
   const handleNext = () => step < totalSteps ? setStep(step + 1) : handleFinish();
   const handleFinish = () => {
     onComplete({
-      name, currency, privacyMode,
+      name, currency, privacyMode, pin,
       accentColor: '#003087',
       setupComplete: true,
       transactionTypes: DEFAULT_TRANSACTION_TYPES,
       profileImage: undefined,
       notificationSettings: DEFAULT_PREFERENCES.notificationSettings
     });
+  };
+
+  const handlePinInput = (num: string) => {
+    if (num === 'back') {
+      setPin(prev => prev.slice(0, -1));
+    } else if (pin.length < 4) {
+      setPin(prev => prev + num);
+    }
   };
 
   return (
@@ -50,13 +59,15 @@ export const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete, onCancel, 
             {step === 1 && "Welcome"}
             {step === 2 && "Currency"}
             {step === 3 && "Privacy"}
-            {step === 4 && "Ready for Takeoff"}
+            {step === 4 && "Secure Access"}
+            {step === 5 && "Ready for Takeoff"}
           </h2>
           <p className="text-xs font-bold text-slate-400 uppercase tracking-[0.2em]">
             {step === 1 && "Let's set up your profile"}
             {step === 2 && "Choose your preferred symbol"}
             {step === 3 && "Configure your display settings"}
-            {step === 4 && "Quick Application Tour"}
+            {step === 4 && "Set a 4-digit PIN (Optional)"}
+            {step === 5 && "Quick Application Tour"}
           </p>
         </div>
 
@@ -101,6 +112,42 @@ export const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete, onCancel, 
           )}
 
           {step === 4 && (
+            <div className="space-y-6 flex flex-col items-center">
+               <div className="flex gap-4 justify-center mb-4">
+                  {[0, 1, 2, 3].map(i => (
+                    <div key={i} className={`w-4 h-4 rounded-full border-2 ${pin.length > i ? 'bg-indigo-600 border-indigo-600' : 'border-slate-300'}`} />
+                  ))}
+               </div>
+               
+               <div className="grid grid-cols-3 gap-3 w-full max-w-[240px]">
+                 {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => (
+                   <button 
+                     key={num} 
+                     onClick={() => handlePinInput(num.toString())}
+                     className="h-12 rounded-xl bg-slate-50 text-slate-800 font-black text-lg hover:bg-slate-100 active:scale-95 transition-all"
+                   >
+                     {num}
+                   </button>
+                 ))}
+                 <div />
+                 <button 
+                   onClick={() => handlePinInput('0')}
+                   className="h-12 rounded-xl bg-slate-50 text-slate-800 font-black text-lg hover:bg-slate-100 active:scale-95 transition-all"
+                 >
+                   0
+                 </button>
+                 <button 
+                   onClick={() => handlePinInput('back')}
+                   className="h-12 rounded-xl bg-rose-50 text-rose-500 font-black text-lg hover:bg-rose-100 active:scale-95 transition-all flex items-center justify-center"
+                 >
+                   ⌫
+                 </button>
+               </div>
+               <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Leave empty for no security</p>
+            </div>
+          )}
+
+          {step === 5 && (
             <div className="space-y-4">
               <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 flex gap-4 items-start">
                 <div className="text-2xl">📊</div>
