@@ -168,18 +168,21 @@ export const Layout: React.FC<LayoutProps> = ({
           </div>
         </header>
 
-        {/* Notification Dropdown - Moved to Fixed Position to escape overflow clipping */}
+        {/* Notification Dropdown - Using Fixed positioning to escape container overflow */}
         {showNotifications && (
           <div 
             ref={dropdownRef}
             className={`
               bg-white rounded-[2rem] border border-slate-200 shadow-2xl overflow-hidden flex flex-col z-[100] animate-in fade-in slide-in-from-top-4 duration-200
               
-              /* Mobile: Fixed at top with margins */
-              fixed top-[4.5rem] left-4 right-4 max-h-[60vh]
+              /* Universal: Fixed positioning to avoid overflow clipping from main container */
+              fixed top-[4.5rem]
               
-              /* Desktop: Fixed top right aligned with header padding */
-              md:absolute md:top-[4.5rem] md:right-8 md:left-auto md:w-80 md:max-h-[500px]
+              /* Mobile: Full width with margins */
+              left-4 right-4 max-h-[60vh]
+              
+              /* Desktop: Aligned right, specific width */
+              md:left-auto md:right-8 md:w-80 md:max-h-[500px]
             `}
           >
             <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-900 shrink-0">

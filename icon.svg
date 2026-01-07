@@ -1,5 +1,4 @@
-
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" rx="100" fill="#003087"/>
-  <path d="M125 140 L195 360 L256 180 L317 360 L387 140 H445 L345 420 H289 L256 320 L223 320 L190 420 H134 L34 140 H125 Z" fill="white"/>
+  <rect width="512" height="512" rx="128" fill="#003087"/>
+  <text x="50%" y="50%" dominant-baseline="central" text-anchor="middle" fill="white" font-family="sans-serif" font-weight="900" font-size="350" dy="25">W</text>
 </svg>
