@@ -77,6 +77,11 @@ export interface UserPreferences {
     largeTransactions: boolean;
     largeTransactionThreshold: number;
   };
+  supabaseConfig?: {
+    url: string;
+    key: string;
+    lastSynced?: string;
+  };
 }
 
 export interface UserProfile {

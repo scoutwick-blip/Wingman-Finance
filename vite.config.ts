@@ -9,19 +9,19 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
+      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg', 'icon.svg'],
       manifest: {
         short_name: "Wingman",
         name: "Wingman Finance",
         icons: [
           {
-            src: "https://cdn-icons-png.flaticon.com/512/781/781760.png",
-            type: "image/png",
+            src: "/icon.svg",
+            type: "image/svg+xml",
             sizes: "192x192"
           },
           {
-            src: "https://cdn-icons-png.flaticon.com/512/781/781760.png",
-            type: "image/png",
+            src: "/icon.svg",
+            type: "image/svg+xml",
             sizes: "512x512"
           }
         ],

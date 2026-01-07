@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
+import LZString from 'lz-string';
 import { Layout } from './components/Layout';
 import { Dashboard } from './components/Dashboard';
 import { Transactions } from './components/Transactions';
@@ -67,6 +68,49 @@ const App: React.FC = () => {
     }
 
     setProfiles(loadedProfiles);
+    
+    // MAGIC QR CODE IMPORT LISTENER
+    const params = new URLSearchParams(window.location.search);
+    const importData = params.get('import');
+    
+    if (importData) {
+      try {
+        const jsonString = LZString.decompressFromEncodedURIComponent(importData);
+        if (jsonString) {
+          const data = JSON.parse(jsonString);
+          if (confirm(`Import data from '${data.preferences?.name || 'Unknown'}'? This will CREATE A NEW PROFILE.`)) {
+             
+             // Create a new profile for this imported data
+             const newId = 'user-import-' + Date.now();
+             const newProfile: UserProfile = {
+                id: newId,
+                name: (data.preferences?.name || 'Imported User') + ' (Imported)',
+                avatar: data.preferences?.profileImage,
+                lastActive: new Date().toISOString()
+             };
+             
+             // Save to storage immediately
+             const updatedProfiles = [...loadedProfiles, newProfile];
+             setProfiles(updatedProfiles);
+             localStorage.setItem(STORAGE_KEY_PROFILES, JSON.stringify(updatedProfiles));
+             
+             localStorage.setItem(`${STORAGE_KEY_PREFERENCES}_${newId}`, JSON.stringify(data.preferences));
+             localStorage.setItem(`${STORAGE_KEY_CATEGORIES}_${newId}`, JSON.stringify(data.categories));
+             localStorage.setItem(`${STORAGE_KEY_TRANSACTIONS}_${newId}`, JSON.stringify(data.transactions));
+             localStorage.setItem(`${STORAGE_KEY_NOTIFICATIONS}_${newId}`, JSON.stringify([]));
+             
+             // Clean URL
+             window.history.replaceState({}, document.title, window.location.pathname);
+             
+             alert('Import successful! Please select the new profile.');
+          }
+        }
+      } catch (e) {
+        console.error("Import failed", e);
+        alert("Failed to read QR code data.");
+      }
+    }
+
     if (loadedProfiles.length > 0) {
       // Don't auto-login, show selector
     } else {
@@ -328,6 +372,23 @@ const App: React.FC = () => {
     // Also remove from profile list
     handleDeleteProfile(activeProfileId);
   };
+  
+  const restoreFullState = (data: { preferences: UserPreferences; categories: Category[]; transactions: Transaction[] }) => {
+    if (data.preferences) setPreferences(data.preferences);
+    if (data.categories) setCategories(data.categories);
+    if (data.transactions) setTransactions(data.transactions);
+    
+    // Add notification about restore
+    const note: Notification = {
+      id: Math.random().toString(36).substring(2, 9),
+      type: NotificationType.SUCCESS,
+      title: 'Data Restored',
+      message: 'Your data has been successfully restored from backup.',
+      timestamp: new Date().toISOString(),
+      isRead: false
+    };
+    setNotifications(prev => [note, ...prev]);
+  };
 
   const markNotificationsRead = () => {
     setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
@@ -395,8 +456,10 @@ const App: React.FC = () => {
             preferences={preferences} 
             categories={categories}
             transactions={transactions}
+            activeProfileId={activeProfileId}
             onUpdatePreferences={(updates) => setPreferences(prev => ({...prev, ...updates}))} 
             onImportTransactions={importTransactions}
+            onFullRestore={restoreFullState}
             onClearData={handleClearData}
           />
         );
