@@ -1,5 +1,5 @@
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import LZString from 'lz-string';
 import { UserPreferences, TransactionBehavior, TransactionTypeDefinition, Category, Transaction } from '../types';
@@ -50,6 +50,14 @@ export const Settings: React.FC<SettingsProps> = ({
   // PIN State
   const [pinMode, setPinMode] = useState<'none' | 'set' | 'change'>('none');
   const [pinInput, setPinInput] = useState('');
+
+  // Support Ticket State
+  const [showSupport, setShowSupport] = useState(false);
+  const [ticketData, setTicketData] = useState({
+    type: 'Bug Report',
+    subject: '',
+    description: ''
+  });
 
   // Safety fallbacks for notification settings
   const budgetWarnings = preferences.notificationSettings?.budgetWarnings ?? true;
@@ -409,6 +417,27 @@ export const Settings: React.FC<SettingsProps> = ({
     });
   };
 
+  const handleSupportSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const body = `
+Type: ${ticketData.type}
+Subject: ${ticketData.subject}
+
+Description:
+${ticketData.description}
+
+---
+App Version: 1.0.0
+User: ${preferences.name}
+Platform: ${navigator.userAgent}
+    `;
+    
+    const mailtoLink = `mailto:hwick57@gmail.com?subject=[Wingman ${ticketData.type}] ${encodeURIComponent(ticketData.subject)}&body=${encodeURIComponent(body)}`;
+    window.location.href = mailtoLink;
+    setShowSupport(false);
+    setTicketData({ type: 'Bug Report', subject: '', description: '' });
+  };
+
   return (
     <div className="max-w-2xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20 px-4 sm:px-0">
       <div className="space-y-2 text-center md:text-left">
@@ -573,6 +602,101 @@ export const Settings: React.FC<SettingsProps> = ({
             </div>
         )}
       </section>
+
+      {/* NEW: Support & Feedback Section */}
+      <section className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-6">
+        <h4 className="font-bold text-slate-800 border-b border-slate-50 pb-4 text-[10px] uppercase tracking-[0.2em]">Support & Feedback</h4>
+        <div className="flex items-center justify-between">
+           <div className="space-y-1">
+             <p className="font-bold text-slate-800 text-sm">Submit Ticket</p>
+             <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Report bugs or request features</p>
+           </div>
+           <button 
+             onClick={() => setShowSupport(true)}
+             className="bg-indigo-50 text-indigo-600 px-6 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-indigo-100 transition-all border border-indigo-100"
+           >
+             Open Ticket
+           </button>
+        </div>
+      </section>
+
+      {/* Support Modal */}
+      {showSupport && (
+        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[110] flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-white rounded-3xl p-6 w-full max-w-md shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-start justify-between">
+              <div>
+                <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight">Support Ticket</h3>
+                <p className="text-xs text-slate-500 font-bold">Describe your issue or idea below.</p>
+              </div>
+              <button 
+                onClick={() => setShowSupport(false)}
+                className="text-slate-300 hover:text-slate-500 font-bold text-xl"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSupportSubmit} className="space-y-4 pt-2">
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">Ticket Type</label>
+                <div className="flex gap-2">
+                  {['Bug Report', 'Feature Request', 'General'].map(type => (
+                    <button
+                      key={type}
+                      type="button"
+                      onClick={() => setTicketData({ ...ticketData, type })}
+                      className={`flex-1 py-2 rounded-xl text-[9px] font-bold uppercase tracking-widest border transition-all ${
+                        ticketData.type === type 
+                          ? 'bg-indigo-600 text-white border-indigo-600' 
+                          : 'bg-white text-slate-500 border-slate-200'
+                      }`}
+                    >
+                      {type}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">Subject</label>
+                <input 
+                  type="text" 
+                  value={ticketData.subject}
+                  onChange={e => setTicketData({ ...ticketData, subject: e.target.value })}
+                  placeholder="Brief summary..."
+                  className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold text-slate-900 outline-none focus:ring-2 ring-indigo-500/10"
+                  required
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">Description</label>
+                <textarea 
+                  value={ticketData.description}
+                  onChange={e => setTicketData({ ...ticketData, description: e.target.value })}
+                  placeholder="Please provide details..."
+                  rows={5}
+                  className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold text-slate-900 outline-none focus:ring-2 ring-indigo-500/10 resize-none"
+                  required
+                />
+              </div>
+
+              <div className="pt-2">
+                <button 
+                  type="submit"
+                  className="w-full bg-slate-900 text-white py-4 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-slate-800 transition-all shadow-xl"
+                >
+                  Create & Send Email
+                </button>
+                <p className="text-[9px] text-center text-slate-400 font-bold uppercase tracking-wider mt-3">
+                  This will open your default mail client with a pre-filled message.
+                </p>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Data Management (Files) */}
       <section className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-6">

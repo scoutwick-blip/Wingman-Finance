@@ -12,6 +12,11 @@ interface BudgetsProps {
   preferences: UserPreferences;
 }
 
+const ICONS = [
+  '🏠', '🍽️', '🚗', '💰', '💳', '🏦', '🏥', '✈️', '🎮', '👗', '🎓', '🎁', '🛒', '🔧', '👶', '🐾', '💻', '📱', '🏋️', '📚',
+  '☕', '🍔', '🍺', '⛽', '🚕', '🚌', '🚅', '🎢', '🎬', '🎨', '🎸', '📷', '💡', '💧', '🔥', '📡', '🛡️', '💊', '🕶️', '💍'
+];
+
 export const Budgets: React.FC<BudgetsProps> = ({ 
   categories, 
   transactions, 
@@ -30,6 +35,8 @@ export const Budgets: React.FC<BudgetsProps> = ({
     initialBalance: 0 
   });
   const [editingNameId, setEditingNameId] = useState<string | null>(null);
+  const [pickingIconForId, setPickingIconForId] = useState<string | null>(null); // For editing existing
+  const [pickingIconNew, setPickingIconNew] = useState(false); // For new category
 
   // AI Suggestion State
   const [suggestions, setSuggestions] = useState<BudgetSuggestion[]>([]);
@@ -119,7 +126,30 @@ export const Budgets: React.FC<BudgetsProps> = ({
     onAddCategory(newCat);
     setNewCat({ name: '', icon: '📁', color: '#6366f1', budget: 0, type: CategoryType.SPENDING, initialBalance: 0 });
     setIsAdding(false);
+    setPickingIconNew(false);
   };
+
+  const IconPicker = ({ onSelect, onClose }: { onSelect: (icon: string) => void, onClose: () => void }) => (
+    <div className="absolute inset-0 z-50 bg-slate-900/10 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in">
+        <div className="bg-white rounded-3xl p-6 shadow-2xl w-full max-w-sm">
+            <div className="flex justify-between items-center mb-4">
+                <h4 className="font-bold text-slate-800 text-sm uppercase tracking-widest">Select Icon</h4>
+                <button onClick={onClose} className="text-slate-400 hover:text-slate-600">✕</button>
+            </div>
+            <div className="grid grid-cols-5 gap-2 max-h-[300px] overflow-y-auto">
+                {ICONS.map(icon => (
+                    <button 
+                        key={icon}
+                        onClick={() => onSelect(icon)}
+                        className="text-2xl p-2 hover:bg-slate-100 rounded-xl transition-colors"
+                    >
+                        {icon}
+                    </button>
+                ))}
+            </div>
+        </div>
+    </div>
+  );
 
   const renderCategoryCard = (cat: Category) => {
     const progress = getCategoryProgress(cat);
@@ -129,8 +159,9 @@ export const Budgets: React.FC<BudgetsProps> = ({
         <div className="p-6 space-y-4 transition-all group-hover:opacity-40">
           <div className="flex items-center gap-4">
             <div 
-              className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl shadow-inner shrink-0"
+              className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl shadow-inner shrink-0 cursor-pointer hover:scale-110 transition-transform"
               style={{ backgroundColor: cat.color + '10', color: cat.color }}
+              onClick={(e) => { e.stopPropagation(); setPickingIconForId(cat.id); }}
             >
               {cat.icon}
             </div>
@@ -162,8 +193,8 @@ export const Budgets: React.FC<BudgetsProps> = ({
         </div>
 
         {/* Overlay Controls */}
-        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center p-6 space-y-4">
-          <div className="w-full space-y-1">
+        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center p-6 space-y-4 pointer-events-none">
+          <div className="w-full space-y-1 pointer-events-auto">
             <label className="text-[9px] font-bold text-slate-500 uppercase tracking-widest text-center block">
               Update {getTargetLabel(cat.type)}
             </label>
@@ -182,12 +213,18 @@ export const Budgets: React.FC<BudgetsProps> = ({
             </div>
           </div>
 
-          <div className="flex gap-2 w-full">
+          <div className="flex gap-2 w-full pointer-events-auto">
             <button 
               onClick={() => setEditingNameId(cat.id)}
               className="flex-1 bg-white border border-slate-200 text-slate-600 py-2 rounded-xl text-[9px] font-bold uppercase tracking-widest hover:bg-slate-50"
             >
               Rename
+            </button>
+             <button 
+              onClick={() => setPickingIconForId(cat.id)}
+              className="flex-1 bg-white border border-slate-200 text-slate-600 py-2 rounded-xl text-[9px] font-bold uppercase tracking-widest hover:bg-slate-50"
+            >
+              Icon
             </button>
             <button 
               onClick={() => { if (confirm(`Delete category?`)) onDeleteCategory(cat.id); }}
@@ -217,6 +254,16 @@ export const Budgets: React.FC<BudgetsProps> = ({
               Save
             </button>
           </div>
+        )}
+
+        {pickingIconForId === cat.id && (
+            <IconPicker 
+                onSelect={(icon) => {
+                    onUpdateCategory(cat.id, { icon });
+                    setPickingIconForId(null);
+                }} 
+                onClose={() => setPickingIconForId(null)} 
+            />
         )}
       </div>
     );
@@ -339,7 +386,7 @@ export const Budgets: React.FC<BudgetsProps> = ({
         )}
 
         {isAdding && (
-          <form onSubmit={handleAdd} className="mt-8 bg-slate-50 p-6 rounded-2xl border border-slate-200 animate-in fade-in slide-in-from-top-4">
+          <form onSubmit={handleAdd} className="mt-8 bg-slate-50 p-6 rounded-2xl border border-slate-200 animate-in fade-in slide-in-from-top-4 relative">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
               <div className="space-y-1">
                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">Type</label>
@@ -358,14 +405,23 @@ export const Budgets: React.FC<BudgetsProps> = ({
               </div>
               <div className="space-y-1">
                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">Name</label>
-                <input 
-                  type="text"
-                  placeholder="e.g. Dining Out"
-                  value={newCat.name}
-                  onChange={e => setNewCat({...newCat, name: e.target.value})}
-                  className="w-full bg-white border border-slate-200 rounded-lg px-4 py-2 text-sm font-bold text-slate-900 outline-none"
-                  required
-                />
+                <div className="flex gap-2">
+                    <button
+                        type="button"
+                        onClick={() => setPickingIconNew(true)}
+                        className="w-10 h-10 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-xl hover:bg-slate-50"
+                    >
+                        {newCat.icon}
+                    </button>
+                    <input 
+                    type="text"
+                    placeholder="e.g. Dining Out"
+                    value={newCat.name}
+                    onChange={e => setNewCat({...newCat, name: e.target.value})}
+                    className="flex-1 bg-white border border-slate-200 rounded-lg px-4 py-2 text-sm font-bold text-slate-900 outline-none"
+                    required
+                    />
+                </div>
               </div>
               <div className="space-y-1">
                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">
@@ -393,6 +449,16 @@ export const Budgets: React.FC<BudgetsProps> = ({
                 Add Category
               </button>
             </div>
+
+            {pickingIconNew && (
+                <IconPicker 
+                    onSelect={(icon) => {
+                        setNewCat({...newCat, icon});
+                        setPickingIconNew(false);
+                    }} 
+                    onClose={() => setPickingIconNew(false)} 
+                />
+            )}
           </form>
         )}
       </section>

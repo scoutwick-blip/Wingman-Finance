@@ -26,6 +26,9 @@ const App: React.FC = () => {
   const [profiles, setProfiles] = useState<UserProfile[]>([]);
   const [isSetupMode, setIsSetupMode] = useState(false);
 
+  // Transaction View Config (for defaulting to Add Income/Expense)
+  const [transactionConfig, setTransactionConfig] = useState<{ mode: 'add', behavior: TransactionBehavior } | null>(null);
+
   // Per-profile state
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [categories, setCategories] = useState<Category[]>(INITIAL_CATEGORIES);
@@ -187,7 +190,7 @@ const App: React.FC = () => {
               ...p, 
               name: preferences.name, 
               avatar: preferences.profileImage, 
-              pin: preferences.pin, // Sync PIN if changed in settings
+              pin: preferences.pin,
               lastActive: new Date().toISOString() 
             } 
           : p
@@ -200,7 +203,6 @@ const App: React.FC = () => {
       }
     } catch (e) {
       console.error("Failed to save preferences to storage", e);
-      // If we can't save due to quota, we might want to alert the user, but definitely not crash.
     }
   }, [preferences, activeProfileId, isLoading]);
 
@@ -359,6 +361,10 @@ const App: React.FC = () => {
     setTransactions(prev => [transaction, ...prev]);
   };
 
+  const updateTransaction = (id: string, updates: Partial<Transaction>) => {
+    setTransactions(prev => prev.map(t => t.id === id ? { ...t, ...updates } : t));
+  };
+
   const importTransactions = (newTransactions: Omit<Transaction, 'id'>[]) => {
     const transactionsWithIds = newTransactions.map(t => ({
       ...t,
@@ -378,6 +384,16 @@ const App: React.FC = () => {
 
   const deleteTransaction = (id: string) => {
     setTransactions(prev => prev.filter(t => t.id !== id));
+  };
+
+  const bulkDeleteTransactions = (ids: string[]) => {
+    if (confirm(`Are you sure you want to delete ${ids.length} transactions?`)) {
+      setTransactions(prev => prev.filter(t => !ids.includes(t.id)));
+    }
+  };
+
+  const bulkUpdateCategory = (ids: string[], categoryId: string) => {
+    setTransactions(prev => prev.map(t => ids.includes(t.id) ? { ...t, categoryId } : t));
   };
 
   const updateCategory = (id: string, updates: Partial<Category>) => {
@@ -432,6 +448,11 @@ const App: React.FC = () => {
     setNotifications([]);
   };
 
+  const handleNavigateToTransactionEntry = (behavior: TransactionBehavior) => {
+    setTransactionConfig({ mode: 'add', behavior });
+    setActiveTab('transactions');
+  };
+
   if (isLoading) return null;
 
   // View Routing
@@ -459,16 +480,29 @@ const App: React.FC = () => {
   const renderContent = () => {
     switch (activeTab) {
       case 'dashboard':
-        return <Dashboard transactions={transactions} categories={categories} preferences={preferences} onNavigateToTab={setActiveTab} />;
+        return (
+            <Dashboard 
+                transactions={transactions} 
+                categories={categories} 
+                preferences={preferences} 
+                onNavigateToTab={setActiveTab}
+                onAddTransaction={handleNavigateToTransactionEntry}
+            />
+        );
       case 'transactions':
         return (
           <Transactions 
             transactions={transactions} 
             categories={categories} 
             onAdd={addTransaction} 
+            onUpdate={updateTransaction}
             onDelete={deleteTransaction}
+            onBulkDelete={bulkDeleteTransactions}
+            onBulkCategoryUpdate={bulkUpdateCategory}
             onNavigateToCategory={(id) => setActiveTab('budgets')}
             preferences={preferences}
+            initialConfig={transactionConfig}
+            onClearConfig={() => setTransactionConfig(null)}
           />
         );
       case 'budgets':
@@ -498,7 +532,15 @@ const App: React.FC = () => {
           />
         );
       default:
-        return <Dashboard transactions={transactions} categories={categories} preferences={preferences} onNavigateToTab={setActiveTab} />;
+        return (
+            <Dashboard 
+                transactions={transactions} 
+                categories={categories} 
+                preferences={preferences} 
+                onNavigateToTab={setActiveTab}
+                onAddTransaction={handleNavigateToTransactionEntry}
+            />
+        );
     }
   };
 

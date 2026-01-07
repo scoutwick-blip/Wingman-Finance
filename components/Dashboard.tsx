@@ -8,9 +8,10 @@ interface DashboardProps {
   categories: Category[];
   preferences: UserPreferences;
   onNavigateToTab: (tab: string) => void;
+  onAddTransaction: (behavior: TransactionBehavior) => void;
 }
 
-export const Dashboard: React.FC<DashboardProps> = ({ transactions, categories, preferences, onNavigateToTab }) => {
+export const Dashboard: React.FC<DashboardProps> = ({ transactions, categories, preferences, onNavigateToTab, onAddTransaction }) => {
   
   // Logic to calculate Upcoming Bills (Mission Radar)
   const upcomingBills = React.useMemo(() => {
@@ -129,13 +130,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ transactions, categories, 
         
         <div className="flex flex-wrap gap-3">
           <button 
-            onClick={() => onNavigateToTab('transactions')}
+            onClick={() => onAddTransaction(TransactionBehavior.INFLOW)}
             className="flex-1 min-w-[140px] flex items-center justify-center gap-2 bg-slate-900 text-white px-6 py-4 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-800 transition-all shadow-xl active:scale-95"
           >
             <span>💰</span> Add Income
           </button>
           <button 
-            onClick={() => onNavigateToTab('transactions')}
+            onClick={() => onAddTransaction(TransactionBehavior.OUTFLOW)}
             className="flex-1 min-w-[140px] flex items-center justify-center gap-2 bg-indigo-600 text-white px-6 py-4 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-indigo-700 transition-all shadow-xl active:scale-95"
           >
             <span>💸</span> Add Expense
