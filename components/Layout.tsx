@@ -123,12 +123,12 @@ export const Layout: React.FC<LayoutProps> = ({
 
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
-        <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-8 shrink-0 z-30">
+        <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 md:px-8 shrink-0 z-30">
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
             <h2 className="text-xs font-black text-slate-400 uppercase tracking-widest">{activeTab}</h2>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3 md:gap-4">
             <div className="relative" ref={notificationRef}>
               <button 
                 onClick={() => {
@@ -145,8 +145,12 @@ export const Layout: React.FC<LayoutProps> = ({
 
               {/* Notification Dropdown */}
               {showNotifications && (
-                <div className="absolute right-0 mt-3 w-80 max-h-[480px] bg-white rounded-[2rem] border border-slate-200 shadow-2xl overflow-hidden flex flex-col z-[60] animate-in fade-in slide-in-from-top-4 duration-200">
-                  <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-900">
+                <div className={`
+                  bg-white rounded-[2rem] border border-slate-200 shadow-2xl overflow-hidden flex flex-col z-[60] animate-in fade-in slide-in-from-top-4 duration-200
+                  fixed top-20 left-4 right-4 max-h-[70vh] w-auto
+                  sm:absolute sm:top-full sm:right-0 sm:left-auto sm:mt-3 sm:w-80 sm:max-h-[480px]
+                `}>
+                  <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-900 shrink-0">
                     <h3 className="font-black text-white text-xs tracking-[0.2em] uppercase">Notifications</h3>
                     <button 
                       onClick={onClearNotifications}
@@ -190,7 +194,7 @@ export const Layout: React.FC<LayoutProps> = ({
             </button>
             <button
                onClick={onSwitchProfile}
-               className="md:hidden text-xl text-slate-400 ml-2"
+               className="md:hidden text-xl text-slate-400 ml-1"
                title="Switch Profile"
             >
               🚪
