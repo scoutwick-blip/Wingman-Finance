@@ -90,19 +90,24 @@ const App: React.FC = () => {
              };
              
              // Save to storage immediately
-             const updatedProfiles = [...loadedProfiles, newProfile];
-             setProfiles(updatedProfiles);
-             localStorage.setItem(STORAGE_KEY_PROFILES, JSON.stringify(updatedProfiles));
-             
-             localStorage.setItem(`${STORAGE_KEY_PREFERENCES}_${newId}`, JSON.stringify(data.preferences));
-             localStorage.setItem(`${STORAGE_KEY_CATEGORIES}_${newId}`, JSON.stringify(data.categories));
-             localStorage.setItem(`${STORAGE_KEY_TRANSACTIONS}_${newId}`, JSON.stringify(data.transactions));
-             localStorage.setItem(`${STORAGE_KEY_NOTIFICATIONS}_${newId}`, JSON.stringify([]));
-             
-             // Clean URL
-             window.history.replaceState({}, document.title, window.location.pathname);
-             
-             alert('Import successful! Please select the new profile.');
+             try {
+                const updatedProfiles = [...loadedProfiles, newProfile];
+                setProfiles(updatedProfiles);
+                localStorage.setItem(STORAGE_KEY_PROFILES, JSON.stringify(updatedProfiles));
+                
+                localStorage.setItem(`${STORAGE_KEY_PREFERENCES}_${newId}`, JSON.stringify(data.preferences));
+                localStorage.setItem(`${STORAGE_KEY_CATEGORIES}_${newId}`, JSON.stringify(data.categories));
+                localStorage.setItem(`${STORAGE_KEY_TRANSACTIONS}_${newId}`, JSON.stringify(data.transactions));
+                localStorage.setItem(`${STORAGE_KEY_NOTIFICATIONS}_${newId}`, JSON.stringify([]));
+                
+                // Clean URL
+                window.history.replaceState({}, document.title, window.location.pathname);
+                
+                alert('Import successful! Please select the new profile.');
+             } catch (e) {
+                console.error("Storage limit reached during import", e);
+                alert("Cannot import data: Not enough storage space available.");
+             }
           }
         }
       } catch (e) {
@@ -153,35 +158,52 @@ const App: React.FC = () => {
   // Persistent Storage for Active Profile
   useEffect(() => {
     if (!activeProfileId || isLoading) return;
-    localStorage.setItem(`${STORAGE_KEY_TRANSACTIONS}_${activeProfileId}`, JSON.stringify(transactions));
+    try {
+      localStorage.setItem(`${STORAGE_KEY_TRANSACTIONS}_${activeProfileId}`, JSON.stringify(transactions));
+    } catch (e) {
+      console.error("Failed to save transactions to storage", e);
+    }
   }, [transactions, activeProfileId, isLoading]);
 
   useEffect(() => {
     if (!activeProfileId || isLoading) return;
-    localStorage.setItem(`${STORAGE_KEY_CATEGORIES}_${activeProfileId}`, JSON.stringify(categories));
+    try {
+      localStorage.setItem(`${STORAGE_KEY_CATEGORIES}_${activeProfileId}`, JSON.stringify(categories));
+    } catch (e) {
+      console.error("Failed to save categories to storage", e);
+    }
   }, [categories, activeProfileId, isLoading]);
 
   useEffect(() => {
     if (!activeProfileId || isLoading) return;
-    localStorage.setItem(`${STORAGE_KEY_PREFERENCES}_${activeProfileId}`, JSON.stringify(preferences));
-    
-    // Update profile list metadata (name/avatar update)
-    const updatedProfiles = profiles.map(p => 
-      p.id === activeProfileId 
-        ? { ...p, name: preferences.name, avatar: preferences.profileImage, lastActive: new Date().toISOString() } 
-        : p
-    );
-    // Only write if changed to avoid loop? Simple compare
-    const currentP = profiles.find(p => p.id === activeProfileId);
-    if (currentP && (currentP.name !== preferences.name || currentP.avatar !== preferences.profileImage)) {
-      setProfiles(updatedProfiles);
-      localStorage.setItem(STORAGE_KEY_PROFILES, JSON.stringify(updatedProfiles));
+    try {
+      localStorage.setItem(`${STORAGE_KEY_PREFERENCES}_${activeProfileId}`, JSON.stringify(preferences));
+      
+      // Update profile list metadata (name/avatar update)
+      const updatedProfiles = profiles.map(p => 
+        p.id === activeProfileId 
+          ? { ...p, name: preferences.name, avatar: preferences.profileImage, lastActive: new Date().toISOString() } 
+          : p
+      );
+      // Only write if changed to avoid loop? Simple compare
+      const currentP = profiles.find(p => p.id === activeProfileId);
+      if (currentP && (currentP.name !== preferences.name || currentP.avatar !== preferences.profileImage)) {
+        setProfiles(updatedProfiles);
+        localStorage.setItem(STORAGE_KEY_PROFILES, JSON.stringify(updatedProfiles));
+      }
+    } catch (e) {
+      console.error("Failed to save preferences to storage", e);
+      // If we can't save due to quota, we might want to alert the user, but definitely not crash.
     }
   }, [preferences, activeProfileId, isLoading]);
 
   useEffect(() => {
     if (!activeProfileId || isLoading) return;
-    localStorage.setItem(`${STORAGE_KEY_NOTIFICATIONS}_${activeProfileId}`, JSON.stringify(notifications));
+    try {
+      localStorage.setItem(`${STORAGE_KEY_NOTIFICATIONS}_${activeProfileId}`, JSON.stringify(notifications));
+    } catch (e) {
+      console.error("Failed to save notifications to storage", e);
+    }
   }, [notifications, activeProfileId, isLoading]);
 
   // Profile Management Methods
@@ -203,27 +225,31 @@ const App: React.FC = () => {
       lastActive: new Date().toISOString()
     };
     
-    const updatedProfiles = [...profiles, newProfile];
-    setProfiles(updatedProfiles);
-    localStorage.setItem(STORAGE_KEY_PROFILES, JSON.stringify(updatedProfiles));
-    
-    // Initialize Data for new user
-    localStorage.setItem(`${STORAGE_KEY_PREFERENCES}_${newId}`, JSON.stringify(prefs));
-    
-    // ZERO OUT DEFAULT CATEGORIES for fresh start
-    const zeroedCategories = INITIAL_CATEGORIES.map(c => ({
-      ...c,
-      budget: 0,
-      initialBalance: 0
-    }));
-    localStorage.setItem(`${STORAGE_KEY_CATEGORIES}_${newId}`, JSON.stringify(zeroedCategories));
-    
-    // Empty transaction and notification history
-    localStorage.setItem(`${STORAGE_KEY_TRANSACTIONS}_${newId}`, JSON.stringify([]));
-    localStorage.setItem(`${STORAGE_KEY_NOTIFICATIONS}_${newId}`, JSON.stringify([]));
-    
-    setActiveProfileId(newId);
-    setIsSetupMode(false);
+    try {
+      const updatedProfiles = [...profiles, newProfile];
+      setProfiles(updatedProfiles);
+      localStorage.setItem(STORAGE_KEY_PROFILES, JSON.stringify(updatedProfiles));
+      
+      // Initialize Data for new user
+      localStorage.setItem(`${STORAGE_KEY_PREFERENCES}_${newId}`, JSON.stringify(prefs));
+      
+      // ZERO OUT DEFAULT CATEGORIES for fresh start
+      const zeroedCategories = INITIAL_CATEGORIES.map(c => ({
+        ...c,
+        budget: 0,
+        initialBalance: 0
+      }));
+      localStorage.setItem(`${STORAGE_KEY_CATEGORIES}_${newId}`, JSON.stringify(zeroedCategories));
+      
+      // Empty transaction and notification history
+      localStorage.setItem(`${STORAGE_KEY_TRANSACTIONS}_${newId}`, JSON.stringify([]));
+      localStorage.setItem(`${STORAGE_KEY_NOTIFICATIONS}_${newId}`, JSON.stringify([]));
+      
+      setActiveProfileId(newId);
+      setIsSetupMode(false);
+    } catch (e) {
+      alert("Failed to create profile: Storage full.");
+    }
   };
 
   const handleDeleteProfile = (id: string) => {
