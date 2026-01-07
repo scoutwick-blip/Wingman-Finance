@@ -16,44 +16,14 @@ Wingman is a privacy-focused, offline-capable Progressive Web App (PWA) designed
 *   **Profile Management:** Support for multiple distinct profiles on a single device.
 *   **Data Portability:** Easy CSV import and export.
 
-## 🛠️ Tech Stack
+## 📱 How to Install (Mobile)
 
-*   React 19
-*   TypeScript
-*   Vite
-*   Tailwind CSS
-*   Google Gemini API (for AI insights)
+Wingman is designed to be installed directly from your browser:
 
-## 💻 Getting Started
-
-1.  **Clone the repository**
-    ```bash
-    git clone https://github.com/yourusername/wingman-finance.git
-    cd wingman-finance
-    ```
-
-2.  **Install dependencies**
-    ```bash
-    npm install
-    ```
-
-3.  **Set up Environment Variables**
-    Create a `.env` file in the root directory:
-    ```env
-    API_KEY=your_gemini_api_key_here
-    ```
-
-4.  **Run the development server**
-    ```bash
-    npm run dev
-    ```
-
-## 📱 Installing on Mobile
-
-1.  Deploy the app (e.g., to Vercel).
-2.  Open the website in Safari (iOS) or Chrome (Android).
-3.  Tap **Share** -> **Add to Home Screen**.
-4.  Wingman will install as a standalone app.
+1.  Open the hosted link in **Safari** (iOS) or **Chrome** (Android).
+2.  Tap the **Share** button (iOS) or the **Menu** button (Android).
+3.  Select **"Add to Home Screen"**.
+4.  Wingman will appear in your app drawer and run like a native app.
 
 ## 📄 License
 
