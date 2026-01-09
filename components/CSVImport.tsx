@@ -18,13 +18,14 @@ export default function CSVImport({
   onClose,
   currency
 }: CSVImportProps) {
-  const [step, setStep] = useState<'upload' | 'preview' | 'reconcile'>('upload');
+  const [step, setStep] = useState<'upload' | 'preview' | 'categorize' | 'reconcile'>('upload');
   const [csvText, setCsvText] = useState('');
   const [selectedPreset, setSelectedPreset] = useState('generic');
   const [importedTransactions, setImportedTransactions] = useState<ImportedTransaction[]>([]);
   const [reconciliationMatches, setReconciliationMatches] = useState<ReconciliationMatch[]>([]);
   const [selectedMatches, setSelectedMatches] = useState<Set<number>>(new Set());
   const [error, setError] = useState<string>('');
+  const [transactionGroups, setTransactionGroups] = useState<Map<string, { transactions: ImportedTransaction[], categoryId?: string }>>(new Map());
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -69,11 +70,44 @@ export default function CSVImport({
     }
   };
 
-  const handleReconcile = () => {
-    // Log available categories for debugging
-    console.log('Available categories:', categories.map(c => ({ id: c.id, name: c.name })));
+  const handleCategorize = () => {
+    // Group transactions by merchant/description
+    const groups = new Map<string, { transactions: ImportedTransaction[], categoryId?: string }>();
 
-    const matches = reconcileTransactions(importedTransactions, transactions, categories);
+    importedTransactions.forEach(tx => {
+      const key = tx.merchant || tx.description;
+      if (!groups.has(key)) {
+        groups.set(key, { transactions: [], categoryId: undefined });
+      }
+      groups.get(key)!.transactions.push(tx);
+    });
+
+    setTransactionGroups(groups);
+    setStep('categorize');
+  };
+
+  const handleSetGroupCategory = (groupKey: string, categoryId: string) => {
+    const newGroups = new Map(transactionGroups);
+    const group = newGroups.get(groupKey);
+    if (group) {
+      group.categoryId = categoryId;
+      newGroups.set(groupKey, group);
+      setTransactionGroups(newGroups);
+    }
+  };
+
+  const handleReconcile = () => {
+    // Apply categories to transactions based on groups
+    const updatedTransactions = importedTransactions.map(tx => {
+      const key = tx.merchant || tx.description;
+      const group = transactionGroups.get(key);
+      if (group?.categoryId) {
+        return { ...tx, category: group.categoryId };
+      }
+      return tx;
+    });
+
+    const matches = reconcileTransactions(updatedTransactions, transactions, categories);
     setReconciliationMatches(matches);
 
     // Auto-select only NEW transactions
@@ -97,8 +131,11 @@ export default function CSVImport({
       // Use detected type, default to expense if not detected
       const typeId = imported.type === 'income' ? 'type-income' : 'type-expense';
 
-      // Use suggested category, or try to find an appropriate default
-      let categoryId = match.suggestedCategoryId;
+      // Use category from group selection, then suggested, then default
+      const groupKey = imported.merchant || imported.description;
+      const group = transactionGroups.get(groupKey);
+      let categoryId = group?.categoryId || match.suggestedCategoryId;
+
       if (!categoryId) {
         // For income, try to find income category
         if (imported.type === 'income') {
@@ -187,6 +224,7 @@ export default function CSVImport({
               <p className="text-sm text-gray-600 mt-1">
                 {step === 'upload' && 'Upload and parse your bank CSV file'}
                 {step === 'preview' && `Preview ${importedTransactions.length} imported transactions`}
+                {step === 'categorize' && 'Select categories for transaction groups'}
                 {step === 'reconcile' && 'Review and import transactions'}
               </p>
             </div>
@@ -319,10 +357,10 @@ export default function CSVImport({
 
               <div className="flex gap-3">
                 <button
-                  onClick={handleReconcile}
+                  onClick={handleCategorize}
                   className="flex-1 bg-blue-600 text-white px-6 py-3 rounded-xl hover:bg-blue-700 transition-colors font-bold"
                 >
-                  Continue to Reconciliation
+                  Continue to Categorize
                 </button>
                 <button
                   onClick={() => setStep('upload')}
@@ -334,7 +372,99 @@ export default function CSVImport({
             </div>
           )}
 
-          {/* Step 3: Reconcile */}
+          {/* Step 3: Categorize */}
+          {step === 'categorize' && (
+            <div className="space-y-6">
+              <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-4">
+                <p className="text-sm text-blue-800">
+                  <strong>Group similar transactions</strong> and assign categories. All transactions with the same merchant will be categorized together.
+                </p>
+              </div>
+
+              {/* Transaction Groups */}
+              <div className="space-y-3 max-h-96 overflow-y-auto">
+                {Array.from(transactionGroups.entries()).map(([groupKey, group]) => {
+                  const totalAmount = group.transactions.reduce((sum, tx) => sum + tx.amount, 0);
+                  const isIncome = group.transactions[0]?.type === 'income';
+
+                  return (
+                    <div
+                      key={groupKey}
+                      className="border-2 border-gray-200 rounded-xl p-4 hover:border-blue-300 transition-colors"
+                    >
+                      <div className="flex items-start justify-between gap-4 mb-3">
+                        <div className="flex-1">
+                          <h4 className="font-bold text-gray-900">{groupKey}</h4>
+                          <p className="text-sm text-gray-600">
+                            {group.transactions.length} transaction{group.transactions.length !== 1 ? 's' : ''} · Total: {currency}{totalAmount.toFixed(2)}
+                          </p>
+                          <span className={`inline-block mt-1 text-xs px-2 py-0.5 rounded-full border font-bold ${
+                            isIncome
+                              ? 'bg-green-100 text-green-800 border-green-300'
+                              : 'bg-red-100 text-red-800 border-red-300'
+                          }`}>
+                            {isIncome ? '💰 Income' : '💸 Expense'}
+                          </span>
+                        </div>
+                        <div className="w-64">
+                          <label className="block text-xs font-medium text-gray-700 mb-1">Category</label>
+                          <select
+                            value={group.categoryId || ''}
+                            onChange={(e) => handleSetGroupCategory(groupKey, e.target.value)}
+                            className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                          >
+                            <option value="">Select category...</option>
+                            {categories.map(cat => (
+                              <option key={cat.id} value={cat.id}>
+                                {cat.icon} {cat.name}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+
+                      {/* Show sample transactions */}
+                      {group.transactions.length > 1 && (
+                        <div className="mt-3 pt-3 border-t border-gray-200">
+                          <p className="text-xs font-medium text-gray-500 mb-2">Sample transactions:</p>
+                          <div className="space-y-1">
+                            {group.transactions.slice(0, 3).map((tx, idx) => (
+                              <div key={idx} className="flex justify-between text-xs text-gray-600">
+                                <span>{new Date(tx.date).toLocaleDateString()}</span>
+                                <span>{currency}{tx.amount.toFixed(2)}</span>
+                              </div>
+                            ))}
+                            {group.transactions.length > 3 && (
+                              <p className="text-xs text-gray-500 italic">
+                                +{group.transactions.length - 3} more
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={handleReconcile}
+                  className="flex-1 bg-green-600 text-white px-6 py-3 rounded-xl hover:bg-green-700 transition-colors font-bold"
+                >
+                  Continue to Review
+                </button>
+                <button
+                  onClick={() => setStep('preview')}
+                  className="px-6 py-3 border-2 border-gray-300 rounded-xl hover:bg-gray-100 transition-colors font-medium"
+                >
+                  Back
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Step 4: Reconcile */}
           {step === 'reconcile' && (
             <div className="space-y-6">
               {/* Stats */}
@@ -458,7 +588,7 @@ export default function CSVImport({
                   Import {stats.selected} Transaction{stats.selected !== 1 ? 's' : ''}
                 </button>
                 <button
-                  onClick={() => setStep('preview')}
+                  onClick={() => setStep('categorize')}
                   className="px-6 py-3 border-2 border-gray-300 rounded-xl hover:bg-gray-100 transition-colors font-medium"
                 >
                   Back
