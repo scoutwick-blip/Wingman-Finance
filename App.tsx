@@ -9,16 +9,21 @@ import { AIAdvisor } from './components/AIAdvisor';
 import { Settings } from './components/Settings';
 import { SetupWizard } from './components/SetupWizard';
 import { ProfileSelector } from './components/ProfileSelector';
-import { Transaction, Category, UserPreferences, Notification, NotificationType, TransactionBehavior, UserProfile } from './types';
-import { 
-  INITIAL_CATEGORIES, 
-  STORAGE_KEY_TRANSACTIONS, 
-  STORAGE_KEY_CATEGORIES, 
-  STORAGE_KEY_PREFERENCES, 
+import { Transaction, Category, UserPreferences, Notification, NotificationType, TransactionBehavior, UserProfile, Bill, BillStatus, MerchantMapping } from './types';
+import {
+  INITIAL_CATEGORIES,
+  STORAGE_KEY_TRANSACTIONS,
+  STORAGE_KEY_CATEGORIES,
+  STORAGE_KEY_PREFERENCES,
   STORAGE_KEY_NOTIFICATIONS,
   STORAGE_KEY_PROFILES,
-  DEFAULT_PREFERENCES 
+  STORAGE_KEY_BILLS,
+  STORAGE_KEY_MERCHANT_MAPPINGS,
+  DEFAULT_PREFERENCES
 } from './constants';
+import Bills from './components/Bills';
+import IncomeForecast from './components/IncomeForecast';
+import BudgetTemplates from './components/BudgetTemplates';
 
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -34,8 +39,11 @@ const App: React.FC = () => {
   const [categories, setCategories] = useState<Category[]>(INITIAL_CATEGORIES);
   const [preferences, setPreferences] = useState<UserPreferences>(DEFAULT_PREFERENCES);
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  
+  const [bills, setBills] = useState<Bill[]>([]);
+  const [merchantMappings, setMerchantMappings] = useState<MerchantMapping[]>([]);
+
   const [isLoading, setIsLoading] = useState(true);
+  const [showBudgetTemplates, setShowBudgetTemplates] = useState(false);
 
   // Initial Boot: Load Profiles and Check for Legacy Data
   useEffect(() => {
@@ -136,13 +144,17 @@ const App: React.FC = () => {
     const c = localStorage.getItem(`${STORAGE_KEY_CATEGORIES}_${activeProfileId}`);
     const p = localStorage.getItem(`${STORAGE_KEY_PREFERENCES}_${activeProfileId}`);
     const n = localStorage.getItem(`${STORAGE_KEY_NOTIFICATIONS}_${activeProfileId}`);
+    const b = localStorage.getItem(`${STORAGE_KEY_BILLS}_${activeProfileId}`);
+    const m = localStorage.getItem(`${STORAGE_KEY_MERCHANT_MAPPINGS}_${activeProfileId}`);
 
     setTransactions(t ? JSON.parse(t) : []);
-    
+
     // If loading categories, use them. If not (shouldn't happen for new profiles), use INITIAL.
     setCategories(c ? JSON.parse(c) : INITIAL_CATEGORIES);
-    
+
     setNotifications(n ? JSON.parse(n) : []);
+    setBills(b ? JSON.parse(b) : []);
+    setMerchantMappings(m ? JSON.parse(m) : []);
 
     if (p) {
       const parsed = JSON.parse(p);
@@ -152,6 +164,10 @@ const App: React.FC = () => {
         notificationSettings: {
           ...DEFAULT_PREFERENCES.notificationSettings,
           ...(parsed.notificationSettings || {})
+        },
+        billReminderSettings: {
+          ...DEFAULT_PREFERENCES.billReminderSettings,
+          ...(parsed.billReminderSettings || {})
         }
       });
     } else {
@@ -214,6 +230,24 @@ const App: React.FC = () => {
       console.error("Failed to save notifications to storage", e);
     }
   }, [notifications, activeProfileId, isLoading]);
+
+  useEffect(() => {
+    if (!activeProfileId || isLoading) return;
+    try {
+      localStorage.setItem(`${STORAGE_KEY_BILLS}_${activeProfileId}`, JSON.stringify(bills));
+    } catch (e) {
+      console.error("Failed to save bills to storage", e);
+    }
+  }, [bills, activeProfileId, isLoading]);
+
+  useEffect(() => {
+    if (!activeProfileId || isLoading) return;
+    try {
+      localStorage.setItem(`${STORAGE_KEY_MERCHANT_MAPPINGS}_${activeProfileId}`, JSON.stringify(merchantMappings));
+    } catch (e) {
+      console.error("Failed to save merchant mappings to storage", e);
+    }
+  }, [merchantMappings, activeProfileId, isLoading]);
 
   // Profile Management Methods
   const handleProfileSelect = (id: string) => {
@@ -453,6 +487,102 @@ const App: React.FC = () => {
     setActiveTab('transactions');
   };
 
+  // Bill Management
+  const addBill = (bill: Bill) => {
+    setBills(prev => [...prev, bill]);
+  };
+
+  const updateBill = (bill: Bill) => {
+    setBills(prev => prev.map(b => b.id === bill.id ? bill : b));
+  };
+
+  const deleteBill = (billId: string) => {
+    setBills(prev => prev.filter(b => b.id !== billId));
+  };
+
+  const handlePayBill = (bill: Bill, transactionId: string) => {
+    // Mark bill as paid and link to transaction
+    const paidBill: Bill = {
+      ...bill,
+      status: BillStatus.PAID,
+      lastPaidDate: new Date().toISOString(),
+      linkedTransactionId: transactionId
+    };
+    updateBill(paidBill);
+
+    // Create the transaction
+    addTransaction({
+      date: new Date().toISOString().split('T')[0],
+      description: `Bill Payment: ${bill.name}`,
+      amount: bill.amount,
+      categoryId: bill.categoryId,
+      typeId: 'type-expense',
+      isRecurring: false
+    });
+
+    // If recurring, create next bill
+    if (bill.isRecurring && bill.frequency) {
+      const nextDueDate = new Date(bill.dueDate);
+      switch (bill.frequency) {
+        case 'Weekly':
+          nextDueDate.setDate(nextDueDate.getDate() + 7);
+          break;
+        case 'Bi-Weekly':
+          nextDueDate.setDate(nextDueDate.getDate() + 14);
+          break;
+        case 'Monthly':
+          nextDueDate.setMonth(nextDueDate.getMonth() + 1);
+          break;
+        case 'Yearly':
+          nextDueDate.setFullYear(nextDueDate.getFullYear() + 1);
+          break;
+      }
+
+      const nextBill: Bill = {
+        ...bill,
+        id: `bill-${Date.now()}`,
+        dueDate: nextDueDate.toISOString().split('T')[0],
+        status: BillStatus.UPCOMING,
+        lastPaidDate: undefined,
+        linkedTransactionId: undefined
+      };
+      addBill(nextBill);
+    }
+  };
+
+  const addNotification = (type: NotificationType, title: string, message: string) => {
+    const notification: Notification = {
+      id: Math.random().toString(36).substring(2, 9),
+      type,
+      title,
+      message,
+      timestamp: new Date().toISOString(),
+      isRead: false
+    };
+    setNotifications(prev => [notification, ...prev]);
+  };
+
+  // Budget Templates
+  const handleApplyTemplate = (newCategories: Category[]) => {
+    setCategories(newCategories);
+    setShowBudgetTemplates(false);
+    addNotification(NotificationType.SUCCESS, 'Template Applied', `Budget template applied successfully with ${newCategories.length} categories`);
+  };
+
+  // Calculate monthly income for templates
+  const calculateMonthlyIncome = () => {
+    const threeMonthsAgo = new Date();
+    threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+
+    const incomeTransactions = transactions.filter(t => {
+      const txnType = preferences.transactionTypes.find(type => type.id === t.typeId);
+      return txnType?.behavior === TransactionBehavior.INFLOW && new Date(t.date) >= threeMonthsAgo;
+    });
+
+    const totalIncome = incomeTransactions.reduce((sum, t) => sum + t.amount, 0);
+    return totalIncome / 3; // Average monthly income
+  };
+
   if (isLoading) return null;
 
   // View Routing
@@ -518,14 +648,37 @@ const App: React.FC = () => {
         );
       case 'advisor':
         return <AIAdvisor transactions={transactions} categories={categories} />;
+      case 'bills':
+        return (
+          <Bills
+            bills={bills}
+            categories={categories}
+            transactions={transactions}
+            currency={preferences.currency}
+            onAddBill={addBill}
+            onEditBill={updateBill}
+            onDeleteBill={deleteBill}
+            onPayBill={handlePayBill}
+            onAddNotification={addNotification}
+          />
+        );
+      case 'forecast':
+        return (
+          <IncomeForecast
+            transactions={transactions}
+            categories={categories}
+            preferences={preferences}
+            currency={preferences.currency}
+          />
+        );
       case 'settings':
         return (
-          <Settings 
-            preferences={preferences} 
+          <Settings
+            preferences={preferences}
             categories={categories}
             transactions={transactions}
             activeProfileId={activeProfileId}
-            onUpdatePreferences={(updates) => setPreferences(prev => ({...prev, ...updates}))} 
+            onUpdatePreferences={(updates) => setPreferences(prev => ({...prev, ...updates}))}
             onImportTransactions={importTransactions}
             onFullRestore={restoreFullState}
             onClearData={handleClearData}
@@ -545,17 +698,29 @@ const App: React.FC = () => {
   };
 
   return (
-    <Layout 
-      activeTab={activeTab} 
-      setActiveTab={setActiveTab} 
-      preferences={preferences}
-      notifications={notifications}
-      onMarkRead={markNotificationsRead}
-      onClearNotifications={clearNotifications}
-      onSwitchProfile={() => setActiveProfileId(null)}
-    >
-      {renderContent()}
-    </Layout>
+    <>
+      <Layout
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        preferences={preferences}
+        notifications={notifications}
+        onMarkRead={markNotificationsRead}
+        onClearNotifications={clearNotifications}
+        onSwitchProfile={() => setActiveProfileId(null)}
+        onOpenTemplates={() => setShowBudgetTemplates(true)}
+      >
+        {renderContent()}
+      </Layout>
+
+      {showBudgetTemplates && (
+        <BudgetTemplates
+          categories={categories}
+          monthlyIncome={calculateMonthlyIncome()}
+          onApplyTemplate={handleApplyTemplate}
+          onClose={() => setShowBudgetTemplates(false)}
+        />
+      )}
+    </>
   );
 };
 

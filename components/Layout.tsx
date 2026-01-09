@@ -11,17 +11,19 @@ interface LayoutProps {
   onMarkRead: () => void;
   onClearNotifications: () => void;
   onSwitchProfile: () => void;
+  onOpenTemplates?: () => void;
 }
 
-export const Layout: React.FC<LayoutProps> = ({ 
-  children, 
-  activeTab, 
-  setActiveTab, 
+export const Layout: React.FC<LayoutProps> = ({
+  children,
+  activeTab,
+  setActiveTab,
   preferences,
   notifications,
   onMarkRead,
   onClearNotifications,
-  onSwitchProfile
+  onSwitchProfile,
+  onOpenTemplates
 }) => {
   const [showNotifications, setShowNotifications] = useState(false);
   const notificationRef = useRef<HTMLDivElement>(null);
@@ -33,6 +35,8 @@ export const Layout: React.FC<LayoutProps> = ({
     { id: 'dashboard', label: 'Dashboard', icon: '📊' },
     { id: 'transactions', label: 'Transactions', icon: '📝' },
     { id: 'budgets', label: 'Budgets', icon: '📅' },
+    { id: 'bills', label: 'Bills', icon: '💳' },
+    { id: 'forecast', label: 'Forecast', icon: '📈' },
     { id: 'advisor', label: 'Advisor', icon: '🤖' },
     { id: 'settings', label: 'Settings', icon: '⚙️' },
   ];
@@ -146,11 +150,20 @@ export const Layout: React.FC<LayoutProps> = ({
           ))}
         </nav>
         <div className="p-6 border-t border-slate-800 hidden md:block space-y-4">
+          {onOpenTemplates && (
+            <button
+              onClick={onOpenTemplates}
+              className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold py-3 px-4 rounded-xl transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2 text-xs uppercase tracking-widest"
+            >
+              <span>⚡</span>
+              Templates
+            </button>
+          )}
           <div className="bg-slate-800 rounded-2xl p-4 border border-slate-700">
             <p className="text-[10px] text-slate-400 mb-1 uppercase tracking-widest font-black">Profile</p>
             <p className="text-xs font-bold text-white uppercase truncate">{preferences.name || 'GUEST'}</p>
           </div>
-          <button 
+          <button
             onClick={onSwitchProfile}
             className="w-full text-center text-[9px] font-bold text-slate-500 hover:text-white uppercase tracking-widest transition-colors py-2"
           >

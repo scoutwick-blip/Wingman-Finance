@@ -1,6 +1,8 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { Transaction, Category, TransactionBehavior, RecurringFrequency, UserPreferences, CategoryType } from '../types';
+import { Transaction, Category, TransactionBehavior, RecurringFrequency, UserPreferences, CategoryType, CategorySuggestion } from '../types';
+import ReceiptScanner from './ReceiptScanner';
+import { suggestCategory } from '../services/geminiService';
 
 interface TransactionsProps {
   transactions: Transaction[];
@@ -32,7 +34,10 @@ export const Transactions: React.FC<TransactionsProps> = ({
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState(false);
-  
+  const [showReceiptScanner, setShowReceiptScanner] = useState(false);
+  const [categorySuggestions, setCategorySuggestions] = useState<CategorySuggestion[]>([]);
+  const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
+
   // Selection State
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [showMoveModal, setShowMoveModal] = useState(false);
@@ -135,6 +140,74 @@ export const Transactions: React.FC<TransactionsProps> = ({
     setFormData(defaultFormState);
   };
 
+  const handleReceiptScanned = async (receiptData: {
+    merchant?: string;
+    amount?: number;
+    date?: string;
+    description?: string;
+    receiptImage: string;
+  }) => {
+    setShowReceiptScanner(false);
+    setIsAdding(true);
+
+    // Auto-populate form with receipt data
+    setFormData(prev => ({
+      ...prev,
+      description: receiptData.description || receiptData.merchant || '',
+      amount: receiptData.amount?.toString() || '',
+      date: receiptData.date || new Date().toISOString().split('T')[0]
+    }));
+
+    // Get AI category suggestions if smart categorization is enabled
+    if (preferences.smartCategorizationEnabled && receiptData.description) {
+      setIsLoadingSuggestions(true);
+      try {
+        const suggestions = await suggestCategory(
+          receiptData.description || '',
+          receiptData.merchant,
+          receiptData.amount || 0,
+          categories,
+          transactions
+        );
+        setCategorySuggestions(suggestions);
+
+        // Auto-apply highest confidence suggestion
+        if (suggestions.length > 0 && suggestions[0].confidence > 0.7) {
+          setFormData(prev => ({ ...prev, categoryId: suggestions[0].categoryId }));
+        }
+      } catch (error) {
+        console.error('Failed to get category suggestions:', error);
+      } finally {
+        setIsLoadingSuggestions(false);
+      }
+    }
+  };
+
+  const handleSmartCategorization = async () => {
+    if (!formData.description || !preferences.smartCategorizationEnabled) return;
+
+    setIsLoadingSuggestions(true);
+    try {
+      const suggestions = await suggestCategory(
+        formData.description,
+        undefined,
+        parseFloat(formData.amount) || 0,
+        categories,
+        transactions
+      );
+      setCategorySuggestions(suggestions);
+
+      // Auto-apply highest confidence suggestion
+      if (suggestions.length > 0 && suggestions[0].confidence > 0.7) {
+        setFormData(prev => ({ ...prev, categoryId: suggestions[0].categoryId }));
+      }
+    } catch (error) {
+      console.error('Failed to get category suggestions:', error);
+    } finally {
+      setIsLoadingSuggestions(false);
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.description || !formData.amount || !formData.typeId) return;
@@ -224,14 +297,20 @@ export const Transactions: React.FC<TransactionsProps> = ({
           <h3 className="text-2xl font-black text-slate-800 tracking-tight">Financial History</h3>
           <p className="text-sm text-slate-500 font-medium">Tracking {transactions.length} records in {preferences.currency}.</p>
         </div>
-        <div className="flex gap-3">
-          <button 
+        <div className="flex gap-3 flex-wrap">
+          <button
             onClick={() => setShowFilters(!showFilters)}
             className={`px-4 py-3 rounded-2xl font-bold transition-all border ${showFilters ? 'bg-slate-200 border-slate-300 text-slate-800' : 'bg-white border-slate-200 text-slate-500 hover:border-indigo-200'}`}
           >
             {showFilters ? '✕ Close Advanced' : '🔍 Advanced Filters'}
           </button>
-          <button 
+          <button
+            onClick={() => setShowReceiptScanner(true)}
+            className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white px-6 py-3 rounded-2xl font-bold transition-all hover:scale-105 active:scale-95 shadow-lg flex items-center gap-2"
+          >
+            📸 Scan Receipt
+          </button>
+          <button
             onClick={() => {
               if (isAdding) cancelEdit();
               else {
@@ -658,6 +737,14 @@ export const Transactions: React.FC<TransactionsProps> = ({
                  </div>
              </div>
          </div>
+      )}
+
+      {/* Receipt Scanner Modal */}
+      {showReceiptScanner && (
+        <ReceiptScanner
+          onReceiptScanned={handleReceiptScanned}
+          onCancel={() => setShowReceiptScanner(false)}
+        />
       )}
     </div>
   );
