@@ -1,6 +1,6 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
-import { Transaction, Category, AIAdvice, BudgetSuggestion } from "../types";
+import { Transaction, Category, AIAdvice, BudgetSuggestion, CategorySuggestion } from "../types";
 
 export const getFinancialAdvice = async (
   transactions: Transaction[],
@@ -116,6 +116,130 @@ export const getBudgetSuggestions = async (
     return result as BudgetSuggestion[];
   } catch (error) {
     console.error("Error getting budget suggestions:", error);
+    return [];
+  }
+};
+
+export const extractReceiptData = async (
+  imageBase64: string
+): Promise<{ merchant?: string; amount?: number; date?: string; description?: string }> => {
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+
+  const prompt = `
+    Analyze this receipt image and extract the following information:
+    - Merchant/store name
+    - Total amount (the final total, not subtotal)
+    - Date of transaction (in YYYY-MM-DD format)
+    - A brief description of what was purchased
+
+    If any information cannot be determined from the image, return null for that field.
+  `;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-flash-preview',
+      contents: [
+        {
+          parts: [
+            { text: prompt },
+            {
+              inlineData: {
+                mimeType: 'image/jpeg',
+                data: imageBase64.split(',')[1] // Remove data:image/jpeg;base64, prefix
+              }
+            }
+          ]
+        }
+      ],
+      config: {
+        responseMimeType: 'application/json',
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            merchant: { type: Type.STRING, nullable: true },
+            amount: { type: Type.NUMBER, nullable: true },
+            date: { type: Type.STRING, nullable: true },
+            description: { type: Type.STRING, nullable: true }
+          }
+        }
+      }
+    });
+
+    const result = JSON.parse(response.text || '{}');
+    return result;
+  } catch (error) {
+    console.error("Error extracting receipt data:", error);
+    throw new Error("Failed to extract receipt data");
+  }
+};
+
+export const suggestCategory = async (
+  description: string,
+  merchant: string | undefined,
+  amount: number,
+  categories: Category[],
+  recentTransactions: Transaction[]
+): Promise<CategorySuggestion[]> => {
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+
+  const categoryList = categories.map(c => ({
+    id: c.id,
+    name: c.name,
+    type: c.type
+  }));
+
+  const recentHistory = recentTransactions
+    .slice(0, 50) // Last 50 transactions
+    .map(t => ({
+      description: t.description,
+      merchant: t.merchant,
+      categoryId: t.categoryId,
+      categoryName: categories.find(c => c.id === t.categoryId)?.name
+    }));
+
+  const prompt = `
+    Suggest the most appropriate budget category for this transaction.
+
+    Transaction Details:
+    - Description: ${description}
+    - Merchant: ${merchant || 'Unknown'}
+    - Amount: $${amount}
+
+    Available Categories:
+    ${JSON.stringify(categoryList)}
+
+    Recent Transaction History (for learning user patterns):
+    ${JSON.stringify(recentHistory)}
+
+    Return up to 3 category suggestions ranked by confidence (0-1), with reasoning for each suggestion.
+    Consider the merchant name, transaction description, amount, and user's historical categorization patterns.
+  `;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-flash-preview',
+      contents: prompt,
+      config: {
+        responseMimeType: 'application/json',
+        responseSchema: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              categoryId: { type: Type.STRING },
+              confidence: { type: Type.NUMBER },
+              reason: { type: Type.STRING }
+            },
+            required: ['categoryId', 'confidence', 'reason']
+          }
+        }
+      }
+    });
+
+    const result = JSON.parse(response.text || '[]');
+    return result as CategorySuggestion[];
+  } catch (error) {
+    console.error("Error suggesting category:", error);
     return [];
   }
 };
