@@ -335,40 +335,36 @@ function suggestCategoryFromDescription(
       keywords: ['salary', 'paycheck', 'direct deposit', 'payment received', 'income', 'wages', 'payroll', 'bonus', 'commission', 'reimbursement', 'refund', 'tax refund', 'dividend', 'interest income'],
       categoryNames: ['income', 'salary', 'wage', 'pay', 'earning']
     },
-    housing: {
-      keywords: ['rent', 'mortgage', 'hoa', 'property tax', 'home insurance', 'apartment', 'landlord'],
-      categoryNames: ['housing', 'house', 'home', 'rent', 'mortgage']
-    },
     groceries: {
-      keywords: ['grocery', 'safeway', 'kroger', 'whole foods', 'trader joe', 'walmart', 'target', 'costco', 'market', 'food'],
+      keywords: ['grocery', 'safeway', 'kroger', 'whole foods', 'trader joe', 'walmart', 'target', 'costco', 'market', 'supermarket', 'food lion', 'albertsons', 'publix', 'aldi'],
       categoryNames: ['groceries', 'grocery', 'food', 'supermarket']
     },
     dining: {
-      keywords: ['restaurant', 'cafe', 'coffee', 'pizza', 'burger', 'starbucks', 'mcdonalds', 'chipotle', 'subway', 'taco bell', 'wendy', 'kfc', 'dining', 'fast food'],
-      categoryNames: ['dining', 'restaurant', 'eating out', 'food & dining', 'meals']
+      keywords: ['restaurant', 'cafe', 'coffee', 'pizza', 'burger', 'starbucks', 'mcdonalds', 'chipotle', 'subway', 'taco bell', 'wendy', 'kfc', 'dining', 'fast food', 'doordash', 'grubhub', 'uber eats'],
+      categoryNames: ['dining', 'restaurant', 'eating out', 'food & dining', 'meals', 'eat']
     },
     gas: {
-      keywords: ['gas', 'fuel', 'shell', 'chevron', 'exxon', 'bp', 'mobil', 'arco', 'circle k', 'gas station'],
+      keywords: ['gas station', 'fuel', 'shell', 'chevron', 'exxon', 'bp', 'mobil', 'arco', 'circle k', '76', 'sunoco', 'marathon'],
       categoryNames: ['gas', 'fuel', 'gasoline', 'petrol']
     },
     transport: {
-      keywords: ['uber', 'lyft', 'taxi', 'parking', 'toll', 'bus', 'metro', 'transit', 'train', 'subway'],
+      keywords: ['uber', 'lyft', 'taxi', 'parking', 'toll', 'bus', 'metro', 'transit', 'train', 'subway', 'railway'],
       categoryNames: ['transport', 'transportation', 'transit', 'travel', 'commute']
     },
     auto: {
-      keywords: ['car payment', 'auto insurance', 'car insurance', 'vehicle', 'mechanic', 'oil change', 'car wash', 'repair', 'auto'],
+      keywords: ['car payment', 'auto insurance', 'car insurance', 'vehicle', 'mechanic', 'oil change', 'car wash', 'repair', 'auto', 'jiffy lube', 'tire'],
       categoryNames: ['auto', 'car', 'vehicle', 'automotive']
     },
     utilities: {
-      keywords: ['electric', 'electricity', 'gas company', 'water', 'sewer', 'trash', 'waste management', 'utility'],
+      keywords: ['electric', 'electricity', 'power company', 'gas company', 'water', 'sewer', 'trash', 'waste management', 'utility', 'pge', 'duke energy'],
       categoryNames: ['utilities', 'utility', 'bills']
     },
     internet: {
-      keywords: ['internet', 'cable', 'comcast', 'xfinity', 'at&t', 'verizon', 'spectrum', 'cox', 'wifi'],
+      keywords: ['internet', 'cable', 'comcast', 'xfinity', 'at&t', 'verizon', 'spectrum', 'cox', 'wifi', 'broadband'],
       categoryNames: ['internet', 'cable', 'broadband', 'isp']
     },
     phone: {
-      keywords: ['phone', 'mobile', 'cell', 't-mobile', 'sprint', 'wireless', 'cellular'],
+      keywords: ['phone bill', 'mobile', 'cell phone', 't-mobile', 'sprint', 'wireless', 'cellular', 'verizon wireless'],
       categoryNames: ['phone', 'mobile', 'cell', 'wireless']
     },
     entertainment: {
@@ -376,43 +372,61 @@ function suggestCategoryFromDescription(
       categoryNames: ['entertainment', 'fun', 'leisure', 'recreation', 'subscription']
     },
     shopping: {
-      keywords: ['amazon', 'ebay', 'store', 'shop', 'mall', 'retail', 'purchase'],
+      keywords: ['amazon', 'ebay', 'store', 'shop', 'mall', 'retail', 'purchase', 'best buy', 'macys'],
       categoryNames: ['shopping', 'retail', 'purchases', 'merchandise']
     },
     healthcare: {
-      keywords: ['doctor', 'hospital', 'pharmacy', 'medical', 'dental', 'vision', 'cvs', 'walgreens', 'prescription', 'health insurance', 'clinic', 'urgent care'],
+      keywords: ['doctor', 'hospital', 'pharmacy', 'medical', 'dental', 'vision', 'cvs', 'walgreens', 'prescription', 'health insurance', 'clinic', 'urgent care', 'dr.'],
       categoryNames: ['healthcare', 'health', 'medical', 'doctor', 'pharmacy']
     },
     personal: {
-      keywords: ['salon', 'haircut', 'spa', 'gym', 'fitness', 'barber', 'massage'],
+      keywords: ['salon', 'haircut', 'spa', 'gym', 'fitness', 'barber', 'massage', 'planet fitness', 'la fitness'],
       categoryNames: ['personal', 'personal care', 'self care', 'beauty', 'fitness', 'gym']
     },
     education: {
-      keywords: ['tuition', 'school', 'university', 'college', 'textbook', 'course', 'class'],
+      keywords: ['tuition', 'school', 'university', 'college', 'textbook', 'course', 'class', 'student'],
       categoryNames: ['education', 'school', 'learning', 'tuition']
     },
     pets: {
-      keywords: ['vet', 'veterinary', 'pet', 'petsmart', 'petco', 'dog', 'cat'],
+      keywords: ['vet', 'veterinary', 'pet', 'petsmart', 'petco', 'dog', 'cat', 'animal hospital'],
       categoryNames: ['pets', 'pet', 'animal']
     },
     insurance: {
-      keywords: ['insurance premium', 'life insurance', 'health insurance', 'insurance payment'],
+      keywords: ['insurance premium', 'life insurance', 'health insurance', 'insurance payment', 'allstate', 'geico', 'state farm'],
       categoryNames: ['insurance']
+    },
+    housing: {
+      keywords: ['rent payment', 'mortgage payment', 'hoa fee', 'property tax', 'home insurance', 'apartment rent', 'landlord'],
+      categoryNames: ['housing', 'house', 'home', 'rent', 'mortgage']
     }
   };
 
-  // Try to match transaction keywords to category
+  // Try to match transaction keywords to category (order matters - more specific first)
   for (const [key, data] of Object.entries(keywordMap)) {
-    if (data.keywords.some(term => desc.includes(term) || merch.includes(term))) {
+    // Check if ANY keyword matches in description or merchant
+    const hasKeywordMatch = data.keywords.some(term =>
+      desc.includes(term.toLowerCase()) || merch.includes(term.toLowerCase())
+    );
+
+    if (hasKeywordMatch) {
+      console.log(`[Category Suggestion] Transaction "${description}" matched keyword group: ${key}`);
+
       // Try to find a category that matches any of the category name patterns
       const category = categories.find(c => {
         const catName = c.name.toLowerCase();
         return data.categoryNames.some(name => catName.includes(name) || name.includes(catName));
       });
-      if (category) return category.id;
+
+      if (category) {
+        console.log(`[Category Suggestion] Found matching category: ${category.name}`);
+        return category.id;
+      } else {
+        console.log(`[Category Suggestion] No matching category found for keyword group: ${key}`);
+      }
     }
   }
 
+  console.log(`[Category Suggestion] No category match found for: "${description}"`);
   // Don't force a category if we can't find a good match
   return undefined;
 }
