@@ -94,11 +94,27 @@ export default function CSVImport({
       // Use detected type, default to expense if not detected
       const typeId = imported.type === 'income' ? 'type-income' : 'type-expense';
 
+      // Use suggested category, or find income category for income transactions, or default to first category
+      let categoryId = match.suggestedCategoryId;
+      if (!categoryId) {
+        if (imported.type === 'income') {
+          // Try to find an income category
+          const incomeCategory = categories.find(c =>
+            c.name.toLowerCase().includes('income') ||
+            c.name.toLowerCase().includes('salary') ||
+            c.name.toLowerCase().includes('wage')
+          );
+          categoryId = incomeCategory?.id || categories[0]?.id || '';
+        } else {
+          categoryId = categories[0]?.id || '';
+        }
+      }
+
       toImport.push({
         date: imported.date,
         description: imported.description,
         amount: imported.amount,
-        categoryId: match.suggestedCategoryId || categories[0]?.id || '',
+        categoryId: categoryId,
         typeId: typeId,
         merchant: imported.merchant,
         isRecurring: false
@@ -382,9 +398,13 @@ export default function CSVImport({
                               {match.importedTransaction.type === 'income' ? '💰 Income' : '💸 Expense'}
                             </span>
                           </div>
-                          {match.suggestedCategoryId && (
+                          {match.suggestedCategoryId ? (
                             <span className="text-xs text-gray-600">
                               Suggested: {categories.find(c => c.id === match.suggestedCategoryId)?.name}
+                            </span>
+                          ) : (
+                            <span className="text-xs text-gray-500 italic">
+                              No category suggestion
                             </span>
                           )}
                         </div>

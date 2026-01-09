@@ -329,58 +329,92 @@ function suggestCategoryFromDescription(
 
   if (similar) return similar.categoryId;
 
-  // Keyword-based suggestions
-  const keywords: Record<string, string[]> = {
-    // Income
-    income: ['salary', 'paycheck', 'direct deposit', 'payment received', 'income', 'wages', 'payroll', 'bonus', 'commission', 'reimbursement', 'refund', 'tax refund', 'dividend', 'interest income'],
-
-    // Housing
-    housing: ['rent', 'mortgage', 'hoa', 'property tax', 'home insurance', 'apartment', 'landlord'],
-
-    // Food
-    groceries: ['grocery', 'safeway', 'kroger', 'whole foods', 'trader joe', 'walmart', 'target', 'costco', 'market', 'food'],
-    dining: ['restaurant', 'cafe', 'coffee', 'pizza', 'burger', 'starbucks', 'mcdonalds', 'chipotle', 'subway', 'taco bell', 'wendy', 'kfc', 'dining'],
-
-    // Transportation
-    gas: ['gas', 'fuel', 'shell', 'chevron', 'exxon', 'bp', 'mobil', 'arco', 'circle k'],
-    transport: ['uber', 'lyft', 'taxi', 'parking', 'toll', 'bus', 'metro', 'transit', 'train'],
-    auto: ['car payment', 'auto insurance', 'car insurance', 'vehicle', 'mechanic', 'oil change', 'car wash', 'repair'],
-
-    // Utilities
-    utilities: ['electric', 'electricity', 'gas company', 'water', 'sewer', 'trash', 'waste management', 'utility'],
-    internet: ['internet', 'cable', 'comcast', 'xfinity', 'at&t', 'verizon', 'spectrum', 'cox'],
-    phone: ['phone', 'mobile', 'cell', 't-mobile', 'sprint', 'wireless'],
-
-    // Entertainment & Subscriptions
-    entertainment: ['movie', 'cinema', 'theater', 'concert', 'ticket', 'event', 'amusement', 'netflix', 'spotify', 'hulu', 'disney', 'hbo', 'prime video', 'apple music', 'youtube premium'],
-
-    // Shopping
-    shopping: ['amazon', 'ebay', 'store', 'shop', 'mall', 'retail', 'purchase'],
-
-    // Healthcare
-    healthcare: ['doctor', 'hospital', 'pharmacy', 'medical', 'dental', 'vision', 'cvs', 'walgreens', 'prescription', 'health insurance', 'clinic', 'urgent care'],
-
-    // Personal Care
-    personal: ['salon', 'haircut', 'spa', 'gym', 'fitness', 'barber', 'massage'],
-
-    // Education
-    education: ['tuition', 'school', 'university', 'college', 'textbook', 'course', 'class'],
-
-    // Pets
-    pets: ['vet', 'veterinary', 'pet', 'petsmart', 'petco', 'dog', 'cat'],
-
-    // Insurance (other)
-    insurance: ['insurance premium', 'life insurance', 'health insurance']
+  // Keyword-based suggestions with flexible category name matching
+  const keywordMap: Record<string, { keywords: string[], categoryNames: string[] }> = {
+    income: {
+      keywords: ['salary', 'paycheck', 'direct deposit', 'payment received', 'income', 'wages', 'payroll', 'bonus', 'commission', 'reimbursement', 'refund', 'tax refund', 'dividend', 'interest income'],
+      categoryNames: ['income', 'salary', 'wage', 'pay', 'earning']
+    },
+    housing: {
+      keywords: ['rent', 'mortgage', 'hoa', 'property tax', 'home insurance', 'apartment', 'landlord'],
+      categoryNames: ['housing', 'house', 'home', 'rent', 'mortgage']
+    },
+    groceries: {
+      keywords: ['grocery', 'safeway', 'kroger', 'whole foods', 'trader joe', 'walmart', 'target', 'costco', 'market', 'food'],
+      categoryNames: ['groceries', 'grocery', 'food', 'supermarket']
+    },
+    dining: {
+      keywords: ['restaurant', 'cafe', 'coffee', 'pizza', 'burger', 'starbucks', 'mcdonalds', 'chipotle', 'subway', 'taco bell', 'wendy', 'kfc', 'dining', 'fast food'],
+      categoryNames: ['dining', 'restaurant', 'eating out', 'food & dining', 'meals']
+    },
+    gas: {
+      keywords: ['gas', 'fuel', 'shell', 'chevron', 'exxon', 'bp', 'mobil', 'arco', 'circle k', 'gas station'],
+      categoryNames: ['gas', 'fuel', 'gasoline', 'petrol']
+    },
+    transport: {
+      keywords: ['uber', 'lyft', 'taxi', 'parking', 'toll', 'bus', 'metro', 'transit', 'train', 'subway'],
+      categoryNames: ['transport', 'transportation', 'transit', 'travel', 'commute']
+    },
+    auto: {
+      keywords: ['car payment', 'auto insurance', 'car insurance', 'vehicle', 'mechanic', 'oil change', 'car wash', 'repair', 'auto'],
+      categoryNames: ['auto', 'car', 'vehicle', 'automotive']
+    },
+    utilities: {
+      keywords: ['electric', 'electricity', 'gas company', 'water', 'sewer', 'trash', 'waste management', 'utility'],
+      categoryNames: ['utilities', 'utility', 'bills']
+    },
+    internet: {
+      keywords: ['internet', 'cable', 'comcast', 'xfinity', 'at&t', 'verizon', 'spectrum', 'cox', 'wifi'],
+      categoryNames: ['internet', 'cable', 'broadband', 'isp']
+    },
+    phone: {
+      keywords: ['phone', 'mobile', 'cell', 't-mobile', 'sprint', 'wireless', 'cellular'],
+      categoryNames: ['phone', 'mobile', 'cell', 'wireless']
+    },
+    entertainment: {
+      keywords: ['movie', 'cinema', 'theater', 'concert', 'ticket', 'event', 'amusement', 'netflix', 'spotify', 'hulu', 'disney', 'hbo', 'prime video', 'apple music', 'youtube premium', 'streaming'],
+      categoryNames: ['entertainment', 'fun', 'leisure', 'recreation', 'subscription']
+    },
+    shopping: {
+      keywords: ['amazon', 'ebay', 'store', 'shop', 'mall', 'retail', 'purchase'],
+      categoryNames: ['shopping', 'retail', 'purchases', 'merchandise']
+    },
+    healthcare: {
+      keywords: ['doctor', 'hospital', 'pharmacy', 'medical', 'dental', 'vision', 'cvs', 'walgreens', 'prescription', 'health insurance', 'clinic', 'urgent care'],
+      categoryNames: ['healthcare', 'health', 'medical', 'doctor', 'pharmacy']
+    },
+    personal: {
+      keywords: ['salon', 'haircut', 'spa', 'gym', 'fitness', 'barber', 'massage'],
+      categoryNames: ['personal', 'personal care', 'self care', 'beauty', 'fitness', 'gym']
+    },
+    education: {
+      keywords: ['tuition', 'school', 'university', 'college', 'textbook', 'course', 'class'],
+      categoryNames: ['education', 'school', 'learning', 'tuition']
+    },
+    pets: {
+      keywords: ['vet', 'veterinary', 'pet', 'petsmart', 'petco', 'dog', 'cat'],
+      categoryNames: ['pets', 'pet', 'animal']
+    },
+    insurance: {
+      keywords: ['insurance premium', 'life insurance', 'health insurance', 'insurance payment'],
+      categoryNames: ['insurance']
+    }
   };
 
-  for (const [categoryName, terms] of Object.entries(keywords)) {
-    if (terms.some(term => desc.includes(term) || merch.includes(term))) {
-      const category = categories.find(c => c.name.toLowerCase().includes(categoryName));
+  // Try to match transaction keywords to category
+  for (const [key, data] of Object.entries(keywordMap)) {
+    if (data.keywords.some(term => desc.includes(term) || merch.includes(term))) {
+      // Try to find a category that matches any of the category name patterns
+      const category = categories.find(c => {
+        const catName = c.name.toLowerCase();
+        return data.categoryNames.some(name => catName.includes(name) || name.includes(catName));
+      });
       if (category) return category.id;
     }
   }
 
-  return categories[0]?.id; // Default to first category
+  // Don't force a category if we can't find a good match
+  return undefined;
 }
 
 export function detectTransactionType(
