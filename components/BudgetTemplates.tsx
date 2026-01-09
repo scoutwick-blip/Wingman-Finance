@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { BudgetTemplate, Category, CategoryType } from '../types';
 import { BUDGET_TEMPLATES } from '../constants';
-import { Check, Info, Zap, DollarSign, Target, TrendingUp } from 'lucide-react';
+import { Check, Info, Zap, DollarSign, Target, TrendingUp, X } from 'lucide-react';
 
 interface BudgetTemplatesProps {
   categories: Category[];
@@ -73,9 +73,18 @@ export default function BudgetTemplates({
       <div className="bg-white rounded-2xl max-w-6xl w-full max-h-[90vh] overflow-y-auto">
         <div className="p-6">
           {/* Header */}
-          <div className="mb-6">
-            <h2 className="text-2xl font-black text-slate-900 uppercase tracking-wide mb-2">BUDGET TEMPLATES</h2>
-            <p className="text-gray-600">Choose a proven budget framework and customize it to your income</p>
+          <div className="mb-6 flex items-start justify-between">
+            <div>
+              <h2 className="text-2xl font-black text-slate-900 uppercase tracking-wide mb-2">BUDGET TEMPLATES</h2>
+              <p className="text-gray-600">Choose a proven budget framework and customize it to your income</p>
+            </div>
+            <button
+              onClick={onClose}
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              aria-label="Close"
+            >
+              <X className="w-6 h-6 text-gray-600" />
+            </button>
           </div>
 
           {/* Income Input */}
