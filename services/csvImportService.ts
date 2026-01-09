@@ -35,7 +35,8 @@ export const BANK_PRESETS: Record<string, CSVMapping> = {
   generic: {
     dateColumn: 'date',
     descriptionColumn: 'description',
-    amountColumn: 'amount'
+    amountColumn: 'amount',
+    typeColumn: 'type' // Will match 'type', 'transaction type', etc.
   }
 };
 
@@ -151,12 +152,14 @@ export function importCSVTransactions(
     const descCol = findColumn(mapping.descriptionColumn);
     const amountCol = findColumn(mapping.amountColumn);
     const balanceCol = mapping.balanceColumn ? findColumn(mapping.balanceColumn) : undefined;
+    const typeCol = mapping.typeColumn ? findColumn(mapping.typeColumn) : undefined;
 
     if (!dateCol || !descCol || !amountCol) continue;
 
     const dateStr = rowData[dateCol];
     const description = rowData[descCol];
     const amountStr = rowData[amountCol];
+    const typeStr = typeCol ? rowData[typeCol] : undefined;
 
     if (!dateStr || !description || !amountStr) continue;
 
@@ -174,10 +177,10 @@ export function importCSVTransactions(
       : undefined;
 
     const merchant = extractMerchant(description);
-    const transactionType = detectTransactionType(description, merchant, amount, amountStr);
+    const transactionType = detectTransactionType(description, merchant, amount, amountStr, typeStr);
 
     // Debug logging
-    console.log(`[Transaction Type] "${description}" | Amount: "${amountStr}" | Detected: ${transactionType}`);
+    console.log(`[Transaction Type] "${description}" | Amount: "${amountStr}" | Type column: "${typeStr || 'N/A'}" | Detected: ${transactionType}`);
 
     imported.push({
       date,
@@ -187,6 +190,7 @@ export function importCSVTransactions(
       merchant,
       type: transactionType,
       originalAmount: amountStr,
+      originalType: typeStr,
       rawData: row.join(',')
     });
   }
@@ -441,12 +445,28 @@ export function detectTransactionType(
   description: string,
   merchant: string | undefined,
   amount: number,
-  originalAmount?: string
+  originalAmount?: string,
+  typeColumn?: string
 ): 'income' | 'expense' {
   const desc = description.toLowerCase();
   const merch = merchant?.toLowerCase() || '';
 
-  // PRIORITY 1: Check the actual amount sign first
+  // PRIORITY 0: Check type column if it exists (most reliable)
+  if (typeColumn) {
+    const typeStr = typeColumn.toLowerCase().trim();
+
+    // Check for credit indicators (income)
+    if (typeStr.includes('credit') || typeStr.includes('deposit') || typeStr.includes('cr')) {
+      return 'income';
+    }
+
+    // Check for debit indicators (expense)
+    if (typeStr.includes('debit') || typeStr.includes('withdrawal') || typeStr.includes('payment') || typeStr.includes('dr')) {
+      return 'expense';
+    }
+  }
+
+  // PRIORITY 1: Check the actual amount sign
   if (originalAmount) {
     const clean = originalAmount.trim();
 
@@ -466,7 +486,7 @@ export function detectTransactionType(
       return 'expense';
     }
 
-    // Check for explicit debit/credit indicators
+    // Check for explicit debit/credit indicators in amount string
     const cleanLower = clean.toLowerCase();
     if (cleanLower.includes('dr') || cleanLower.includes('debit')) {
       return 'expense';

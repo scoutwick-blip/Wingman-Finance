@@ -408,7 +408,12 @@ export default function CSVImport({
                             </span>
                             {group.transactions[0]?.originalAmount && (
                               <span className="text-xs px-2 py-0.5 bg-gray-100 text-gray-700 rounded border border-gray-300 font-mono">
-                                CSV: {group.transactions[0].originalAmount}
+                                Amount: {group.transactions[0].originalAmount}
+                              </span>
+                            )}
+                            {group.transactions[0]?.originalType && (
+                              <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded border border-blue-300 font-mono">
+                                CSV Type: {group.transactions[0].originalType}
                               </span>
                             )}
                           </div>

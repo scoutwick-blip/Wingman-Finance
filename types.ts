@@ -280,8 +280,9 @@ export interface ImportedTransaction {
   balance?: number;
   merchant?: string;
   category?: string;
-  type?: string; // 'income' or 'expense'
+  type?: string; // 'income' or 'expense' (detected)
   originalAmount?: string; // Original amount string from CSV for better type detection
+  originalType?: string; // Original type column value from CSV (e.g., "Debit", "Credit")
   rawData: string; // Original CSV row
 }
 
