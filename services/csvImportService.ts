@@ -443,27 +443,36 @@ export function detectTransactionType(
   const desc = description.toLowerCase();
   const merch = merchant?.toLowerCase() || '';
 
-  // Income keywords
+  // PRIORITY 1: Check the actual amount sign first
+  if (originalAmount) {
+    const clean = originalAmount.trim();
+
+    // If amount starts with minus sign, it's definitely an expense
+    if (clean.startsWith('-')) {
+      return 'expense';
+    }
+
+    // Check for explicit debit/credit indicators
+    const cleanLower = clean.toLowerCase();
+    if (cleanLower.includes('dr') || cleanLower.includes('debit')) {
+      return 'expense';
+    }
+    if (cleanLower.includes('cr') || cleanLower.includes('credit')) {
+      return 'income';
+    }
+  }
+
+  // PRIORITY 2: Check for income keywords in description
   const incomeKeywords = [
-    'salary', 'paycheck', 'direct deposit', 'payment received', 'deposit',
-    'wages', 'payroll', 'bonus', 'commission', 'reimbursement', 'refund',
-    'tax refund', 'dividend', 'interest income', 'credit', 'transfer from',
-    'ach credit', 'mobile deposit', 'check deposit', 'income', 'pay'
+    'salary', 'paycheck', 'direct deposit', 'payment received',
+    'wages', 'payroll', 'bonus', 'commission',
+    'tax refund', 'dividend', 'interest income',
+    'ach credit', 'mobile deposit', 'check deposit', 'income'
   ];
 
   // Check if description/merchant contains income keywords
   if (incomeKeywords.some(keyword => desc.includes(keyword) || merch.includes(keyword))) {
     return 'income';
-  }
-
-  // Check original amount string for positive/credit indicators
-  if (originalAmount) {
-    const clean = originalAmount.toLowerCase().trim();
-    // Some banks mark income as positive without minus sign, expenses with minus
-    // Or use CR/DR indicators
-    if (clean.includes('cr') || clean.includes('credit')) {
-      return 'income';
-    }
   }
 
   // Default to expense
