@@ -176,6 +176,9 @@ export function importCSVTransactions(
     const merchant = extractMerchant(description);
     const transactionType = detectTransactionType(description, merchant, amount, amountStr);
 
+    // Debug logging
+    console.log(`[Transaction Type] "${description}" | Amount: "${amountStr}" | Detected: ${transactionType}`);
+
     imported.push({
       date,
       description: description.trim(),
@@ -447,8 +450,19 @@ export function detectTransactionType(
   if (originalAmount) {
     const clean = originalAmount.trim();
 
-    // If amount starts with minus sign, it's definitely an expense
+    // Check for various negative amount formats
+    // Format 1: Starts with minus sign: "-50.00"
     if (clean.startsWith('-')) {
+      return 'expense';
+    }
+
+    // Format 2: Ends with minus sign: "50.00-"
+    if (clean.endsWith('-')) {
+      return 'expense';
+    }
+
+    // Format 3: Parentheses indicate negative: "(50.00)" or "($50.00)"
+    if (clean.includes('(') || clean.includes(')')) {
       return 'expense';
     }
 

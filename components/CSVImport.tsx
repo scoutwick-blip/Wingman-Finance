@@ -398,13 +398,20 @@ export default function CSVImport({
                           <p className="text-sm text-gray-600">
                             {group.transactions.length} transaction{group.transactions.length !== 1 ? 's' : ''} · Total: {currency}{totalAmount.toFixed(2)}
                           </p>
-                          <span className={`inline-block mt-1 text-xs px-2 py-0.5 rounded-full border font-bold ${
-                            isIncome
-                              ? 'bg-green-100 text-green-800 border-green-300'
-                              : 'bg-red-100 text-red-800 border-red-300'
-                          }`}>
-                            {isIncome ? '💰 Income' : '💸 Expense'}
-                          </span>
+                          <div className="flex items-center gap-2 mt-1 flex-wrap">
+                            <span className={`text-xs px-2 py-0.5 rounded-full border font-bold ${
+                              isIncome
+                                ? 'bg-green-100 text-green-800 border-green-300'
+                                : 'bg-red-100 text-red-800 border-red-300'
+                            }`}>
+                              {isIncome ? '💰 Income' : '💸 Expense'}
+                            </span>
+                            {group.transactions[0]?.originalAmount && (
+                              <span className="text-xs px-2 py-0.5 bg-gray-100 text-gray-700 rounded border border-gray-300 font-mono">
+                                CSV: {group.transactions[0].originalAmount}
+                              </span>
+                            )}
+                          </div>
                         </div>
                         <div className="w-64">
                           <label className="block text-xs font-medium text-gray-700 mb-1">Category</label>
