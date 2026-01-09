@@ -9,7 +9,7 @@ import { AIAdvisor } from './components/AIAdvisor';
 import { Settings } from './components/Settings';
 import { SetupWizard } from './components/SetupWizard';
 import { ProfileSelector } from './components/ProfileSelector';
-import { Transaction, Category, UserPreferences, Notification, NotificationType, TransactionBehavior, UserProfile, Bill, BillStatus, MerchantMapping } from './types';
+import { Transaction, Category, UserPreferences, Notification, NotificationType, TransactionBehavior, UserProfile, Bill, BillStatus, MerchantMapping, Subscription, Goal, GoalStatus, SplitTransaction } from './types';
 import {
   INITIAL_CATEGORIES,
   STORAGE_KEY_TRANSACTIONS,
@@ -19,11 +19,17 @@ import {
   STORAGE_KEY_PROFILES,
   STORAGE_KEY_BILLS,
   STORAGE_KEY_MERCHANT_MAPPINGS,
+  STORAGE_KEY_SUBSCRIPTIONS,
+  STORAGE_KEY_GOALS,
+  STORAGE_KEY_SPLIT_TRANSACTIONS,
   DEFAULT_PREFERENCES
 } from './constants';
 import Bills from './components/Bills';
 import IncomeForecast from './components/IncomeForecast';
 import BudgetTemplates from './components/BudgetTemplates';
+import Subscriptions from './components/Subscriptions';
+import Goals from './components/Goals';
+import CSVImport from './components/CSVImport';
 
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -41,9 +47,13 @@ const App: React.FC = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [bills, setBills] = useState<Bill[]>([]);
   const [merchantMappings, setMerchantMappings] = useState<MerchantMapping[]>([]);
+  const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
+  const [goals, setGoals] = useState<Goal[]>([]);
+  const [splitTransactions, setSplitTransactions] = useState<SplitTransaction[]>([]);
 
   const [isLoading, setIsLoading] = useState(true);
   const [showBudgetTemplates, setShowBudgetTemplates] = useState(false);
+  const [showCSVImport, setShowCSVImport] = useState(false);
 
   // Initial Boot: Load Profiles and Check for Legacy Data
   useEffect(() => {
@@ -146,6 +156,9 @@ const App: React.FC = () => {
     const n = localStorage.getItem(`${STORAGE_KEY_NOTIFICATIONS}_${activeProfileId}`);
     const b = localStorage.getItem(`${STORAGE_KEY_BILLS}_${activeProfileId}`);
     const m = localStorage.getItem(`${STORAGE_KEY_MERCHANT_MAPPINGS}_${activeProfileId}`);
+    const s = localStorage.getItem(`${STORAGE_KEY_SUBSCRIPTIONS}_${activeProfileId}`);
+    const g = localStorage.getItem(`${STORAGE_KEY_GOALS}_${activeProfileId}`);
+    const st = localStorage.getItem(`${STORAGE_KEY_SPLIT_TRANSACTIONS}_${activeProfileId}`);
 
     setTransactions(t ? JSON.parse(t) : []);
 
@@ -155,6 +168,9 @@ const App: React.FC = () => {
     setNotifications(n ? JSON.parse(n) : []);
     setBills(b ? JSON.parse(b) : []);
     setMerchantMappings(m ? JSON.parse(m) : []);
+    setSubscriptions(s ? JSON.parse(s) : []);
+    setGoals(g ? JSON.parse(g) : []);
+    setSplitTransactions(st ? JSON.parse(st) : []);
 
     if (p) {
       const parsed = JSON.parse(p);
@@ -248,6 +264,33 @@ const App: React.FC = () => {
       console.error("Failed to save merchant mappings to storage", e);
     }
   }, [merchantMappings, activeProfileId, isLoading]);
+
+  useEffect(() => {
+    if (!activeProfileId || isLoading) return;
+    try {
+      localStorage.setItem(`${STORAGE_KEY_SUBSCRIPTIONS}_${activeProfileId}`, JSON.stringify(subscriptions));
+    } catch (e) {
+      console.error("Failed to save subscriptions to storage", e);
+    }
+  }, [subscriptions, activeProfileId, isLoading]);
+
+  useEffect(() => {
+    if (!activeProfileId || isLoading) return;
+    try {
+      localStorage.setItem(`${STORAGE_KEY_GOALS}_${activeProfileId}`, JSON.stringify(goals));
+    } catch (e) {
+      console.error("Failed to save goals to storage", e);
+    }
+  }, [goals, activeProfileId, isLoading]);
+
+  useEffect(() => {
+    if (!activeProfileId || isLoading) return;
+    try {
+      localStorage.setItem(`${STORAGE_KEY_SPLIT_TRANSACTIONS}_${activeProfileId}`, JSON.stringify(splitTransactions));
+    } catch (e) {
+      console.error("Failed to save split transactions to storage", e);
+    }
+  }, [splitTransactions, activeProfileId, isLoading]);
 
   // Profile Management Methods
   const handleProfileSelect = (id: string) => {
@@ -583,6 +626,63 @@ const App: React.FC = () => {
     return totalIncome / 3; // Average monthly income
   };
 
+  // Subscription Management
+  const addSubscription = (subscription: Subscription) => {
+    setSubscriptions(prev => [...prev, subscription]);
+  };
+
+  const updateSubscription = (subscription: Subscription) => {
+    setSubscriptions(prev => prev.map(s => s.id === subscription.id ? subscription : s));
+  };
+
+  const deleteSubscription = (subscriptionId: string) => {
+    setSubscriptions(prev => prev.filter(s => s.id !== subscriptionId));
+  };
+
+  // Goal Management
+  const addGoal = (goal: Goal) => {
+    setGoals(prev => [...prev, goal]);
+  };
+
+  const updateGoal = (goal: Goal) => {
+    setGoals(prev => prev.map(g => g.id === goal.id ? goal : g));
+  };
+
+  const deleteGoal = (goalId: string) => {
+    setGoals(prev => prev.filter(g => g.id !== goalId));
+  };
+
+  const updateGoalProgress = (goalId: string, amount: number) => {
+    setGoals(prev => prev.map(goal => {
+      if (goal.id !== goalId) return goal;
+
+      const newAmount = goal.currentAmount + amount;
+      const percentComplete = (newAmount / goal.targetAmount) * 100;
+
+      // Update milestones
+      const updatedMilestones = goal.milestones.map(m => {
+        if (!m.achieved && percentComplete >= m.percentage) {
+          return {
+            ...m,
+            achieved: true,
+            achievedDate: new Date().toISOString()
+          };
+        }
+        return m;
+      });
+
+      // Check if goal is complete
+      const isComplete = newAmount >= goal.targetAmount;
+
+      return {
+        ...goal,
+        currentAmount: newAmount,
+        milestones: updatedMilestones,
+        status: isComplete ? GoalStatus.COMPLETED : goal.status
+      };
+    }));
+  };
+
   if (isLoading) return null;
 
   // View Routing
@@ -621,10 +721,10 @@ const App: React.FC = () => {
         );
       case 'transactions':
         return (
-          <Transactions 
-            transactions={transactions} 
-            categories={categories} 
-            onAdd={addTransaction} 
+          <Transactions
+            transactions={transactions}
+            categories={categories}
+            onAdd={addTransaction}
             onUpdate={updateTransaction}
             onDelete={deleteTransaction}
             onBulkDelete={bulkDeleteTransactions}
@@ -633,6 +733,7 @@ const App: React.FC = () => {
             preferences={preferences}
             initialConfig={transactionConfig}
             onClearConfig={() => setTransactionConfig(null)}
+            onOpenCSVImport={() => setShowCSVImport(true)}
           />
         );
       case 'budgets':
@@ -669,6 +770,33 @@ const App: React.FC = () => {
             categories={categories}
             preferences={preferences}
             currency={preferences.currency}
+          />
+        );
+      case 'subscriptions':
+        return (
+          <Subscriptions
+            subscriptions={subscriptions}
+            categories={categories}
+            currency={preferences.currency}
+            onAddSubscription={addSubscription}
+            onEditSubscription={updateSubscription}
+            onDeleteSubscription={deleteSubscription}
+            onAddNotification={addNotification}
+          />
+        );
+      case 'goals':
+        return (
+          <Goals
+            goals={goals}
+            categories={categories}
+            transactions={transactions}
+            preferences={preferences}
+            currency={preferences.currency}
+            onAddGoal={addGoal}
+            onEditGoal={updateGoal}
+            onDeleteGoal={deleteGoal}
+            onUpdateGoalProgress={updateGoalProgress}
+            onAddNotification={addNotification}
           />
         );
       case 'settings':
@@ -718,6 +846,16 @@ const App: React.FC = () => {
           monthlyIncome={calculateMonthlyIncome()}
           onApplyTemplate={handleApplyTemplate}
           onClose={() => setShowBudgetTemplates(false)}
+        />
+      )}
+
+      {showCSVImport && (
+        <CSVImport
+          transactions={transactions}
+          categories={categories}
+          onImport={importTransactions}
+          onClose={() => setShowCSVImport(false)}
+          currency={preferences.currency}
         />
       )}
     </>

@@ -47,6 +47,9 @@ export const STORAGE_KEY_NOTIFICATIONS = 'wingman_notifications';
 export const STORAGE_KEY_PROFILES = 'wingman_profiles';
 export const STORAGE_KEY_BILLS = 'wingman_bills';
 export const STORAGE_KEY_MERCHANT_MAPPINGS = 'wingman_merchant_mappings';
+export const STORAGE_KEY_SPLIT_TRANSACTIONS = 'wingman_split_transactions';
+export const STORAGE_KEY_SUBSCRIPTIONS = 'wingman_subscriptions';
+export const STORAGE_KEY_GOALS = 'wingman_goals';
 
 // Budget Templates
 export const BUDGET_TEMPLATES: BudgetTemplate[] = [

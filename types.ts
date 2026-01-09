@@ -48,6 +48,28 @@ export interface Transaction {
   receiptImage?: string; // Base64 encoded image
   merchant?: string; // Extracted merchant name
   tags?: string[]; // Custom tags
+  isSplit?: boolean; // Is this a split transaction
+  splitTransactionId?: string; // Parent split transaction ID
+}
+
+// Split Transactions
+export interface TransactionSplit {
+  id: string;
+  categoryId: string;
+  amount: number;
+  percentage: number;
+  notes?: string;
+}
+
+export interface SplitTransaction {
+  id: string;
+  date: string;
+  description: string;
+  totalAmount: number;
+  merchant?: string;
+  receiptImage?: string;
+  splits: TransactionSplit[];
+  typeId: string;
 }
 
 export enum NotificationType {
@@ -186,4 +208,93 @@ export interface ForecastResult {
     expenses: number;
   }[];
   scenario?: ForecastScenario;
+}
+
+// Subscriptions
+export enum SubscriptionStatus {
+  ACTIVE = 'ACTIVE',
+  TRIAL = 'TRIAL',
+  CANCELLED = 'CANCELLED',
+  EXPIRED = 'EXPIRED'
+}
+
+export interface Subscription {
+  id: string;
+  name: string;
+  cost: number;
+  billingCycle: RecurringFrequency;
+  categoryId: string;
+  startDate: string;
+  nextBillingDate: string;
+  status: SubscriptionStatus;
+  trialEndDate?: string;
+  cancellationUrl?: string;
+  notes?: string;
+  linkedBillId?: string;
+}
+
+// Financial Goals
+export enum GoalType {
+  SAVINGS = 'SAVINGS',
+  DEBT_PAYOFF = 'DEBT_PAYOFF',
+  PURCHASE = 'PURCHASE',
+  INVESTMENT = 'INVESTMENT'
+}
+
+export enum GoalStatus {
+  IN_PROGRESS = 'IN_PROGRESS',
+  COMPLETED = 'COMPLETED',
+  PAUSED = 'PAUSED',
+  CANCELLED = 'CANCELLED'
+}
+
+export interface GoalMilestone {
+  percentage: number;
+  label: string;
+  achieved: boolean;
+  achievedDate?: string;
+}
+
+export interface Goal {
+  id: string;
+  name: string;
+  description?: string;
+  type: GoalType;
+  targetAmount: number;
+  currentAmount: number;
+  deadline?: string;
+  status: GoalStatus;
+  categoryId?: string;
+  monthlyContribution?: number;
+  icon?: string;
+  color?: string;
+  milestones: GoalMilestone[];
+  createdDate: string;
+}
+
+// CSV Import & Reconciliation
+export interface ImportedTransaction {
+  date: string;
+  description: string;
+  amount: number;
+  balance?: number;
+  merchant?: string;
+  category?: string;
+  type?: string;
+  rawData: string; // Original CSV row
+}
+
+export enum ReconciliationStatus {
+  NEW = 'NEW',
+  MATCHED = 'MATCHED',
+  DUPLICATE = 'DUPLICATE',
+  CONFLICT = 'CONFLICT'
+}
+
+export interface ReconciliationMatch {
+  importedTransaction: ImportedTransaction;
+  existingTransaction?: Transaction;
+  status: ReconciliationStatus;
+  confidence: number; // 0-1
+  suggestedCategoryId?: string;
 }

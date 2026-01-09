@@ -16,11 +16,12 @@ interface TransactionsProps {
   preferences: UserPreferences;
   initialConfig?: { mode: 'add', behavior: TransactionBehavior } | null;
   onClearConfig: () => void;
+  onOpenCSVImport?: () => void;
 }
 
-export const Transactions: React.FC<TransactionsProps> = ({ 
-  transactions, 
-  categories, 
+export const Transactions: React.FC<TransactionsProps> = ({
+  transactions,
+  categories,
   onAdd,
   onUpdate,
   onDelete,
@@ -29,7 +30,8 @@ export const Transactions: React.FC<TransactionsProps> = ({
   onNavigateToCategory,
   preferences,
   initialConfig,
-  onClearConfig
+  onClearConfig,
+  onOpenCSVImport
 }) => {
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -310,6 +312,14 @@ export const Transactions: React.FC<TransactionsProps> = ({
           >
             📸 Scan Receipt
           </button>
+          {onOpenCSVImport && (
+            <button
+              onClick={onOpenCSVImport}
+              className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white px-6 py-3 rounded-2xl font-bold transition-all hover:scale-105 active:scale-95 shadow-lg flex items-center gap-2"
+            >
+              📁 Import CSV
+            </button>
+          )}
           <button
             onClick={() => {
               if (isAdding) cancelEdit();

@@ -36,6 +36,8 @@ export const Layout: React.FC<LayoutProps> = ({
     { id: 'transactions', label: 'Transactions', icon: '📝' },
     { id: 'budgets', label: 'Budgets', icon: '📅' },
     { id: 'bills', label: 'Bills', icon: '💳' },
+    { id: 'subscriptions', label: 'Subscriptions', icon: '⚡' },
+    { id: 'goals', label: 'Goals', icon: '🎯' },
     { id: 'forecast', label: 'Forecast', icon: '📈' },
     { id: 'advisor', label: 'Advisor', icon: '🤖' },
     { id: 'settings', label: 'Settings', icon: '⚙️' },
