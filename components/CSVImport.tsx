@@ -24,11 +24,13 @@ export default function CSVImport({
   const [importedTransactions, setImportedTransactions] = useState<ImportedTransaction[]>([]);
   const [reconciliationMatches, setReconciliationMatches] = useState<ReconciliationMatch[]>([]);
   const [selectedMatches, setSelectedMatches] = useState<Set<number>>(new Set());
+  const [error, setError] = useState<string>('');
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    setError('');
     const reader = new FileReader();
     reader.onload = (event) => {
       const text = event.target?.result as string;
@@ -37,23 +39,33 @@ export default function CSVImport({
       // Auto-parse with selected preset
       handleParse(text, selectedPreset);
     };
+    reader.onerror = () => {
+      setError('Failed to read file. Please try again.');
+    };
     reader.readAsText(file);
   };
 
   const handleParse = (text: string, preset: string) => {
     const mapping = BANK_PRESETS[preset];
-    if (!mapping) return;
+    if (!mapping) {
+      setError('Invalid bank preset selected.');
+      return;
+    }
 
     try {
+      setError('');
       const imported = importCSVTransactions(text, mapping);
-      setImportedTransactions(imported);
 
-      if (imported.length > 0) {
-        setStep('preview');
+      if (imported.length === 0) {
+        setError(`No transactions found. Please check that your CSV file has the correct columns: ${mapping.dateColumn}, ${mapping.descriptionColumn}, ${mapping.amountColumn}`);
+        return;
       }
+
+      setImportedTransactions(imported);
+      setStep('preview');
     } catch (error) {
       console.error('Error parsing CSV:', error);
-      alert('Failed to parse CSV. Please check the file format.');
+      setError(`Failed to parse CSV: ${error instanceof Error ? error.message : 'Unknown error'}. Please check the file format and try a different bank preset.`);
     }
   };
 
@@ -145,7 +157,9 @@ export default function CSVImport({
             </div>
             <button
               onClick={onClose}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              className="p-2 hover:bg-red-50 hover:text-red-600 rounded-xl transition-all border-2 border-gray-300 hover:border-red-400 bg-white shadow-sm flex-shrink-0"
+              aria-label="Close"
+              title="Close"
             >
               <X className="w-6 h-6" />
             </button>
@@ -195,6 +209,17 @@ export default function CSVImport({
                   </div>
                 </label>
               </div>
+
+              {/* Error Display */}
+              {error && (
+                <div className="bg-red-50 border-2 border-red-200 rounded-xl p-4 flex items-start gap-3">
+                  <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-bold text-red-900 mb-1">Error</p>
+                    <p className="text-sm text-red-800">{error}</p>
+                  </div>
+                </div>
+              )}
 
               {/* Instructions */}
               <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-4">

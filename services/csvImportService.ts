@@ -117,10 +117,26 @@ export function importCSVTransactions(
   const rows = parseCSV(csvText);
   if (rows.length === 0) return [];
 
-  const headers = rows[0].map(h => h.toLowerCase().trim());
+  const headers = rows[0].map(h => h.trim());
   const dataRows = rows.slice(1);
 
   const imported: ImportedTransaction[] = [];
+
+  // Helper function to find column by name (case-insensitive, partial match)
+  const findColumn = (columnName: string): string | undefined => {
+    const searchTerm = columnName.toLowerCase();
+    // First try exact match
+    let match = headers.find(h => h.toLowerCase() === searchTerm);
+    if (match) return match;
+
+    // Then try if header includes the search term
+    match = headers.find(h => h.toLowerCase().includes(searchTerm));
+    if (match) return match;
+
+    // Finally try if search term includes the header
+    match = headers.find(h => searchTerm.includes(h.toLowerCase()));
+    return match;
+  };
 
   for (const row of dataRows) {
     if (row.length === 0 || row.every(cell => !cell)) continue;
@@ -131,12 +147,10 @@ export function importCSVTransactions(
     });
 
     // Find matching columns (case-insensitive)
-    const dateCol = Object.keys(rowData).find(k => k.includes(mapping.dateColumn.toLowerCase()));
-    const descCol = Object.keys(rowData).find(k => k.includes(mapping.descriptionColumn.toLowerCase()));
-    const amountCol = Object.keys(rowData).find(k => k.includes(mapping.amountColumn.toLowerCase()));
-    const balanceCol = mapping.balanceColumn
-      ? Object.keys(rowData).find(k => k.includes(mapping.balanceColumn.toLowerCase()))
-      : undefined;
+    const dateCol = findColumn(mapping.dateColumn);
+    const descCol = findColumn(mapping.descriptionColumn);
+    const amountCol = findColumn(mapping.amountColumn);
+    const balanceCol = mapping.balanceColumn ? findColumn(mapping.balanceColumn) : undefined;
 
     if (!dateCol || !descCol || !amountCol) continue;
 
