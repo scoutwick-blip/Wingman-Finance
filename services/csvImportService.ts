@@ -173,12 +173,17 @@ export function importCSVTransactions(
       ? parseFloat(rowData[balanceCol].replace(/[$,\s]/g, ''))
       : undefined;
 
+    const merchant = extractMerchant(description);
+    const transactionType = detectTransactionType(description, merchant, amount, amountStr);
+
     imported.push({
       date,
       description: description.trim(),
       amount,
       balance,
-      merchant: extractMerchant(description),
+      merchant,
+      type: transactionType,
+      originalAmount: amountStr,
       rawData: row.join(',')
     });
   }
@@ -326,12 +331,46 @@ function suggestCategoryFromDescription(
 
   // Keyword-based suggestions
   const keywords: Record<string, string[]> = {
-    groceries: ['grocery', 'safeway', 'kroger', 'whole foods', 'trader joe', 'walmart', 'target'],
-    dining: ['restaurant', 'cafe', 'coffee', 'pizza', 'burger', 'starbucks', 'mcdonalds'],
-    gas: ['gas', 'fuel', 'shell', 'chevron', 'exxon', 'bp'],
-    shopping: ['amazon', 'ebay', 'store', 'shop', 'mall'],
-    utilities: ['electric', 'gas company', 'water', 'internet', 'phone', 'at&t', 'verizon'],
-    transport: ['uber', 'lyft', 'taxi', 'parking', 'toll']
+    // Income
+    income: ['salary', 'paycheck', 'direct deposit', 'payment received', 'income', 'wages', 'payroll', 'bonus', 'commission', 'reimbursement', 'refund', 'tax refund', 'dividend', 'interest income'],
+
+    // Housing
+    housing: ['rent', 'mortgage', 'hoa', 'property tax', 'home insurance', 'apartment', 'landlord'],
+
+    // Food
+    groceries: ['grocery', 'safeway', 'kroger', 'whole foods', 'trader joe', 'walmart', 'target', 'costco', 'market', 'food'],
+    dining: ['restaurant', 'cafe', 'coffee', 'pizza', 'burger', 'starbucks', 'mcdonalds', 'chipotle', 'subway', 'taco bell', 'wendy', 'kfc', 'dining'],
+
+    // Transportation
+    gas: ['gas', 'fuel', 'shell', 'chevron', 'exxon', 'bp', 'mobil', 'arco', 'circle k'],
+    transport: ['uber', 'lyft', 'taxi', 'parking', 'toll', 'bus', 'metro', 'transit', 'train'],
+    auto: ['car payment', 'auto insurance', 'car insurance', 'vehicle', 'mechanic', 'oil change', 'car wash', 'repair'],
+
+    // Utilities
+    utilities: ['electric', 'electricity', 'gas company', 'water', 'sewer', 'trash', 'waste management', 'utility'],
+    internet: ['internet', 'cable', 'comcast', 'xfinity', 'at&t', 'verizon', 'spectrum', 'cox'],
+    phone: ['phone', 'mobile', 'cell', 't-mobile', 'sprint', 'wireless'],
+
+    // Entertainment & Subscriptions
+    entertainment: ['movie', 'cinema', 'theater', 'concert', 'ticket', 'event', 'amusement', 'netflix', 'spotify', 'hulu', 'disney', 'hbo', 'prime video', 'apple music', 'youtube premium'],
+
+    // Shopping
+    shopping: ['amazon', 'ebay', 'store', 'shop', 'mall', 'retail', 'purchase'],
+
+    // Healthcare
+    healthcare: ['doctor', 'hospital', 'pharmacy', 'medical', 'dental', 'vision', 'cvs', 'walgreens', 'prescription', 'health insurance', 'clinic', 'urgent care'],
+
+    // Personal Care
+    personal: ['salon', 'haircut', 'spa', 'gym', 'fitness', 'barber', 'massage'],
+
+    // Education
+    education: ['tuition', 'school', 'university', 'college', 'textbook', 'course', 'class'],
+
+    // Pets
+    pets: ['vet', 'veterinary', 'pet', 'petsmart', 'petco', 'dog', 'cat'],
+
+    // Insurance (other)
+    insurance: ['insurance premium', 'life insurance', 'health insurance']
   };
 
   for (const [categoryName, terms] of Object.entries(keywords)) {
@@ -342,4 +381,40 @@ function suggestCategoryFromDescription(
   }
 
   return categories[0]?.id; // Default to first category
+}
+
+export function detectTransactionType(
+  description: string,
+  merchant: string | undefined,
+  amount: number,
+  originalAmount?: string
+): 'income' | 'expense' {
+  const desc = description.toLowerCase();
+  const merch = merchant?.toLowerCase() || '';
+
+  // Income keywords
+  const incomeKeywords = [
+    'salary', 'paycheck', 'direct deposit', 'payment received', 'deposit',
+    'wages', 'payroll', 'bonus', 'commission', 'reimbursement', 'refund',
+    'tax refund', 'dividend', 'interest income', 'credit', 'transfer from',
+    'ach credit', 'mobile deposit', 'check deposit', 'income', 'pay'
+  ];
+
+  // Check if description/merchant contains income keywords
+  if (incomeKeywords.some(keyword => desc.includes(keyword) || merch.includes(keyword))) {
+    return 'income';
+  }
+
+  // Check original amount string for positive/credit indicators
+  if (originalAmount) {
+    const clean = originalAmount.toLowerCase().trim();
+    // Some banks mark income as positive without minus sign, expenses with minus
+    // Or use CR/DR indicators
+    if (clean.includes('cr') || clean.includes('credit')) {
+      return 'income';
+    }
+  }
+
+  // Default to expense
+  return 'expense';
 }

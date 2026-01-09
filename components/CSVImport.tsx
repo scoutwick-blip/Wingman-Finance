@@ -91,12 +91,15 @@ export default function CSVImport({
 
       const imported = match.importedTransaction;
 
+      // Use detected type, default to expense if not detected
+      const typeId = imported.type === 'income' ? 'type-income' : 'type-expense';
+
       toImport.push({
         date: imported.date,
         description: imported.description,
         amount: imported.amount,
         categoryId: match.suggestedCategoryId || categories[0]?.id || '',
-        typeId: 'type-expense', // Default to expense
+        typeId: typeId,
         merchant: imported.merchant,
         isRecurring: false
       });
@@ -362,14 +365,23 @@ export default function CSVImport({
                           </div>
                         </div>
 
-                        <div className="flex items-center justify-between">
-                          <span className={`text-xs px-2 py-1 rounded-full border font-bold flex items-center gap-1 ${getStatusColor(match.status)}`}>
-                            {getStatusIcon(match.status)}
-                            {match.status}
-                            {match.status !== ReconciliationStatus.DUPLICATE && match.confidence > 0 && (
-                              <span className="ml-1">({(match.confidence * 100).toFixed(0)}%)</span>
-                            )}
-                          </span>
+                        <div className="flex items-center justify-between flex-wrap gap-2">
+                          <div className="flex items-center gap-2">
+                            <span className={`text-xs px-2 py-1 rounded-full border font-bold flex items-center gap-1 ${getStatusColor(match.status)}`}>
+                              {getStatusIcon(match.status)}
+                              {match.status}
+                              {match.status !== ReconciliationStatus.DUPLICATE && match.confidence > 0 && (
+                                <span className="ml-1">({(match.confidence * 100).toFixed(0)}%)</span>
+                              )}
+                            </span>
+                            <span className={`text-xs px-2 py-1 rounded-full border font-bold ${
+                              match.importedTransaction.type === 'income'
+                                ? 'bg-green-100 text-green-800 border-green-300'
+                                : 'bg-red-100 text-red-800 border-red-300'
+                            }`}>
+                              {match.importedTransaction.type === 'income' ? '💰 Income' : '💸 Expense'}
+                            </span>
+                          </div>
                           {match.suggestedCategoryId && (
                             <span className="text-xs text-gray-600">
                               Suggested: {categories.find(c => c.id === match.suggestedCategoryId)?.name}
