@@ -70,6 +70,9 @@ export default function CSVImport({
   };
 
   const handleReconcile = () => {
+    // Log available categories for debugging
+    console.log('Available categories:', categories.map(c => ({ id: c.id, name: c.name })));
+
     const matches = reconcileTransactions(importedTransactions, transactions, categories);
     setReconciliationMatches(matches);
 
@@ -94,18 +97,31 @@ export default function CSVImport({
       // Use detected type, default to expense if not detected
       const typeId = imported.type === 'income' ? 'type-income' : 'type-expense';
 
-      // Use suggested category, or find income category for income transactions, or default to first category
+      // Use suggested category, or try to find an appropriate default
       let categoryId = match.suggestedCategoryId;
       if (!categoryId) {
+        // For income, try to find income category
         if (imported.type === 'income') {
-          // Try to find an income category
           const incomeCategory = categories.find(c =>
             c.name.toLowerCase().includes('income') ||
             c.name.toLowerCase().includes('salary') ||
             c.name.toLowerCase().includes('wage')
           );
-          categoryId = incomeCategory?.id || categories[0]?.id || '';
-        } else {
+          categoryId = incomeCategory?.id;
+        }
+
+        // If still no category, try to find "Uncategorized" or "Other" category
+        if (!categoryId) {
+          const uncategorizedCat = categories.find(c =>
+            c.name.toLowerCase().includes('uncategorized') ||
+            c.name.toLowerCase().includes('other') ||
+            c.name.toLowerCase().includes('misc')
+          );
+          categoryId = uncategorizedCat?.id;
+        }
+
+        // Last resort: use first category
+        if (!categoryId) {
           categoryId = categories[0]?.id || '';
         }
       }
@@ -398,15 +414,22 @@ export default function CSVImport({
                               {match.importedTransaction.type === 'income' ? '💰 Income' : '💸 Expense'}
                             </span>
                           </div>
-                          {match.suggestedCategoryId ? (
-                            <span className="text-xs text-gray-600">
-                              Suggested: {categories.find(c => c.id === match.suggestedCategoryId)?.name}
-                            </span>
-                          ) : (
-                            <span className="text-xs text-gray-500 italic">
-                              No category suggestion
-                            </span>
-                          )}
+                          <div className="flex flex-col items-end gap-1">
+                            {match.suggestedCategoryId ? (
+                              <span className="text-xs text-gray-600">
+                                Suggested: {categories.find(c => c.id === match.suggestedCategoryId)?.name}
+                              </span>
+                            ) : (
+                              <span className="text-xs text-gray-500 italic">
+                                No category suggestion
+                              </span>
+                            )}
+                            {match.matchedKeywordGroup && (
+                              <span className="text-xs px-2 py-0.5 bg-purple-100 text-purple-700 rounded border border-purple-300">
+                                Detected: {match.matchedKeywordGroup}
+                              </span>
+                            )}
+                          </div>
                         </div>
 
                         {match.existingTransaction && (

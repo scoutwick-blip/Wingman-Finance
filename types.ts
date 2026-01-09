@@ -298,4 +298,5 @@ export interface ReconciliationMatch {
   status: ReconciliationStatus;
   confidence: number; // 0-1
   suggestedCategoryId?: string;
+  matchedKeywordGroup?: string; // For debugging: which keyword group matched (e.g., "shopping", "dining")
 }

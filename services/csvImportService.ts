@@ -257,7 +257,7 @@ export function reconcileTransactions(
     }
 
     // No match - new transaction
-    const suggestedCategoryId = suggestCategoryFromDescription(
+    const suggestion = suggestCategoryFromDescription(
       importedTx.description,
       importedTx.merchant,
       categories,
@@ -268,7 +268,8 @@ export function reconcileTransactions(
       importedTransaction: importedTx,
       status: ReconciliationStatus.NEW,
       confidence: 0.0,
-      suggestedCategoryId
+      suggestedCategoryId: suggestion.categoryId,
+      matchedKeywordGroup: suggestion.keywordGroup
     });
   }
 
@@ -312,7 +313,7 @@ function suggestCategoryFromDescription(
   merchant: string | undefined,
   categories: Category[],
   existingTransactions: Transaction[]
-): string | undefined {
+): { categoryId?: string; keywordGroup?: string } {
   const desc = description.toLowerCase();
   const merch = merchant?.toLowerCase() || '';
 
@@ -327,7 +328,7 @@ function suggestCategoryFromDescription(
     );
   });
 
-  if (similar) return similar.categoryId;
+  if (similar) return { categoryId: similar.categoryId, keywordGroup: 'history_match' };
 
   // Keyword-based suggestions with flexible category name matching
   const keywordMap: Record<string, { keywords: string[], categoryNames: string[] }> = {
@@ -419,16 +420,18 @@ function suggestCategoryFromDescription(
 
       if (category) {
         console.log(`[Category Suggestion] Found matching category: ${category.name}`);
-        return category.id;
+        return { categoryId: category.id, keywordGroup: key };
       } else {
         console.log(`[Category Suggestion] No matching category found for keyword group: ${key}`);
+        // Return the keyword group even if no category was found, so user can see what matched
+        return { categoryId: undefined, keywordGroup: key };
       }
     }
   }
 
   console.log(`[Category Suggestion] No category match found for: "${description}"`);
   // Don't force a category if we can't find a good match
-  return undefined;
+  return { categoryId: undefined, keywordGroup: undefined };
 }
 
 export function detectTransactionType(
