@@ -80,10 +80,11 @@ export default function BudgetTemplates({
             </div>
             <button
               onClick={onClose}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              className="p-2 hover:bg-red-50 hover:text-red-600 rounded-xl transition-all border-2 border-gray-300 hover:border-red-400 bg-white shadow-sm flex-shrink-0"
               aria-label="Close"
+              title="Close"
             >
-              <X className="w-6 h-6 text-gray-600" />
+              <X className="w-6 h-6" />
             </button>
           </div>
 

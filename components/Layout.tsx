@@ -181,7 +181,17 @@ export const Layout: React.FC<LayoutProps> = ({
             <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
             <h2 className="text-xs font-black text-slate-400 uppercase tracking-widest">{activeTab}</h2>
           </div>
-          <div className="flex items-center gap-3 md:gap-4">
+          <div className="flex items-center gap-2 md:gap-4">
+            {onOpenTemplates && (
+              <button
+                onClick={onOpenTemplates}
+                className="md:hidden bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold py-2 px-3 rounded-lg text-xs flex items-center gap-1"
+                title="Budget Templates"
+              >
+                <span>⚡</span>
+                <span className="hidden xs:inline">Templates</span>
+              </button>
+            )}
             <div className="relative" ref={notificationRef}>
               <button 
                 onClick={() => {

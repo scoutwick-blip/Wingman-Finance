@@ -280,7 +280,9 @@ export interface ImportedTransaction {
   balance?: number;
   merchant?: string;
   category?: string;
-  type?: string;
+  type?: string; // 'income' or 'expense' (detected)
+  originalAmount?: string; // Original amount string from CSV for better type detection
+  originalType?: string; // Original type column value from CSV (e.g., "Debit", "Credit")
   rawData: string; // Original CSV row
 }
 
@@ -297,4 +299,5 @@ export interface ReconciliationMatch {
   status: ReconciliationStatus;
   confidence: number; // 0-1
   suggestedCategoryId?: string;
+  matchedKeywordGroup?: string; // For debugging: which keyword group matched (e.g., "shopping", "dining")
 }

@@ -35,7 +35,8 @@ export const BANK_PRESETS: Record<string, CSVMapping> = {
   generic: {
     dateColumn: 'date',
     descriptionColumn: 'description',
-    amountColumn: 'amount'
+    amountColumn: 'amount',
+    typeColumn: 'type' // Will match 'type', 'transaction type', etc.
   }
 };
 
@@ -117,10 +118,26 @@ export function importCSVTransactions(
   const rows = parseCSV(csvText);
   if (rows.length === 0) return [];
 
-  const headers = rows[0].map(h => h.toLowerCase().trim());
+  const headers = rows[0].map(h => h.trim());
   const dataRows = rows.slice(1);
 
   const imported: ImportedTransaction[] = [];
+
+  // Helper function to find column by name (case-insensitive, partial match)
+  const findColumn = (columnName: string): string | undefined => {
+    const searchTerm = columnName.toLowerCase();
+    // First try exact match
+    let match = headers.find(h => h.toLowerCase() === searchTerm);
+    if (match) return match;
+
+    // Then try if header includes the search term
+    match = headers.find(h => h.toLowerCase().includes(searchTerm));
+    if (match) return match;
+
+    // Finally try if search term includes the header
+    match = headers.find(h => searchTerm.includes(h.toLowerCase()));
+    return match;
+  };
 
   for (const row of dataRows) {
     if (row.length === 0 || row.every(cell => !cell)) continue;
@@ -131,18 +148,18 @@ export function importCSVTransactions(
     });
 
     // Find matching columns (case-insensitive)
-    const dateCol = Object.keys(rowData).find(k => k.includes(mapping.dateColumn.toLowerCase()));
-    const descCol = Object.keys(rowData).find(k => k.includes(mapping.descriptionColumn.toLowerCase()));
-    const amountCol = Object.keys(rowData).find(k => k.includes(mapping.amountColumn.toLowerCase()));
-    const balanceCol = mapping.balanceColumn
-      ? Object.keys(rowData).find(k => k.includes(mapping.balanceColumn.toLowerCase()))
-      : undefined;
+    const dateCol = findColumn(mapping.dateColumn);
+    const descCol = findColumn(mapping.descriptionColumn);
+    const amountCol = findColumn(mapping.amountColumn);
+    const balanceCol = mapping.balanceColumn ? findColumn(mapping.balanceColumn) : undefined;
+    const typeCol = mapping.typeColumn ? findColumn(mapping.typeColumn) : undefined;
 
     if (!dateCol || !descCol || !amountCol) continue;
 
     const dateStr = rowData[dateCol];
     const description = rowData[descCol];
     const amountStr = rowData[amountCol];
+    const typeStr = typeCol ? rowData[typeCol] : undefined;
 
     if (!dateStr || !description || !amountStr) continue;
 
@@ -159,12 +176,21 @@ export function importCSVTransactions(
       ? parseFloat(rowData[balanceCol].replace(/[$,\s]/g, ''))
       : undefined;
 
+    const merchant = extractMerchant(description);
+    const transactionType = detectTransactionType(description, merchant, amount, amountStr, typeStr);
+
+    // Debug logging
+    console.log(`[Transaction Type] "${description}" | Amount: "${amountStr}" | Type column: "${typeStr || 'N/A'}" | Detected: ${transactionType}`);
+
     imported.push({
       date,
       description: description.trim(),
       amount,
       balance,
-      merchant: extractMerchant(description),
+      merchant,
+      type: transactionType,
+      originalAmount: amountStr,
+      originalType: typeStr,
       rawData: row.join(',')
     });
   }
@@ -238,7 +264,7 @@ export function reconcileTransactions(
     }
 
     // No match - new transaction
-    const suggestedCategoryId = suggestCategoryFromDescription(
+    const suggestion = suggestCategoryFromDescription(
       importedTx.description,
       importedTx.merchant,
       categories,
@@ -249,7 +275,8 @@ export function reconcileTransactions(
       importedTransaction: importedTx,
       status: ReconciliationStatus.NEW,
       confidence: 0.0,
-      suggestedCategoryId
+      suggestedCategoryId: suggestion.categoryId,
+      matchedKeywordGroup: suggestion.keywordGroup
     });
   }
 
@@ -293,7 +320,7 @@ function suggestCategoryFromDescription(
   merchant: string | undefined,
   categories: Category[],
   existingTransactions: Transaction[]
-): string | undefined {
+): { categoryId?: string; keywordGroup?: string } {
   const desc = description.toLowerCase();
   const merch = merchant?.toLowerCase() || '';
 
@@ -308,24 +335,180 @@ function suggestCategoryFromDescription(
     );
   });
 
-  if (similar) return similar.categoryId;
+  if (similar) return { categoryId: similar.categoryId, keywordGroup: 'history_match' };
 
-  // Keyword-based suggestions
-  const keywords: Record<string, string[]> = {
-    groceries: ['grocery', 'safeway', 'kroger', 'whole foods', 'trader joe', 'walmart', 'target'],
-    dining: ['restaurant', 'cafe', 'coffee', 'pizza', 'burger', 'starbucks', 'mcdonalds'],
-    gas: ['gas', 'fuel', 'shell', 'chevron', 'exxon', 'bp'],
-    shopping: ['amazon', 'ebay', 'store', 'shop', 'mall'],
-    utilities: ['electric', 'gas company', 'water', 'internet', 'phone', 'at&t', 'verizon'],
-    transport: ['uber', 'lyft', 'taxi', 'parking', 'toll']
+  // Keyword-based suggestions with flexible category name matching
+  const keywordMap: Record<string, { keywords: string[], categoryNames: string[] }> = {
+    income: {
+      keywords: ['salary', 'paycheck', 'direct deposit', 'payment received', 'income', 'wages', 'payroll', 'bonus', 'commission', 'reimbursement', 'refund', 'tax refund', 'dividend', 'interest income'],
+      categoryNames: ['income', 'salary', 'wage', 'pay', 'earning']
+    },
+    groceries: {
+      keywords: ['grocery', 'safeway', 'kroger', 'whole foods', 'trader joe', 'walmart', 'target', 'costco', 'market', 'supermarket', 'food lion', 'albertsons', 'publix', 'aldi'],
+      categoryNames: ['groceries', 'grocery', 'food', 'supermarket']
+    },
+    dining: {
+      keywords: ['restaurant', 'cafe', 'coffee', 'pizza', 'burger', 'starbucks', 'mcdonalds', 'chipotle', 'subway', 'taco bell', 'wendy', 'kfc', 'dining', 'fast food', 'doordash', 'grubhub', 'uber eats'],
+      categoryNames: ['dining', 'restaurant', 'eating out', 'food & dining', 'meals', 'eat']
+    },
+    gas: {
+      keywords: ['gas station', 'fuel', 'shell', 'chevron', 'exxon', 'bp', 'mobil', 'arco', 'circle k', '76', 'sunoco', 'marathon'],
+      categoryNames: ['gas', 'fuel', 'gasoline', 'petrol']
+    },
+    transport: {
+      keywords: ['uber', 'lyft', 'taxi', 'parking', 'toll', 'bus', 'metro', 'transit', 'train', 'subway', 'railway'],
+      categoryNames: ['transport', 'transportation', 'transit', 'travel', 'commute']
+    },
+    auto: {
+      keywords: ['car payment', 'auto insurance', 'car insurance', 'vehicle', 'mechanic', 'oil change', 'car wash', 'repair', 'auto', 'jiffy lube', 'tire'],
+      categoryNames: ['auto', 'car', 'vehicle', 'automotive']
+    },
+    utilities: {
+      keywords: ['electric', 'electricity', 'power company', 'gas company', 'water', 'sewer', 'trash', 'waste management', 'utility', 'pge', 'duke energy'],
+      categoryNames: ['utilities', 'utility', 'bills']
+    },
+    internet: {
+      keywords: ['internet', 'cable', 'comcast', 'xfinity', 'at&t', 'verizon', 'spectrum', 'cox', 'wifi', 'broadband'],
+      categoryNames: ['internet', 'cable', 'broadband', 'isp']
+    },
+    phone: {
+      keywords: ['phone bill', 'mobile', 'cell phone', 't-mobile', 'sprint', 'wireless', 'cellular', 'verizon wireless'],
+      categoryNames: ['phone', 'mobile', 'cell', 'wireless']
+    },
+    entertainment: {
+      keywords: ['movie', 'cinema', 'theater', 'concert', 'ticket', 'event', 'amusement', 'netflix', 'spotify', 'hulu', 'disney', 'hbo', 'prime video', 'apple music', 'youtube premium', 'streaming'],
+      categoryNames: ['entertainment', 'fun', 'leisure', 'recreation', 'subscription']
+    },
+    shopping: {
+      keywords: ['amazon', 'ebay', 'store', 'shop', 'mall', 'retail', 'purchase', 'best buy', 'macys'],
+      categoryNames: ['shopping', 'retail', 'purchases', 'merchandise']
+    },
+    healthcare: {
+      keywords: ['doctor', 'hospital', 'pharmacy', 'medical', 'dental', 'vision', 'cvs', 'walgreens', 'prescription', 'health insurance', 'clinic', 'urgent care', 'dr.'],
+      categoryNames: ['healthcare', 'health', 'medical', 'doctor', 'pharmacy']
+    },
+    personal: {
+      keywords: ['salon', 'haircut', 'spa', 'gym', 'fitness', 'barber', 'massage', 'planet fitness', 'la fitness'],
+      categoryNames: ['personal', 'personal care', 'self care', 'beauty', 'fitness', 'gym']
+    },
+    education: {
+      keywords: ['tuition', 'school', 'university', 'college', 'textbook', 'course', 'class', 'student'],
+      categoryNames: ['education', 'school', 'learning', 'tuition']
+    },
+    pets: {
+      keywords: ['vet', 'veterinary', 'pet', 'petsmart', 'petco', 'dog', 'cat', 'animal hospital'],
+      categoryNames: ['pets', 'pet', 'animal']
+    },
+    insurance: {
+      keywords: ['insurance premium', 'life insurance', 'health insurance', 'insurance payment', 'allstate', 'geico', 'state farm'],
+      categoryNames: ['insurance']
+    },
+    housing: {
+      keywords: ['rent payment', 'mortgage payment', 'hoa fee', 'property tax', 'home insurance', 'apartment rent', 'landlord'],
+      categoryNames: ['housing', 'house', 'home', 'rent', 'mortgage']
+    }
   };
 
-  for (const [categoryName, terms] of Object.entries(keywords)) {
-    if (terms.some(term => desc.includes(term) || merch.includes(term))) {
-      const category = categories.find(c => c.name.toLowerCase().includes(categoryName));
-      if (category) return category.id;
+  // Try to match transaction keywords to category (order matters - more specific first)
+  for (const [key, data] of Object.entries(keywordMap)) {
+    // Check if ANY keyword matches in description or merchant
+    const hasKeywordMatch = data.keywords.some(term =>
+      desc.includes(term.toLowerCase()) || merch.includes(term.toLowerCase())
+    );
+
+    if (hasKeywordMatch) {
+      console.log(`[Category Suggestion] Transaction "${description}" matched keyword group: ${key}`);
+
+      // Try to find a category that matches any of the category name patterns
+      const category = categories.find(c => {
+        const catName = c.name.toLowerCase();
+        return data.categoryNames.some(name => catName.includes(name) || name.includes(catName));
+      });
+
+      if (category) {
+        console.log(`[Category Suggestion] Found matching category: ${category.name}`);
+        return { categoryId: category.id, keywordGroup: key };
+      } else {
+        console.log(`[Category Suggestion] No matching category found for keyword group: ${key}`);
+        // Return the keyword group even if no category was found, so user can see what matched
+        return { categoryId: undefined, keywordGroup: key };
+      }
     }
   }
 
-  return categories[0]?.id; // Default to first category
+  console.log(`[Category Suggestion] No category match found for: "${description}"`);
+  // Don't force a category if we can't find a good match
+  return { categoryId: undefined, keywordGroup: undefined };
+}
+
+export function detectTransactionType(
+  description: string,
+  merchant: string | undefined,
+  amount: number,
+  originalAmount?: string,
+  typeColumn?: string
+): 'income' | 'expense' {
+  const desc = description.toLowerCase();
+  const merch = merchant?.toLowerCase() || '';
+
+  // PRIORITY 0: Check type column if it exists (most reliable)
+  if (typeColumn) {
+    const typeStr = typeColumn.toLowerCase().trim();
+
+    // Check for credit indicators (income)
+    if (typeStr.includes('credit') || typeStr.includes('deposit') || typeStr.includes('cr')) {
+      return 'income';
+    }
+
+    // Check for debit indicators (expense)
+    if (typeStr.includes('debit') || typeStr.includes('withdrawal') || typeStr.includes('payment') || typeStr.includes('dr')) {
+      return 'expense';
+    }
+  }
+
+  // PRIORITY 1: Check the actual amount sign
+  if (originalAmount) {
+    const clean = originalAmount.trim();
+
+    // Check for various negative amount formats
+    // Format 1: Starts with minus sign: "-50.00"
+    if (clean.startsWith('-')) {
+      return 'expense';
+    }
+
+    // Format 2: Ends with minus sign: "50.00-"
+    if (clean.endsWith('-')) {
+      return 'expense';
+    }
+
+    // Format 3: Parentheses indicate negative: "(50.00)" or "($50.00)"
+    if (clean.includes('(') || clean.includes(')')) {
+      return 'expense';
+    }
+
+    // Check for explicit debit/credit indicators in amount string
+    const cleanLower = clean.toLowerCase();
+    if (cleanLower.includes('dr') || cleanLower.includes('debit')) {
+      return 'expense';
+    }
+    if (cleanLower.includes('cr') || cleanLower.includes('credit')) {
+      return 'income';
+    }
+  }
+
+  // PRIORITY 2: Check for income keywords in description
+  const incomeKeywords = [
+    'salary', 'paycheck', 'direct deposit', 'payment received',
+    'wages', 'payroll', 'bonus', 'commission',
+    'tax refund', 'dividend', 'interest income',
+    'ach credit', 'mobile deposit', 'check deposit', 'income'
+  ];
+
+  // Check if description/merchant contains income keywords
+  if (incomeKeywords.some(keyword => desc.includes(keyword) || merch.includes(keyword))) {
+    return 'income';
+  }
+
+  // Default to expense
+  return 'expense';
 }
