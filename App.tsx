@@ -911,7 +911,12 @@ const App: React.FC = () => {
     setPreferences(prev => ({ ...prev, authMode: 'local' }));
   };
 
-  if (isLoading || isCheckingAuth) return null;
+  console.log('Render check - isLoading:', isLoading, 'isCheckingAuth:', isCheckingAuth, 'showAuthScreen:', showAuthScreen, 'user:', user, 'activeProfileId:', activeProfileId, 'profiles:', profiles.length);
+
+  if (isLoading || isCheckingAuth) {
+    console.log('Returning null because isLoading:', isLoading, 'or isCheckingAuth:', isCheckingAuth);
+    return null;
+  }
 
   // Show Auth Screen if user needs to sign in
   if (showAuthScreen && !user) {
