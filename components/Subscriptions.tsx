@@ -309,7 +309,7 @@ export default function Subscriptions({
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-green-100 uppercase">Monthly Total</p>
-              <p className="text-3xl font-bold">{currency}{analytics.monthlyTotal.toFixed(0)}</p>
+              <p className="text-3xl font-bold">{currency}{analytics.monthlyTotal.toFixed(2)}</p>
             </div>
             <DollarSign className="w-8 h-8 text-green-200" />
           </div>
@@ -318,7 +318,7 @@ export default function Subscriptions({
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-purple-100 uppercase">Yearly Total</p>
-              <p className="text-3xl font-bold">{currency}{analytics.yearlyTotal.toFixed(0)}</p>
+              <p className="text-3xl font-bold">{currency}{analytics.yearlyTotal.toFixed(2)}</p>
             </div>
             <TrendingUp className="w-8 h-8 text-purple-200" />
           </div>

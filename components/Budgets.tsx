@@ -168,14 +168,14 @@ export const Budgets: React.FC<BudgetsProps> = ({
             <div className="min-w-0">
               <h4 className="font-bold text-slate-800 truncate text-base">{cat.name}</h4>
               <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
-                {getTargetLabel(cat.type)}: <span className="text-slate-900">{preferences.currency}{(cat.type === CategoryType.DEBT ? cat.initialBalance : cat.budget)?.toLocaleString()}</span>
+                {getTargetLabel(cat.type)}: <span className="text-slate-900">{preferences.currency}{(cat.type === CategoryType.DEBT ? cat.initialBalance : cat.budget)?.toFixed(2)}</span>
               </p>
             </div>
           </div>
 
           <div className="space-y-2">
             <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-widest">
-              <span className="text-slate-400">{progress.label}: <span className={`text-slate-900 ${preferences.privacyMode ? 'blur-sm' : ''}`}>{preferences.currency}{progress.current.toLocaleString()}</span></span>
+              <span className="text-slate-400">{progress.label}: <span className={`text-slate-900 ${preferences.privacyMode ? 'blur-sm' : ''}`}>{preferences.currency}{progress.current.toFixed(2)}</span></span>
               <span className={progress.isOver ? 'text-rose-500' : (cat.type === CategoryType.SAVINGS || cat.type === CategoryType.INCOME) && progress.percentage >= 100 ? 'text-emerald-600' : 'text-slate-400'}>
                 {Math.round(progress.percentage)}%
               </span>
@@ -347,12 +347,12 @@ export const Budgets: React.FC<BudgetsProps> = ({
                                             <span className="text-2xl bg-white/10 w-10 h-10 flex items-center justify-center rounded-lg">{cat.icon}</span>
                                             <div>
                                                 <span className="font-bold text-sm block">{cat.name}</span>
-                                                <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Current: {preferences.currency}{cat.budget.toLocaleString()}</span>
+                                                <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Current: {preferences.currency}{cat.budget.toFixed(2)}</span>
                                             </div>
                                         </div>
                                         <div className="text-right">
                                             <div className="text-[9px] text-indigo-300 font-bold uppercase tracking-wide">Proposed</div>
-                                            <div className="font-black text-xl text-emerald-400">{preferences.currency}{s.suggestedAmount.toLocaleString()}</div>
+                                            <div className="font-black text-xl text-emerald-400">{preferences.currency}{s.suggestedAmount.toFixed(2)}</div>
                                         </div>
                                     </div>
                                     
@@ -362,7 +362,7 @@ export const Budgets: React.FC<BudgetsProps> = ({
                                     
                                     <div className="flex items-center justify-between border-t border-white/5 pt-3">
                                         <span className={`text-[10px] font-bold uppercase tracking-widest ${isIncrease ? 'text-rose-400' : 'text-emerald-400'}`}>
-                                            {isIncrease ? 'Increase' : 'Decrease'} by {preferences.currency}{Math.abs(diff).toLocaleString()}
+                                            {isIncrease ? 'Increase' : 'Decrease'} by {preferences.currency}{Math.abs(diff).toFixed(2)}
                                         </span>
                                         <button 
                                             onClick={() => applySuggestion(s)}
