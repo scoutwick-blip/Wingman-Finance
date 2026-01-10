@@ -451,7 +451,7 @@ export function detectTransactionType(
   const desc = description.toLowerCase();
   const merch = merchant?.toLowerCase() || '';
 
-  // PRIORITY 0: Check type column if it exists (most reliable)
+  // PRIORITY 0: Check type column if it exists (most reliable when clear)
   if (typeColumn) {
     const typeStr = typeColumn.toLowerCase().trim();
 
@@ -464,9 +464,24 @@ export function detectTransactionType(
     if (typeStr.includes('debit') || typeStr.includes('withdrawal') || typeStr.includes('payment') || typeStr.includes('dr')) {
       return 'expense';
     }
+
+    // If type column is ambiguous (like "Retail ACH", "ACH", "Transfer"), continue to other checks
   }
 
-  // PRIORITY 1: Check the actual amount sign
+  // PRIORITY 1: Check for income keywords in description (before checking amount sign)
+  const incomeKeywords = [
+    'salary', 'paycheck', 'direct deposit', 'payment received',
+    'wages', 'payroll', 'bonus', 'commission', 'pay',
+    'tax refund', 'dividend', 'interest income',
+    'ach credit', 'mobile deposit', 'check deposit', 'income'
+  ];
+
+  // If description contains income keywords, it's income
+  if (incomeKeywords.some(keyword => desc.includes(keyword) || merch.includes(keyword))) {
+    return 'income';
+  }
+
+  // PRIORITY 2: Check the actual amount sign (for expenses with minus signs)
   if (originalAmount) {
     const clean = originalAmount.trim();
 
@@ -496,19 +511,6 @@ export function detectTransactionType(
     }
   }
 
-  // PRIORITY 2: Check for income keywords in description
-  const incomeKeywords = [
-    'salary', 'paycheck', 'direct deposit', 'payment received',
-    'wages', 'payroll', 'bonus', 'commission',
-    'tax refund', 'dividend', 'interest income',
-    'ach credit', 'mobile deposit', 'check deposit', 'income'
-  ];
-
-  // Check if description/merchant contains income keywords
-  if (incomeKeywords.some(keyword => desc.includes(keyword) || merch.includes(keyword))) {
-    return 'income';
-  }
-
-  // Default to expense
+  // Default to expense (positive amounts without income keywords)
   return 'expense';
 }
