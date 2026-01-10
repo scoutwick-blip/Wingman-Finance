@@ -75,7 +75,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ transactions, categories, 
 
     const pieData = Object.entries(categoryDataMap).map(([id, amount]) => {
       const cat = categories.find(c => c.id === id);
-      return { name: cat?.name || 'Other', value: amount, color: cat?.color || '#cbd5e1' };
+      return { name: cat?.name || 'Other', value: parseFloat(amount.toFixed(2)), color: cat?.color || '#cbd5e1' };
     });
 
     // Trend Bar Chart Data (Last 6 Months)
@@ -101,16 +101,23 @@ export const Dashboard: React.FC<DashboardProps> = ({ transactions, categories, 
       }
     });
 
-    const trendData = Object.values(months);
+    const trendData = Object.values(months).map(m => ({
+      ...m,
+      income: parseFloat(m.income.toFixed(2)),
+      expense: parseFloat(m.expense.toFixed(2))
+    }));
 
     const recentTransactions = [...transactions]
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
       .slice(0, 5);
 
-    return { 
-      totalIncome, totalExpense, totalDebt, totalSavings, 
-      netWorth: totalIncome - totalExpense + totalSavings - totalDebt,
-      pieData, trendData, recentTransactions 
+    return {
+      totalIncome: parseFloat(totalIncome.toFixed(2)),
+      totalExpense: parseFloat(totalExpense.toFixed(2)),
+      totalDebt: parseFloat(totalDebt.toFixed(2)),
+      totalSavings: parseFloat(totalSavings.toFixed(2)),
+      netWorth: parseFloat((totalIncome - totalExpense + totalSavings - totalDebt).toFixed(2)),
+      pieData, trendData, recentTransactions
     };
   }, [transactions, categories, preferences.transactionTypes]);
 
