@@ -1361,7 +1361,7 @@ Platform: ${navigator.userAgent}
                       className="w-full bg-transparent text-sm font-bold text-slate-800 outline-none"
                     />
                   </div>
-                  <p className="text-[9px] text-slate-400 italic">Alerts trigger for transactions over {preferences.currency}{largeTransactionThreshold}.</p>
+                  <p className="text-[9px] text-slate-400 italic">Alerts trigger for transactions over {preferences.currency}{largeTransactionThreshold.toFixed(2)}.</p>
                 </div>
               </div>
             )}
