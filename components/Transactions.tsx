@@ -642,7 +642,7 @@ export const Transactions: React.FC<TransactionsProps> = ({
                         </span>
                       </td>
                       <td className={`px-4 py-4 text-sm font-black ${behaviorColor} ${preferences.privacyMode ? 'blur-sm hover:blur-none' : ''}`}>
-                        {behaviorIcon}{preferences.currency}{t.amount.toLocaleString()}
+                        {behaviorIcon}{preferences.currency}{t.amount.toFixed(2)}
                       </td>
                       <td className="px-4 py-4 text-right">
                         <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all">

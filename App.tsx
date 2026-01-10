@@ -643,7 +643,7 @@ const App: React.FC = () => {
             id: Math.random().toString(36).substring(2, 9),
             type: NotificationType.DANGER,
             title,
-            message: `You've exceeded your ${preferences.currency}${budget} budget for ${cat.name}. Currently at ${preferences.currency}${spent.toLocaleString()}.`,
+            message: `You've exceeded your ${preferences.currency}${budget.toFixed(2)} budget for ${cat.name}. Currently at ${preferences.currency}${spent.toFixed(2)}.`,
             timestamp,
             isRead: false
           });
@@ -687,7 +687,7 @@ const App: React.FC = () => {
         id: Math.random().toString(36).substring(2, 9),
         type: NotificationType.INFO,
         title: 'Significant Activity',
-        message: `A large transaction of ${preferences.currency}${transaction.amount.toLocaleString()} for "${transaction.description}" was recorded.`,
+        message: `A large transaction of ${preferences.currency}${transaction.amount.toFixed(2)} for "${transaction.description}" was recorded.`,
         timestamp: new Date().toISOString(),
         isRead: false
       };
@@ -967,18 +967,18 @@ const App: React.FC = () => {
 
       // Check if email confirmation is required
       if (result.user && !result.session) {
-        addNotification({
-          title: 'Account Created!',
-          message: 'Please check your email to verify your account before signing in.',
-          type: NotificationType.SUCCESS
-        });
+        addNotification(
+          NotificationType.SUCCESS,
+          'Account Created!',
+          'Please check your email to verify your account before signing in.'
+        );
       } else if (result.session) {
         // Email confirmation disabled, user is signed in immediately
-        addNotification({
-          title: 'Welcome!',
-          message: 'Your account has been created successfully.',
-          type: NotificationType.SUCCESS
-        });
+        addNotification(
+          NotificationType.SUCCESS,
+          'Welcome!',
+          'Your account has been created successfully.'
+        );
       }
     } catch (error: any) {
       console.error('Sign up error:', error);
@@ -1009,11 +1009,11 @@ const App: React.FC = () => {
     try {
       await signOut();
       setUser(null);
-      addNotification({
-        title: 'Signed Out',
-        message: 'You have been signed out successfully.',
-        type: NotificationType.INFO
-      });
+      addNotification(
+        NotificationType.INFO,
+        'Signed Out',
+        'You have been signed out successfully.'
+      );
     } catch (error: any) {
       console.error('Sign out failed:', error);
     }

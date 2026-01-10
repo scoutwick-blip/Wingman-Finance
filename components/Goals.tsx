@@ -222,9 +222,9 @@ export default function Goals({
         {/* Progress Bar */}
         <div className="mb-4">
           <div className="flex justify-between text-sm mb-2">
-            <span className="font-medium">{currency}{goal.currentAmount.toLocaleString()}</span>
+            <span className="font-medium">{currency}{goal.currentAmount.toFixed(2)}</span>
             <span className="font-bold text-lg">{progress.toFixed(1)}%</span>
-            <span className="font-medium text-gray-600">{currency}{goal.targetAmount.toLocaleString()}</span>
+            <span className="font-medium text-gray-600">{currency}{goal.targetAmount.toFixed(2)}</span>
           </div>
           <div className="h-4 bg-gray-200 rounded-full overflow-hidden">
             <div
@@ -236,7 +236,7 @@ export default function Goals({
             />
           </div>
           <p className="text-sm text-gray-600 mt-1">
-            {currency}{remaining.toLocaleString()} remaining
+            {currency}{remaining.toFixed(2)} remaining
           </p>
         </div>
 
@@ -390,7 +390,7 @@ export default function Goals({
             <span className="font-bold text-2xl">{stats.percentComplete.toFixed(1)}%</span>
           </div>
           <p className="text-sm text-indigo-100">
-            {currency}{stats.totalProgress.toLocaleString()} of {currency}{stats.totalTarget.toLocaleString()}
+            {currency}{stats.totalProgress.toFixed(2)} of {currency}{stats.totalTarget.toFixed(2)}
           </p>
         </div>
       )}

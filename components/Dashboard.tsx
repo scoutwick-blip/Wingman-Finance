@@ -116,7 +116,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ transactions, categories, 
 
   const SensitiveValue = ({ value, prefix = '' }: { value: number, prefix?: string }) => (
     <span className={`transition-all duration-300 ${preferences.privacyMode ? 'blur-md hover:blur-none cursor-help' : ''}`}>
-      {prefix}{preferences.currency}{Math.abs(value).toLocaleString()}
+      {prefix}{preferences.currency}{Math.abs(value).toFixed(2)}
     </span>
   );
 
