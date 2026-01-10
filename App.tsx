@@ -526,31 +526,18 @@ const App: React.FC = () => {
             console.log('Cloud time:', new Date(cloudTime), 'Local time:', new Date(localTime));
 
             if (cloudTime > localTime) {
-              // Cloud data is newer, ask user if they want to load it
-              console.log('Cloud data is newer, prompting user...');
-              if (confirm('Cloud data found. Do you want to load it? This will replace your local data.')) {
-                console.log('User accepted, loading cloud data...');
-                restoreFullState(cloudData.content);
-                addNotification({
-                  title: 'Cloud Data Loaded',
-                  message: 'Your data has been synced from the cloud.',
-                  type: NotificationType.SUCCESS
-                });
-              } else {
-                console.log('User declined cloud data');
-              }
+              // Cloud data is newer, load it automatically
+              console.log('Cloud data is newer, loading automatically...');
+              restoreFullState(cloudData.content, false);
+              console.log('✅ Cloud data loaded successfully');
             } else {
               console.log('Local data is newer or same, skipping cloud load');
             }
           } else {
             // No local data, load cloud data automatically
             console.log('No local data found, loading cloud data automatically...');
-            restoreFullState(cloudData.content);
-            addNotification({
-              title: 'Welcome Back!',
-              message: 'Your data has been synced from the cloud.',
-              type: NotificationType.SUCCESS
-            });
+            restoreFullState(cloudData.content, false);
+            console.log('✅ Cloud data loaded successfully');
           }
         } else {
           console.log('No cloud data found for this profile');
@@ -772,21 +759,23 @@ const App: React.FC = () => {
     handleDeleteProfile(activeProfileId);
   };
   
-  const restoreFullState = (data: { preferences: UserPreferences; categories: Category[]; transactions: Transaction[] }) => {
+  const restoreFullState = (data: { preferences: UserPreferences; categories: Category[]; transactions: Transaction[] }, showNotification: boolean = true) => {
     if (data.preferences) setPreferences(data.preferences);
     if (data.categories) setCategories(data.categories);
     if (data.transactions) setTransactions(data.transactions);
-    
-    // Add notification about restore
-    const note: Notification = {
-      id: Math.random().toString(36).substring(2, 9),
-      type: NotificationType.SUCCESS,
-      title: 'Data Restored',
-      message: 'Your data has been successfully restored from backup.',
-      timestamp: new Date().toISOString(),
-      isRead: false
-    };
-    setNotifications(prev => [note, ...prev]);
+
+    // Add notification about restore (only if requested)
+    if (showNotification) {
+      const note: Notification = {
+        id: Math.random().toString(36).substring(2, 9),
+        type: NotificationType.SUCCESS,
+        title: 'Data Restored',
+        message: 'Your data has been successfully restored from backup.',
+        timestamp: new Date().toISOString(),
+        isRead: false
+      };
+      setNotifications(prev => [note, ...prev]);
+    }
   };
 
   const markNotificationsRead = () => {
