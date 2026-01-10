@@ -4,27 +4,35 @@ import { QRCodeSVG } from 'qrcode.react';
 import LZString from 'lz-string';
 import { UserPreferences, TransactionBehavior, TransactionTypeDefinition, Category, Transaction } from '../types';
 import { uploadToCloud, downloadFromCloud, testConnection } from '../services/supabaseService';
+import { User } from '@supabase/supabase-js';
+import { LogOut, LogIn, User as UserIcon } from 'lucide-react';
 
 interface SettingsProps {
   preferences: UserPreferences;
   categories: Category[];
   transactions: Transaction[];
   activeProfileId: string;
+  user?: User | null;
   onUpdatePreferences: (updates: Partial<UserPreferences>) => void;
   onImportTransactions: (transactions: Omit<Transaction, 'id'>[]) => void;
   onFullRestore: (data: { preferences: UserPreferences; categories: Category[]; transactions: Transaction[] }) => void;
   onClearData: () => void;
+  onSignOut?: () => Promise<void>;
+  onShowAuth?: () => void;
 }
 
-export const Settings: React.FC<SettingsProps> = ({ 
-  preferences, 
+export const Settings: React.FC<SettingsProps> = ({
+  preferences,
   categories,
   transactions,
   activeProfileId,
-  onUpdatePreferences, 
+  user,
+  onUpdatePreferences,
   onImportTransactions,
   onFullRestore,
-  onClearData 
+  onClearData,
+  onSignOut,
+  onShowAuth
 }) => {
   const currencies = ['$', '€', '£', '¥', '₹', '₱', '₩', 'R$'];
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -444,6 +452,76 @@ Platform: ${navigator.userAgent}
         <h3 className="text-2xl font-black text-slate-900 tracking-tighter uppercase">Settings</h3>
         <p className="text-slate-500 text-xs font-bold uppercase tracking-widest">Manage your profile and display preferences.</p>
       </div>
+
+      {/* Cloud Account Section */}
+      {(user || onShowAuth) && (
+        <section className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+          <h4 className="font-bold text-slate-800 border-b border-slate-50 pb-4 text-[10px] uppercase tracking-[0.2em]">
+            Cloud Account
+          </h4>
+
+          {user ? (
+            <div className="space-y-4">
+              <div className="flex items-center gap-4 p-4 bg-green-50 border border-green-100 rounded-2xl">
+                <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center flex-shrink-0">
+                  <UserIcon className="w-6 h-6 text-white" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-green-900 text-sm">Signed In</p>
+                  <p className="text-xs text-green-700 truncate">{user.email}</p>
+                </div>
+                <div className="flex-shrink-0">
+                  <span className="inline-block px-3 py-1 bg-green-100 text-green-700 text-xs font-bold rounded-full">
+                    ☁️ SYNCED
+                  </span>
+                </div>
+              </div>
+
+              <div className="text-xs text-slate-600 bg-slate-50 rounded-xl p-4 space-y-2">
+                <p className="font-bold">🔒 Your data is automatically synced to the cloud</p>
+                <p>Access your budget from any device by signing in with your account.</p>
+              </div>
+
+              {onSignOut && (
+                <button
+                  onClick={onSignOut}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-3 border-2 border-red-200 text-red-700 rounded-xl hover:bg-red-50 transition-all font-bold text-sm"
+                >
+                  <LogOut className="w-4 h-4" />
+                  Sign Out
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="flex items-center gap-4 p-4 bg-blue-50 border border-blue-100 rounded-2xl">
+                <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center flex-shrink-0">
+                  <UserIcon className="w-6 h-6 text-white" />
+                </div>
+                <div className="flex-1">
+                  <p className="font-bold text-blue-900 text-sm">Local Only Mode</p>
+                  <p className="text-xs text-blue-700">Data stored on this device only</p>
+                </div>
+              </div>
+
+              <div className="text-xs text-slate-600 bg-slate-50 rounded-xl p-4 space-y-2">
+                <p className="font-bold">💡 Want to access your data from multiple devices?</p>
+                <p>Sign in to sync your budget securely to the cloud.</p>
+              </div>
+
+              {onShowAuth && (
+                <button
+                  onClick={onShowAuth}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-all font-bold text-sm shadow-lg"
+                >
+                  <LogIn className="w-4 h-4" />
+                  Sign In / Create Account
+                </button>
+              )}
+            </div>
+          )}
+        </section>
+      )}
 
       {/* NEW: Easy Data Transfer Section */}
       <section className="bg-gradient-to-br from-indigo-600 to-indigo-800 p-8 rounded-3xl shadow-xl text-white overflow-hidden relative">

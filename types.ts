@@ -110,6 +110,7 @@ export interface UserPreferences {
     key: string;
     lastSynced?: string;
   };
+  authMode?: 'local' | 'cloud'; // 'local' = no cloud sync, 'cloud' = use authentication
 }
 
 export interface UserProfile {

@@ -9,7 +9,10 @@ import { AIAdvisor } from './components/AIAdvisor';
 import { Settings } from './components/Settings';
 import { SetupWizard } from './components/SetupWizard';
 import { ProfileSelector } from './components/ProfileSelector';
+import Auth from './components/Auth';
 import { Transaction, Category, UserPreferences, Notification, NotificationType, TransactionBehavior, UserProfile, Bill, BillStatus, MerchantMapping, Subscription, Goal, GoalStatus, SplitTransaction } from './types';
+import { initSupabase, signIn, signUp, signInWithOAuth, signOut, getCurrentUser, onAuthStateChange, uploadAuthData, downloadAuthData } from './services/supabaseService';
+import { User } from '@supabase/supabase-js';
 import {
   INITIAL_CATEGORIES,
   STORAGE_KEY_TRANSACTIONS,
@@ -55,8 +58,67 @@ const App: React.FC = () => {
   const [showBudgetTemplates, setShowBudgetTemplates] = useState(false);
   const [showCSVImport, setShowCSVImport] = useState(false);
 
+  // Authentication State
+  const [user, setUser] = useState<User | null>(null);
+  const [showAuthScreen, setShowAuthScreen] = useState(false);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  const [lastSyncTime, setLastSyncTime] = useState<number>(0);
+  const [isSyncing, setIsSyncing] = useState(false);
+
+  // Initialize Supabase and Check Auth (runs first)
+  useEffect(() => {
+    const initAuth = async () => {
+      // Check for Supabase configuration from environment variables
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+      if (supabaseUrl && supabaseKey) {
+        try {
+          initSupabase(supabaseUrl, supabaseKey);
+
+          // Check for existing session
+          const currentUser = await getCurrentUser();
+          if (currentUser) {
+            setUser(currentUser);
+            setShowAuthScreen(false);
+          } else {
+            // No session - check if user has chosen local-only mode before
+            const storedPrefs = localStorage.getItem(STORAGE_KEY_PREFERENCES);
+            if (storedPrefs) {
+              const prefs = JSON.parse(storedPrefs);
+              if (prefs.authMode === 'local') {
+                setShowAuthScreen(false);
+              } else if (prefs.authMode === 'cloud') {
+                setShowAuthScreen(true);
+              }
+              // If authMode is undefined, don't show auth screen (user hasn't chosen)
+            }
+          }
+
+          // Listen for auth state changes
+          const { data: { subscription } } = onAuthStateChange((session, user) => {
+            setUser(user);
+            if (user) {
+              setShowAuthScreen(false);
+            }
+          });
+
+          return () => subscription.unsubscribe();
+        } catch (error) {
+          console.error('Failed to initialize Supabase:', error);
+        }
+      }
+
+      setIsCheckingAuth(false);
+    };
+
+    initAuth();
+  }, []);
+
   // Initial Boot: Load Profiles and Check for Legacy Data
   useEffect(() => {
+    if (isCheckingAuth) return; // Wait for auth check to complete
+
     const storedProfiles = localStorage.getItem(STORAGE_KEY_PROFILES);
     let loadedProfiles: UserProfile[] = storedProfiles ? JSON.parse(storedProfiles) : [];
 
@@ -291,6 +353,94 @@ const App: React.FC = () => {
       console.error("Failed to save split transactions to storage", e);
     }
   }, [splitTransactions, activeProfileId, isLoading]);
+
+  // Auto-sync to cloud when authenticated
+  useEffect(() => {
+    if (!user || !activeProfileId || isLoading || isCheckingAuth) return;
+
+    const syncToCloud = async () => {
+      // Debounce: only sync if 5 seconds have passed since last sync
+      const now = Date.now();
+      if (now - lastSyncTime < 5000) return;
+
+      if (isSyncing) return; // Don't sync if already syncing
+
+      try {
+        setIsSyncing(true);
+        const backupData = {
+          version: '1.0',
+          timestamp: new Date().toISOString(),
+          preferences,
+          categories,
+          transactions,
+          bills,
+          merchantMappings,
+          subscriptions,
+          goals,
+          splitTransactions
+        };
+
+        await uploadAuthData(activeProfileId, backupData);
+        setLastSyncTime(now);
+        console.log('Auto-synced to cloud');
+      } catch (error) {
+        console.error('Auto-sync failed:', error);
+      } finally {
+        setIsSyncing(false);
+      }
+    };
+
+    // Debounce the sync with a timeout
+    const timeoutId = setTimeout(syncToCloud, 2000);
+    return () => clearTimeout(timeoutId);
+  }, [user, activeProfileId, transactions, categories, preferences, bills, merchantMappings, subscriptions, goals, splitTransactions, isLoading, isCheckingAuth]);
+
+  // Load cloud data on first sign in
+  useEffect(() => {
+    if (!user || !activeProfileId) return;
+
+    const loadCloudData = async () => {
+      try {
+        const cloudData = await downloadAuthData(activeProfileId);
+        if (cloudData && cloudData.content) {
+          // Check if cloud data is newer than local data
+          const cloudTime = new Date(cloudData.updatedAt).getTime();
+          const localPrefs = localStorage.getItem(`${STORAGE_KEY_PREFERENCES}_${activeProfileId}`);
+
+          if (localPrefs) {
+            const parsed = JSON.parse(localPrefs);
+            const localTime = parsed.supabaseConfig?.lastSynced
+              ? new Date(parsed.supabaseConfig.lastSynced).getTime()
+              : 0;
+
+            if (cloudTime > localTime) {
+              // Cloud data is newer, ask user if they want to load it
+              if (confirm('Cloud data found. Do you want to load it? This will replace your local data.')) {
+                restoreFullState(cloudData.content);
+                addNotification({
+                  title: 'Cloud Data Loaded',
+                  message: 'Your data has been synced from the cloud.',
+                  type: NotificationType.SUCCESS
+                });
+              }
+            }
+          } else {
+            // No local data, load cloud data automatically
+            restoreFullState(cloudData.content);
+            addNotification({
+              title: 'Welcome Back!',
+              message: 'Your data has been synced from the cloud.',
+              type: NotificationType.SUCCESS
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load cloud data:', error);
+      }
+    };
+
+    loadCloudData();
+  }, [user]); // Only run when user changes (sign in)
 
   // Profile Management Methods
   const handleProfileSelect = (id: string) => {
@@ -683,7 +833,69 @@ const App: React.FC = () => {
     }));
   };
 
-  if (isLoading) return null;
+  // Authentication Handlers
+  const handleSignIn = async (email: string, password: string) => {
+    try {
+      await signIn(email, password);
+      // User state will be updated by onAuthStateChange listener
+    } catch (error: any) {
+      throw new Error(error.message || 'Failed to sign in');
+    }
+  };
+
+  const handleSignUp = async (email: string, password: string) => {
+    try {
+      await signUp(email, password);
+      addNotification({
+        title: 'Account Created!',
+        message: 'Please check your email to verify your account.',
+        type: NotificationType.SUCCESS
+      });
+    } catch (error: any) {
+      throw new Error(error.message || 'Failed to create account');
+    }
+  };
+
+  const handleOAuthSignIn = async (provider: 'google' | 'github') => {
+    try {
+      await signInWithOAuth(provider);
+    } catch (error: any) {
+      throw new Error(error.message || 'Failed to sign in with OAuth');
+    }
+  };
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      setUser(null);
+      addNotification({
+        title: 'Signed Out',
+        message: 'You have been signed out successfully.',
+        type: NotificationType.INFO
+      });
+    } catch (error: any) {
+      console.error('Sign out failed:', error);
+    }
+  };
+
+  const handleSkipAuth = () => {
+    setShowAuthScreen(false);
+    setPreferences(prev => ({ ...prev, authMode: 'local' }));
+  };
+
+  if (isLoading || isCheckingAuth) return null;
+
+  // Show Auth Screen if user needs to sign in
+  if (showAuthScreen && !user) {
+    return (
+      <Auth
+        onSignIn={handleSignIn}
+        onSignUp={handleSignUp}
+        onOAuthSignIn={handleOAuthSignIn}
+        onSkip={handleSkipAuth}
+      />
+    );
+  }
 
   // View Routing
   if (isSetupMode) {
@@ -806,10 +1018,13 @@ const App: React.FC = () => {
             categories={categories}
             transactions={transactions}
             activeProfileId={activeProfileId}
+            user={user}
             onUpdatePreferences={(updates) => setPreferences(prev => ({...prev, ...updates}))}
             onImportTransactions={importTransactions}
             onFullRestore={restoreFullState}
             onClearData={handleClearData}
+            onSignOut={handleSignOut}
+            onShowAuth={() => setShowAuthScreen(true)}
           />
         );
       default:
