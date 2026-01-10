@@ -374,16 +374,26 @@ const App: React.FC = () => {
 
   // Auto-sync to cloud when authenticated (debounced)
   useEffect(() => {
-    if (!user || !activeProfileId || isLoading || isCheckingAuth) return;
+    if (!user || !activeProfileId || isLoading || isCheckingAuth) {
+      console.log('Auto-sync skipped:', { user: !!user, activeProfileId, isLoading, isCheckingAuth });
+      return;
+    }
 
     // Debounce: only sync if 5 seconds have passed since last sync
     const now = Date.now();
-    if (now - lastSyncTime < 5000) return;
+    if (now - lastSyncTime < 5000) {
+      console.log('Auto-sync debounced (too soon since last sync)');
+      return;
+    }
 
-    if (isSyncing) return; // Don't sync if already syncing
+    if (isSyncing) {
+      console.log('Auto-sync skipped (already syncing)');
+      return;
+    }
 
     const syncToCloud = async () => {
       try {
+        console.log('Starting auto-sync to cloud...');
         setIsSyncing(true);
         const backupData = {
           version: '1.0',
@@ -400,9 +410,9 @@ const App: React.FC = () => {
 
         await uploadAuthData(activeProfileId, backupData);
         setLastSyncTime(now);
-        console.log('Auto-synced to cloud');
+        console.log('✅ Auto-synced to cloud successfully');
       } catch (error) {
-        console.error('Auto-sync failed:', error);
+        console.error('❌ Auto-sync failed:', error);
       } finally {
         setIsSyncing(false);
       }
@@ -416,7 +426,10 @@ const App: React.FC = () => {
 
   // Load cloud data on first sign in (only runs once when user signs in)
   useEffect(() => {
-    if (!user || !activeProfileId) return;
+    if (!user || !activeProfileId) {
+      console.log('Cloud data load skipped:', { user: !!user, activeProfileId });
+      return;
+    }
 
     let hasLoaded = false; // Prevent multiple loads
 
@@ -425,8 +438,12 @@ const App: React.FC = () => {
       hasLoaded = true;
 
       try {
+        console.log('Attempting to load cloud data for profile:', activeProfileId);
         const cloudData = await downloadAuthData(activeProfileId);
+        console.log('Cloud data response:', cloudData);
+
         if (cloudData && cloudData.content) {
+          console.log('Cloud data found, checking timestamps...');
           // Check if cloud data is newer than local data
           const cloudTime = new Date(cloudData.updatedAt).getTime();
           const localPrefs = localStorage.getItem(`${STORAGE_KEY_PREFERENCES}_${activeProfileId}`);
@@ -437,19 +454,28 @@ const App: React.FC = () => {
               ? new Date(parsed.supabaseConfig.lastSynced).getTime()
               : 0;
 
+            console.log('Cloud time:', new Date(cloudTime), 'Local time:', new Date(localTime));
+
             if (cloudTime > localTime) {
               // Cloud data is newer, ask user if they want to load it
+              console.log('Cloud data is newer, prompting user...');
               if (confirm('Cloud data found. Do you want to load it? This will replace your local data.')) {
+                console.log('User accepted, loading cloud data...');
                 restoreFullState(cloudData.content);
                 addNotification({
                   title: 'Cloud Data Loaded',
                   message: 'Your data has been synced from the cloud.',
                   type: NotificationType.SUCCESS
                 });
+              } else {
+                console.log('User declined cloud data');
               }
+            } else {
+              console.log('Local data is newer or same, skipping cloud load');
             }
           } else {
             // No local data, load cloud data automatically
+            console.log('No local data found, loading cloud data automatically...');
             restoreFullState(cloudData.content);
             addNotification({
               title: 'Welcome Back!',
@@ -457,9 +483,11 @@ const App: React.FC = () => {
               type: NotificationType.SUCCESS
             });
           }
+        } else {
+          console.log('No cloud data found for this profile');
         }
       } catch (error) {
-        console.error('Failed to load cloud data:', error);
+        console.error('❌ Failed to load cloud data:', error);
       }
     };
 
