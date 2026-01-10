@@ -67,52 +67,74 @@ const App: React.FC = () => {
 
   // Initialize Supabase and Check Auth (runs first)
   useEffect(() => {
+    let subscription: any = null;
+
     const initAuth = async () => {
-      // Check for Supabase configuration from environment variables
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+      try {
+        // Check for Supabase configuration from environment variables
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+        const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-      if (supabaseUrl && supabaseKey) {
-        try {
-          initSupabase(supabaseUrl, supabaseKey);
+        console.log('Supabase URL:', supabaseUrl ? 'Set' : 'Not set');
+        console.log('Supabase Key:', supabaseKey ? 'Set' : 'Not set');
 
-          // Check for existing session
-          const currentUser = await getCurrentUser();
-          if (currentUser) {
-            setUser(currentUser);
-            setShowAuthScreen(false);
-          } else {
-            // No session - check if user has chosen local-only mode before
-            const storedPrefs = localStorage.getItem(STORAGE_KEY_PREFERENCES);
-            if (storedPrefs) {
-              const prefs = JSON.parse(storedPrefs);
-              if (prefs.authMode === 'local') {
-                setShowAuthScreen(false);
-              } else if (prefs.authMode === 'cloud') {
-                setShowAuthScreen(true);
-              }
-              // If authMode is undefined, don't show auth screen (user hasn't chosen)
-            }
-          }
+        if (supabaseUrl && supabaseKey) {
+          try {
+            initSupabase(supabaseUrl, supabaseKey);
+            console.log('Supabase initialized');
 
-          // Listen for auth state changes
-          const { data: { subscription } } = onAuthStateChange((session, user) => {
-            setUser(user);
-            if (user) {
+            // Check for existing session
+            const currentUser = await getCurrentUser();
+            if (currentUser) {
+              console.log('User already signed in:', currentUser.email);
+              setUser(currentUser);
               setShowAuthScreen(false);
+            } else {
+              console.log('No existing session');
+              // No session - check if user has chosen local-only mode before
+              const storedPrefs = localStorage.getItem(STORAGE_KEY_PREFERENCES);
+              if (storedPrefs) {
+                const prefs = JSON.parse(storedPrefs);
+                if (prefs.authMode === 'local') {
+                  setShowAuthScreen(false);
+                } else if (prefs.authMode === 'cloud') {
+                  setShowAuthScreen(true);
+                }
+                // If authMode is undefined, don't show auth screen (user hasn't chosen)
+              }
             }
-          });
 
-          return () => subscription.unsubscribe();
-        } catch (error) {
-          console.error('Failed to initialize Supabase:', error);
+            // Listen for auth state changes
+            const { data } = onAuthStateChange((session, user) => {
+              console.log('Auth state changed:', user ? user.email : 'signed out');
+              setUser(user);
+              if (user) {
+                setShowAuthScreen(false);
+              }
+            });
+            subscription = data.subscription;
+
+          } catch (error) {
+            console.error('Failed to initialize Supabase:', error);
+          }
+        } else {
+          console.log('Supabase not configured, using local-only mode');
         }
+      } catch (error) {
+        console.error('Auth initialization error:', error);
+      } finally {
+        setIsCheckingAuth(false);
       }
-
-      setIsCheckingAuth(false);
     };
 
     initAuth();
+
+    // Cleanup
+    return () => {
+      if (subscription) {
+        subscription.unsubscribe();
+      }
+    };
   }, []);
 
   // Initial Boot: Load Profiles and Check for Legacy Data
