@@ -228,7 +228,7 @@ const App: React.FC = () => {
       setIsSetupMode(true);
     }
     setIsLoading(false);
-  }, []);
+  }, [isCheckingAuth]); // Run again when auth check completes
 
   // Load Profile Data when activeProfileId changes
   useEffect(() => {
