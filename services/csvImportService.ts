@@ -468,7 +468,7 @@ export function detectTransactionType(
     // If type column is ambiguous (like "Retail ACH", "ACH", "Transfer"), continue to other checks
   }
 
-  // PRIORITY 1: Check the actual amount sign FIRST (negative = expense)
+  // PRIORITY 1: Check the actual amount sign (negative = expense, positive = income)
   if (originalAmount) {
     const clean = originalAmount.trim();
 
@@ -498,19 +498,6 @@ export function detectTransactionType(
     }
   }
 
-  // PRIORITY 2: For positive amounts, check income keywords in description
-  const incomeKeywords = [
-    'salary', 'paycheck', 'direct deposit', 'payment received',
-    'wages', 'payroll', 'bonus', 'commission', 'pay',
-    'tax refund', 'dividend', 'interest income',
-    'ach credit', 'mobile deposit', 'check deposit', 'income'
-  ];
-
-  // If description contains income keywords, it's income
-  if (incomeKeywords.some(keyword => desc.includes(keyword) || merch.includes(keyword))) {
-    return 'income';
-  }
-
-  // Default to expense (positive amounts without income keywords)
-  return 'expense';
+  // Default: positive amounts are income
+  return 'income';
 }
