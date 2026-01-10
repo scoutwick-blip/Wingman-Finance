@@ -1,12 +1,31 @@
 
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient, Session, User } from '@supabase/supabase-js';
 
 // Table schema required in Supabase:
 // create table wingman_backups (
 //   id text primary key,
+//   user_id text,
 //   data jsonb,
 //   updated_at timestamp with time zone
 // );
+//
+// For RLS (Row Level Security), run:
+// alter table wingman_backups enable row level security;
+// create policy "Users can manage their own data" on wingman_backups
+//   for all using (auth.uid()::text = user_id);
+
+let supabaseInstance: SupabaseClient | null = null;
+
+export const initSupabase = (url: string, key: string): SupabaseClient => {
+  if (!supabaseInstance || supabaseInstance.supabaseUrl !== url) {
+    supabaseInstance = createClient(url, key);
+  }
+  return supabaseInstance;
+};
+
+export const getSupabase = (): SupabaseClient | null => {
+  return supabaseInstance;
+};
 
 export const uploadToCloud = async (url: string, key: string, profileId: string, data: any) => {
   const supabase = createClient(url, key);
@@ -45,7 +64,7 @@ export const downloadFromCloud = async (url: string, key: string, profileId: str
 export const testConnection = async (url: string, key: string) => {
   try {
     const supabase = createClient(url, key);
-    // Just try to select something invalid to check auth, 
+    // Just try to select something invalid to check auth,
     // or just checking if createClient throws isn't enough as it's lazy.
     // We'll try to fetch a non-existent row.
     const { error } = await supabase.from('wingman_backups').select('id').limit(1);
@@ -56,10 +75,132 @@ export const testConnection = async (url: string, key: string) => {
        if (error.message.includes('relation "wingman_backups" does not exist')) {
          throw new Error('Table "wingman_backups" missing. Run SQL script.');
        }
-       if (error.code) throw error; 
+       if (error.code) throw error;
     }
     return true;
   } catch (e: any) {
     throw e;
   }
 }
+
+// ===== AUTHENTICATION FUNCTIONS =====
+
+export const signUp = async (email: string, password: string) => {
+  if (!supabaseInstance) throw new Error('Supabase not initialized');
+
+  const { data, error } = await supabaseInstance.auth.signUp({
+    email,
+    password,
+  });
+
+  if (error) throw error;
+  return data;
+};
+
+export const signIn = async (email: string, password: string) => {
+  if (!supabaseInstance) throw new Error('Supabase not initialized');
+
+  const { data, error } = await supabaseInstance.auth.signInWithPassword({
+    email,
+    password,
+  });
+
+  if (error) throw error;
+  return data;
+};
+
+export const signInWithOAuth = async (provider: 'google' | 'github' | 'facebook') => {
+  if (!supabaseInstance) throw new Error('Supabase not initialized');
+
+  const { data, error } = await supabaseInstance.auth.signInWithOAuth({
+    provider,
+    options: {
+      redirectTo: window.location.origin
+    }
+  });
+
+  if (error) throw error;
+  return data;
+};
+
+export const signOut = async () => {
+  if (!supabaseInstance) throw new Error('Supabase not initialized');
+
+  const { error } = await supabaseInstance.auth.signOut();
+  if (error) throw error;
+};
+
+export const getCurrentUser = async (): Promise<User | null> => {
+  if (!supabaseInstance) return null;
+
+  const { data: { user } } = await supabaseInstance.auth.getUser();
+  return user;
+};
+
+export const getCurrentSession = async (): Promise<Session | null> => {
+  if (!supabaseInstance) return null;
+
+  const { data: { session } } = await supabaseInstance.auth.getSession();
+  return session;
+};
+
+export const onAuthStateChange = (callback: (session: Session | null, user: User | null) => void) => {
+  if (!supabaseInstance) return { data: { subscription: { unsubscribe: () => {} } } };
+
+  return supabaseInstance.auth.onAuthStateChange((_event, session) => {
+    callback(session, session?.user ?? null);
+  });
+};
+
+// Upload data with authenticated user
+export const uploadAuthData = async (profileId: string, data: any) => {
+  if (!supabaseInstance) throw new Error('Supabase not initialized');
+
+  const user = await getCurrentUser();
+  if (!user) throw new Error('User not authenticated');
+
+  const { error } = await supabaseInstance
+    .from('wingman_backups')
+    .upsert({
+      id: profileId,
+      user_id: user.id,
+      data: data,
+      updated_at: new Date().toISOString()
+    });
+
+  if (error) throw error;
+  return true;
+};
+
+// Download data with authenticated user
+export const downloadAuthData = async (profileId: string) => {
+  if (!supabaseInstance) throw new Error('Supabase not initialized');
+
+  const user = await getCurrentUser();
+  if (!user) throw new Error('User not authenticated');
+
+  const { data, error } = await supabaseInstance
+    .from('wingman_backups')
+    .select('data, updated_at')
+    .eq('id', profileId)
+    .eq('user_id', user.id)
+    .single();
+
+  if (error && error.code !== 'PGRST116') throw error;
+
+  if (!data) return null;
+  return {
+    content: data.data,
+    updatedAt: data.updated_at
+  };
+};
+
+export const resetPassword = async (email: string) => {
+  if (!supabaseInstance) throw new Error('Supabase not initialized');
+
+  const { error } = await supabaseInstance.auth.resetPasswordForEmail(email, {
+    redirectTo: `${window.location.origin}/reset-password`
+  });
+
+  if (error) throw error;
+};
