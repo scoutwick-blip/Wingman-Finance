@@ -904,6 +904,12 @@ const App: React.FC = () => {
       console.log('Attempting OAuth sign in with:', provider);
       const result = await signInWithOAuth(provider);
       console.log('OAuth result:', result);
+
+      // Redirect to OAuth provider's auth page
+      if (result.url) {
+        window.location.href = result.url;
+      }
+
       // Set auth mode to cloud
       setPreferences(prev => ({ ...prev, authMode: 'cloud' }));
     } catch (error: any) {
