@@ -115,7 +115,10 @@ export const signInWithOAuth = async (provider: 'google' | 'github' | 'facebook'
   const { data, error } = await supabaseInstance.auth.signInWithOAuth({
     provider,
     options: {
-      redirectTo: window.location.origin
+      // Let Supabase handle the redirect automatically
+      // The OAuth providers should use the Supabase callback URL:
+      // https://YOUR-PROJECT.supabase.co/auth/v1/callback
+      redirectTo: `${window.location.origin}`
     }
   });
 

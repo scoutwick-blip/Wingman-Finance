@@ -871,25 +871,43 @@ const App: React.FC = () => {
 
   const handleSignUp = async (email: string, password: string) => {
     try {
-      await signUp(email, password);
+      console.log('Attempting sign up for:', email);
+      const result = await signUp(email, password);
+      console.log('Sign up result:', result);
+
       // Set auth mode to cloud
       setPreferences(prev => ({ ...prev, authMode: 'cloud' }));
-      addNotification({
-        title: 'Account Created!',
-        message: 'Please check your email to verify your account.',
-        type: NotificationType.SUCCESS
-      });
+
+      // Check if email confirmation is required
+      if (result.user && !result.session) {
+        addNotification({
+          title: 'Account Created!',
+          message: 'Please check your email to verify your account before signing in.',
+          type: NotificationType.SUCCESS
+        });
+      } else if (result.session) {
+        // Email confirmation disabled, user is signed in immediately
+        addNotification({
+          title: 'Welcome!',
+          message: 'Your account has been created successfully.',
+          type: NotificationType.SUCCESS
+        });
+      }
     } catch (error: any) {
+      console.error('Sign up error:', error);
       throw new Error(error.message || 'Failed to create account');
     }
   };
 
   const handleOAuthSignIn = async (provider: 'google' | 'github') => {
     try {
-      await signInWithOAuth(provider);
+      console.log('Attempting OAuth sign in with:', provider);
+      const result = await signInWithOAuth(provider);
+      console.log('OAuth result:', result);
       // Set auth mode to cloud
       setPreferences(prev => ({ ...prev, authMode: 'cloud' }));
     } catch (error: any) {
+      console.error('OAuth error:', error);
       throw new Error(error.message || 'Failed to sign in with OAuth');
     }
   };
