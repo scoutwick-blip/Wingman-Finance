@@ -9,6 +9,15 @@ export const INITIAL_CATEGORIES: Category[] = [
   { id: '5', name: 'Personal', color: '#334155', icon: '📦', budget: 50, type: CategoryType.SPENDING },
   { id: '6', name: 'Debt', color: '#ef4444', icon: '💳', budget: 2000, type: CategoryType.DEBT, initialBalance: 2000 },
   { id: '7', name: 'Savings', color: '#fbbf24', icon: '🏦', budget: 5000, type: CategoryType.SAVINGS },
+  { id: '8', name: 'Utilities', color: '#1e40af', icon: '💡', budget: 150, type: CategoryType.SPENDING },
+  { id: '9', name: 'Entertainment', color: '#8b5cf6', icon: '🎮', budget: 200, type: CategoryType.SPENDING },
+  { id: '10', name: 'Dining Out', color: '#f59e0b', icon: '🍔', budget: 150, type: CategoryType.SPENDING },
+  { id: '11', name: 'Shopping', color: '#ec4899', icon: '🛍️', budget: 100, type: CategoryType.SPENDING },
+  { id: '12', name: 'Healthcare', color: '#06b6d4', icon: '🏥', budget: 100, type: CategoryType.SPENDING },
+  { id: '13', name: 'Insurance', color: '#64748b', icon: '🛡️', budget: 200, type: CategoryType.SPENDING },
+  { id: '14', name: 'Subscriptions', color: '#a855f7', icon: '📱', budget: 50, type: CategoryType.SPENDING },
+  { id: '15', name: 'Education', color: '#0ea5e9', icon: '📚', budget: 100, type: CategoryType.SPENDING },
+  { id: '16', name: 'Unassigned', color: '#94a3b8', icon: '❓', budget: 0, type: CategoryType.SPENDING },
 ];
 
 export const DEFAULT_TRANSACTION_TYPES = [

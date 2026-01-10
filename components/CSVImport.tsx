@@ -147,19 +147,15 @@ export default function CSVImport({
           categoryId = incomeCategory?.id;
         }
 
-        // If still no category, try to find "Uncategorized" or "Other" category
+        // If still no category, default to "Unassigned"
         if (!categoryId) {
-          const uncategorizedCat = categories.find(c =>
+          const unassignedCat = categories.find(c =>
+            c.name.toLowerCase().includes('unassigned') ||
             c.name.toLowerCase().includes('uncategorized') ||
             c.name.toLowerCase().includes('other') ||
             c.name.toLowerCase().includes('misc')
           );
-          categoryId = uncategorizedCat?.id;
-        }
-
-        // Last resort: use first category
-        if (!categoryId) {
-          categoryId = categories[0]?.id || '';
+          categoryId = unassignedCat?.id || categories[0]?.id || '';
         }
       }
 
