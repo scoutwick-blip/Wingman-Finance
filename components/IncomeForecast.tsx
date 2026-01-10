@@ -92,9 +92,9 @@ export default function IncomeForecast({
 
       projectedBalances.push({
         month: date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
-        balance: Math.round(balance),
-        income: Math.round(monthIncome),
-        expenses: Math.round(monthExpenses)
+        balance: parseFloat(balance.toFixed(2)),
+        income: parseFloat(monthIncome.toFixed(2)),
+        expenses: parseFloat(monthExpenses.toFixed(2))
       });
     }
 
