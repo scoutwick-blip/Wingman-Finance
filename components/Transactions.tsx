@@ -1,12 +1,13 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { Transaction, Category, TransactionBehavior, RecurringFrequency, UserPreferences, CategoryType, CategorySuggestion } from '../types';
+import { Transaction, Category, TransactionBehavior, RecurringFrequency, UserPreferences, CategoryType, CategorySuggestion, Account } from '../types';
 import ReceiptScanner from './ReceiptScanner';
 import { suggestCategory } from '../services/geminiService';
 
 interface TransactionsProps {
   transactions: Transaction[];
   categories: Category[];
+  accounts: Account[];
   onAdd: (transaction: Omit<Transaction, 'id'>) => void;
   onUpdate: (id: string, updates: Partial<Transaction>) => void;
   onDelete: (id: string) => void;
@@ -22,6 +23,7 @@ interface TransactionsProps {
 export const Transactions: React.FC<TransactionsProps> = ({
   transactions,
   categories,
+  accounts,
   onAdd,
   onUpdate,
   onDelete,
@@ -53,6 +55,7 @@ export const Transactions: React.FC<TransactionsProps> = ({
     amount: '',
     categoryId: categories[0]?.id || '',
     typeId: initialType?.id || '',
+    accountId: accounts.find(a => a.isDefault)?.id || accounts[0]?.id || '',
     date: new Date().toISOString().split('T')[0],
     isRecurring: false,
     frequency: RecurringFrequency.MONTHLY,
@@ -126,6 +129,7 @@ export const Transactions: React.FC<TransactionsProps> = ({
       amount: t.amount.toString(),
       categoryId: t.categoryId,
       typeId: t.typeId,
+      accountId: t.accountId || '',
       date: t.date,
       isRecurring: t.isRecurring || false,
       frequency: t.frequency || RecurringFrequency.MONTHLY,
@@ -213,12 +217,13 @@ export const Transactions: React.FC<TransactionsProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.description || !formData.amount || !formData.typeId) return;
-    
+
     const payload = {
       description: formData.description,
       amount: parseFloat(formData.amount),
       categoryId: formData.categoryId,
       typeId: formData.typeId,
+      accountId: formData.accountId || undefined,
       date: formData.date,
       isRecurring: formData.isRecurring,
       frequency: formData.isRecurring ? formData.frequency : undefined,
@@ -395,7 +400,7 @@ export const Transactions: React.FC<TransactionsProps> = ({
 
             <div className="flex flex-col gap-1">
               <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2">Category</label>
-              <select 
+              <select
                 value={formData.categoryId}
                 onChange={e => setFormData({...formData, categoryId: e.target.value})}
                 className="bg-slate-50 border-none rounded-2xl px-4 py-3 text-sm font-semibold text-slate-900 outline-none focus:ring-2 ring-indigo-500/20"
@@ -410,11 +415,25 @@ export const Transactions: React.FC<TransactionsProps> = ({
             </div>
 
             <div className="flex flex-col gap-1">
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2">Account</label>
+              <select
+                value={formData.accountId || ''}
+                onChange={e => setFormData({...formData, accountId: e.target.value || undefined})}
+                className="bg-slate-50 border-none rounded-2xl px-4 py-3 text-sm font-semibold text-slate-900 outline-none focus:ring-2 ring-indigo-500/20"
+              >
+                <option value="">No Account</option>
+                {accounts.filter(a => !a.isHidden).map(a => (
+                  <option key={a.id} value={a.id}>{a.icon} {a.name}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex flex-col gap-1">
               <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2">
                 {formData.isRecurring ? 'Start Date' : 'Date'}
               </label>
-              <input 
-                type="date" 
+              <input
+                type="date"
                 value={formData.date}
                 onChange={e => setFormData({...formData, date: e.target.value})}
                 className="bg-slate-50 border-none rounded-2xl px-4 py-3 text-sm font-semibold text-slate-900 outline-none focus:ring-2 ring-indigo-500/20"

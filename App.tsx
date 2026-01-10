@@ -1215,6 +1215,7 @@ const App: React.FC = () => {
           <Transactions
             transactions={transactions}
             categories={categories}
+            accounts={accounts}
             onAdd={addTransaction}
             onUpdate={updateTransaction}
             onDelete={deleteTransaction}
@@ -1296,6 +1297,7 @@ const App: React.FC = () => {
             preferences={preferences}
             categories={categories}
             transactions={transactions}
+            accounts={accounts}
             activeProfileId={activeProfileId}
             user={user}
             lastSyncTime={lastSyncTime}
@@ -1305,6 +1307,9 @@ const App: React.FC = () => {
             onClearData={handleClearData}
             onSignOut={handleSignOut}
             onShowAuth={() => setShowAuthScreen(true)}
+            onAddAccount={addAccount}
+            onUpdateAccount={updateAccount}
+            onDeleteAccount={deleteAccount}
           />
         );
       default:

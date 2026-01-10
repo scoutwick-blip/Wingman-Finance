@@ -2,15 +2,16 @@
 import React, { useState, useRef } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import LZString from 'lz-string';
-import { UserPreferences, TransactionBehavior, TransactionTypeDefinition, Category, Transaction } from '../types';
+import { UserPreferences, TransactionBehavior, TransactionTypeDefinition, Category, Transaction, Account, AccountType } from '../types';
 import { uploadToCloud, downloadFromCloud, testConnection } from '../services/supabaseService';
 import { User } from '@supabase/supabase-js';
-import { LogOut, LogIn, User as UserIcon } from 'lucide-react';
+import { LogOut, LogIn, User as UserIcon, Wallet, Plus, Edit2, Trash2, CreditCard, PiggyBank, Banknote } from 'lucide-react';
 
 interface SettingsProps {
   preferences: UserPreferences;
   categories: Category[];
   transactions: Transaction[];
+  accounts: Account[];
   activeProfileId: string;
   user?: User | null;
   lastSyncTime?: number;
@@ -20,12 +21,16 @@ interface SettingsProps {
   onClearData: () => void;
   onSignOut?: () => Promise<void>;
   onShowAuth?: () => void;
+  onAddAccount: (account: Account) => void;
+  onUpdateAccount: (account: Account) => void;
+  onDeleteAccount: (accountId: string) => void;
 }
 
 export const Settings: React.FC<SettingsProps> = ({
   preferences,
   categories,
   transactions,
+  accounts,
   activeProfileId,
   user,
   lastSyncTime,
@@ -34,7 +39,10 @@ export const Settings: React.FC<SettingsProps> = ({
   onFullRestore,
   onClearData,
   onSignOut,
-  onShowAuth
+  onShowAuth,
+  onAddAccount,
+  onUpdateAccount,
+  onDeleteAccount
 }) => {
   const currencies = ['$', '€', '£', '¥', '₹', '₱', '₩', 'R$'];
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -56,6 +64,19 @@ export const Settings: React.FC<SettingsProps> = ({
   const [showQrTransfer, setShowQrTransfer] = useState(false);
   const [qrData, setQrData] = useState<string>('');
   const [qrError, setQrError] = useState<string>('');
+
+  // Account Management State
+  const [showAccountForm, setShowAccountForm] = useState(false);
+  const [editingAccountId, setEditingAccountId] = useState<string | null>(null);
+  const [accountForm, setAccountForm] = useState({
+    name: '',
+    type: AccountType.CHECKING,
+    balance: '',
+    icon: '💳',
+    color: '#3b82f6',
+    creditLimit: '',
+    isDefault: false
+  });
 
   // PIN State
   const [pinMode, setPinMode] = useState<'none' | 'set' | 'change'>('none');
@@ -116,6 +137,69 @@ export const Settings: React.FC<SettingsProps> = ({
       img.src = event.target?.result as string;
     };
     reader.readAsDataURL(file);
+  };
+
+  // Account Management Functions
+  const handleSaveAccount = () => {
+    if (!accountForm.name) return;
+
+    const account: Account = {
+      id: editingAccountId || `account-${Date.now()}`,
+      name: accountForm.name,
+      type: accountForm.type,
+      balance: parseFloat(accountForm.balance) || 0,
+      icon: accountForm.icon,
+      color: accountForm.color,
+      isDefault: accountForm.isDefault,
+      isHidden: false,
+      creditLimit: accountForm.creditLimit ? parseFloat(accountForm.creditLimit) : undefined,
+      lastUpdated: new Date().toISOString()
+    };
+
+    if (editingAccountId) {
+      onUpdateAccount(account);
+    } else {
+      onAddAccount(account);
+    }
+
+    // Reset form
+    setAccountForm({
+      name: '',
+      type: AccountType.CHECKING,
+      balance: '',
+      icon: '💳',
+      color: '#3b82f6',
+      creditLimit: '',
+      isDefault: false
+    });
+    setEditingAccountId(null);
+    setShowAccountForm(false);
+  };
+
+  const handleEditAccount = (account: Account) => {
+    setAccountForm({
+      name: account.name,
+      type: account.type,
+      balance: account.balance.toString(),
+      icon: account.icon || '💳',
+      color: account.color || '#3b82f6',
+      creditLimit: account.creditLimit?.toString() || '',
+      isDefault: account.isDefault || false
+    });
+    setEditingAccountId(account.id);
+    setShowAccountForm(true);
+  };
+
+  const getAccountIcon = (type: AccountType) => {
+    switch (type) {
+      case AccountType.CHECKING: return '💳';
+      case AccountType.SAVINGS: return '🏦';
+      case AccountType.CREDIT_CARD: return '💰';
+      case AccountType.CASH: return '💵';
+      case AccountType.INVESTMENT: return '📈';
+      case AccountType.LOAN: return '💸';
+      default: return '💼';
+    }
   };
 
   const generateQrCode = () => {
@@ -529,6 +613,199 @@ Platform: ${navigator.userAgent}
           )}
         </section>
       )}
+
+      {/* Account Management Section */}
+      <section className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+        <div className="flex items-center justify-between border-b border-slate-50 pb-4">
+          <div>
+            <h4 className="font-bold text-slate-800 text-[10px] uppercase tracking-[0.2em]">
+              Accounts
+            </h4>
+            <p className="text-xs text-slate-500 mt-1">Manage your checking, savings, credit cards, and more</p>
+          </div>
+          <button
+            onClick={() => {
+              setShowAccountForm(true);
+              setEditingAccountId(null);
+            }}
+            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-all font-bold text-xs"
+          >
+            <Plus className="w-4 h-4" />
+            Add Account
+          </button>
+        </div>
+
+        {/* Account List */}
+        <div className="space-y-3">
+          {accounts.filter(a => !a.isHidden).map(account => (
+            <div
+              key={account.id}
+              className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl hover:bg-slate-100 transition-all"
+            >
+              <div className="flex items-center gap-4 flex-1">
+                <div
+                  className="w-12 h-12 rounded-full flex items-center justify-center text-2xl"
+                  style={{ backgroundColor: account.color + '20' }}
+                >
+                  {account.icon}
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <h5 className="font-bold text-slate-900">{account.name}</h5>
+                    {account.isDefault && (
+                      <span className="px-2 py-0.5 bg-indigo-100 text-indigo-700 text-[9px] font-bold rounded-full uppercase">
+                        Default
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-slate-500 capitalize">{account.type.toLowerCase().replace('_', ' ')}</p>
+                </div>
+                <div className="text-right">
+                  <p className="font-bold text-lg" style={{ color: account.color }}>
+                    {preferences.currency}{Math.abs(account.balance).toFixed(2)}
+                  </p>
+                  {account.type === AccountType.CREDIT_CARD && account.creditLimit && (
+                    <p className="text-xs text-slate-400">
+                      Limit: {preferences.currency}{account.creditLimit.toFixed(2)}
+                    </p>
+                  )}
+                </div>
+              </div>
+              <div className="flex items-center gap-2 ml-4">
+                <button
+                  onClick={() => handleEditAccount(account)}
+                  className="p-2 hover:bg-white rounded-lg transition-all"
+                  title="Edit account"
+                >
+                  <Edit2 className="w-4 h-4 text-slate-400 hover:text-indigo-600" />
+                </button>
+                <button
+                  onClick={() => onDeleteAccount(account.id)}
+                  className="p-2 hover:bg-white rounded-lg transition-all"
+                  title="Delete account"
+                >
+                  <Trash2 className="w-4 h-4 text-slate-400 hover:text-rose-600" />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Account Form Modal */}
+        {showAccountForm && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-3xl p-6 max-w-lg w-full space-y-6 animate-in fade-in zoom-in-95">
+              <h3 className="text-xl font-black text-slate-900">
+                {editingAccountId ? 'Edit Account' : 'New Account'}
+              </h3>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="text-xs font-bold text-slate-400 uppercase tracking-widest block mb-2">
+                    Account Name
+                  </label>
+                  <input
+                    type="text"
+                    value={accountForm.name}
+                    onChange={e => setAccountForm({ ...accountForm, name: e.target.value })}
+                    placeholder="e.g., Chase Checking"
+                    className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-sm font-semibold"
+                    autoFocus
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-slate-400 uppercase tracking-widest block mb-2">
+                    Account Type
+                  </label>
+                  <select
+                    value={accountForm.type}
+                    onChange={e => {
+                      const newType = e.target.value as AccountType;
+                      setAccountForm({
+                        ...accountForm,
+                        type: newType,
+                        icon: getAccountIcon(newType)
+                      });
+                    }}
+                    className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-sm font-semibold"
+                  >
+                    <option value={AccountType.CHECKING}>Checking Account</option>
+                    <option value={AccountType.SAVINGS}>Savings Account</option>
+                    <option value={AccountType.CREDIT_CARD}>Credit Card</option>
+                    <option value={AccountType.CASH}>Cash</option>
+                    <option value={AccountType.INVESTMENT}>Investment Account</option>
+                    <option value={AccountType.LOAN}>Loan</option>
+                    <option value={AccountType.OTHER}>Other</option>
+                  </select>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs font-bold text-slate-400 uppercase tracking-widest block mb-2">
+                      Current Balance
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={accountForm.balance}
+                      onChange={e => setAccountForm({ ...accountForm, balance: e.target.value })}
+                      placeholder="0.00"
+                      className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-sm font-semibold"
+                    />
+                  </div>
+
+                  {accountForm.type === AccountType.CREDIT_CARD && (
+                    <div>
+                      <label className="text-xs font-bold text-slate-400 uppercase tracking-widest block mb-2">
+                        Credit Limit
+                      </label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={accountForm.creditLimit}
+                        onChange={e => setAccountForm({ ...accountForm, creditLimit: e.target.value })}
+                        placeholder="0.00"
+                        className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-sm font-semibold"
+                      />
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={accountForm.isDefault}
+                      onChange={e => setAccountForm({ ...accountForm, isDefault: e.target.checked })}
+                      className="w-4 h-4 text-indigo-600 border-slate-300 rounded"
+                    />
+                    <span className="text-sm font-bold text-slate-700">Set as default account</span>
+                  </label>
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    setShowAccountForm(false);
+                    setEditingAccountId(null);
+                  }}
+                  className="flex-1 px-4 py-3 border-2 border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 transition-all font-bold"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSaveAccount}
+                  className="flex-1 px-4 py-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-all font-bold"
+                >
+                  {editingAccountId ? 'Save Changes' : 'Create Account'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </section>
 
       {/* NEW: Easy Data Transfer Section */}
       <section className="bg-gradient-to-br from-indigo-600 to-indigo-800 p-8 rounded-3xl shadow-xl text-white overflow-hidden relative">
