@@ -75,22 +75,16 @@ const App: React.FC = () => {
         const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
         const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-        console.log('Supabase URL:', supabaseUrl ? 'Set' : 'Not set');
-        console.log('Supabase Key:', supabaseKey ? 'Set' : 'Not set');
-
         if (supabaseUrl && supabaseKey) {
           try {
             initSupabase(supabaseUrl, supabaseKey);
-            console.log('Supabase initialized');
 
             // Check for existing session
             const currentUser = await getCurrentUser();
             if (currentUser) {
-              console.log('User already signed in:', currentUser.email);
               setUser(currentUser);
               setShowAuthScreen(false);
             } else {
-              console.log('No existing session');
               // No session - check if user has chosen local-only mode before
               const storedPrefs = localStorage.getItem(STORAGE_KEY_PREFERENCES);
               if (storedPrefs) {
@@ -99,14 +93,18 @@ const App: React.FC = () => {
                   setShowAuthScreen(false);
                 } else if (prefs.authMode === 'cloud') {
                   setShowAuthScreen(true);
+                } else {
+                  // User has data but hasn't chosen auth mode yet - show auth screen
+                  setShowAuthScreen(true);
                 }
-                // If authMode is undefined, don't show auth screen (user hasn't chosen)
+              } else {
+                // New user with no data - show auth screen by default
+                setShowAuthScreen(true);
               }
             }
 
             // Listen for auth state changes
             const { data } = onAuthStateChange((session, user) => {
-              console.log('Auth state changed:', user ? user.email : 'signed out');
               setUser(user);
               if (user) {
                 setShowAuthScreen(false);
@@ -117,8 +115,6 @@ const App: React.FC = () => {
           } catch (error) {
             console.error('Failed to initialize Supabase:', error);
           }
-        } else {
-          console.log('Supabase not configured, using local-only mode');
         }
       } catch (error) {
         console.error('Auth initialization error:', error);
@@ -865,6 +861,8 @@ const App: React.FC = () => {
   const handleSignIn = async (email: string, password: string) => {
     try {
       await signIn(email, password);
+      // Set auth mode to cloud
+      setPreferences(prev => ({ ...prev, authMode: 'cloud' }));
       // User state will be updated by onAuthStateChange listener
     } catch (error: any) {
       throw new Error(error.message || 'Failed to sign in');
@@ -874,6 +872,8 @@ const App: React.FC = () => {
   const handleSignUp = async (email: string, password: string) => {
     try {
       await signUp(email, password);
+      // Set auth mode to cloud
+      setPreferences(prev => ({ ...prev, authMode: 'cloud' }));
       addNotification({
         title: 'Account Created!',
         message: 'Please check your email to verify your account.',
@@ -887,6 +887,8 @@ const App: React.FC = () => {
   const handleOAuthSignIn = async (provider: 'google' | 'github') => {
     try {
       await signInWithOAuth(provider);
+      // Set auth mode to cloud
+      setPreferences(prev => ({ ...prev, authMode: 'cloud' }));
     } catch (error: any) {
       throw new Error(error.message || 'Failed to sign in with OAuth');
     }
@@ -911,10 +913,7 @@ const App: React.FC = () => {
     setPreferences(prev => ({ ...prev, authMode: 'local' }));
   };
 
-  console.log('Render check - isLoading:', isLoading, 'isCheckingAuth:', isCheckingAuth, 'showAuthScreen:', showAuthScreen, 'user:', user, 'activeProfileId:', activeProfileId, 'profiles:', profiles.length);
-
   if (isLoading || isCheckingAuth) {
-    console.log('Returning null because isLoading:', isLoading, 'or isCheckingAuth:', isCheckingAuth);
     return null;
   }
 
