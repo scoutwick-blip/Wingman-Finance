@@ -147,19 +147,15 @@ export default function CSVImport({
           categoryId = incomeCategory?.id;
         }
 
-        // If still no category, try to find "Uncategorized" or "Other" category
+        // If still no category, default to "Unassigned"
         if (!categoryId) {
-          const uncategorizedCat = categories.find(c =>
+          const unassignedCat = categories.find(c =>
+            c.name.toLowerCase().includes('unassigned') ||
             c.name.toLowerCase().includes('uncategorized') ||
             c.name.toLowerCase().includes('other') ||
             c.name.toLowerCase().includes('misc')
           );
-          categoryId = uncategorizedCat?.id;
-        }
-
-        // Last resort: use first category
-        if (!categoryId) {
-          categoryId = categories[0]?.id || '';
+          categoryId = unassignedCat?.id || categories[0]?.id || '';
         }
       }
 
@@ -375,6 +371,26 @@ export default function CSVImport({
           {/* Step 3: Categorize */}
           {step === 'categorize' && (
             <div className="space-y-6">
+              {/* Debug Info Banner */}
+              <div className="bg-yellow-50 border-2 border-yellow-300 rounded-xl p-4">
+                <h4 className="font-bold text-yellow-900 mb-2">🔍 Debug Information</h4>
+                <div className="text-xs space-y-1 font-mono text-yellow-800">
+                  <p><strong>Total groups:</strong> {transactionGroups.size}</p>
+                  <p><strong>Total transactions:</strong> {importedTransactions.length}</p>
+                  <p><strong>Sample transaction data:</strong></p>
+                  {importedTransactions[0] && (
+                    <div className="ml-4 space-y-1 bg-yellow-100 p-2 rounded">
+                      <p>Description: "{importedTransactions[0].description}"</p>
+                      <p>Amount (parsed): {importedTransactions[0].amount}</p>
+                      <p>Original Amount: "{importedTransactions[0].originalAmount || 'NOT SET'}"</p>
+                      <p>Original Type: "{importedTransactions[0].originalType || 'NOT SET'}"</p>
+                      <p>Detected Type: "{importedTransactions[0].type || 'NOT SET'}"</p>
+                      <p>Merchant: "{importedTransactions[0].merchant || 'NOT SET'}"</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
               <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-4">
                 <p className="text-sm text-blue-800">
                   <strong>Group similar transactions</strong> and assign categories. All transactions with the same merchant will be categorized together.
@@ -406,16 +422,12 @@ export default function CSVImport({
                             }`}>
                               {isIncome ? '💰 Income' : '💸 Expense'}
                             </span>
-                            {group.transactions[0]?.originalAmount && (
-                              <span className="text-xs px-2 py-0.5 bg-gray-100 text-gray-700 rounded border border-gray-300 font-mono">
-                                Amount: {group.transactions[0].originalAmount}
-                              </span>
-                            )}
-                            {group.transactions[0]?.originalType && (
-                              <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded border border-blue-300 font-mono">
-                                CSV Type: {group.transactions[0].originalType}
-                              </span>
-                            )}
+                            <span className="text-xs px-2 py-0.5 bg-gray-100 text-gray-700 rounded border border-gray-300 font-mono">
+                              CSV Amt: {group.transactions[0]?.originalAmount || 'N/A'}
+                            </span>
+                            <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded border border-blue-300 font-mono">
+                              CSV Type: {group.transactions[0]?.originalType || 'N/A'}
+                            </span>
                           </div>
                         </div>
                         <div className="w-64">
