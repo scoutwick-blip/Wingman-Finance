@@ -198,6 +198,24 @@ export const downloadAuthData = async (profileId: string) => {
   };
 };
 
+// Fetch all profiles for the authenticated user
+export const fetchUserProfiles = async () => {
+  if (!supabaseInstance) throw new Error('Supabase not initialized');
+
+  const user = await getCurrentUser();
+  if (!user) throw new Error('User not authenticated');
+
+  const { data, error } = await supabaseInstance
+    .from('wingman_backups')
+    .select('id, data, updated_at')
+    .eq('user_id', user.id)
+    .order('updated_at', { ascending: false });
+
+  if (error) throw error;
+
+  return data || [];
+};
+
 export const resetPassword = async (email: string) => {
   if (!supabaseInstance) throw new Error('Supabase not initialized');
 

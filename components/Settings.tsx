@@ -13,6 +13,7 @@ interface SettingsProps {
   transactions: Transaction[];
   activeProfileId: string;
   user?: User | null;
+  lastSyncTime?: number;
   onUpdatePreferences: (updates: Partial<UserPreferences>) => void;
   onImportTransactions: (transactions: Omit<Transaction, 'id'>[]) => void;
   onFullRestore: (data: { preferences: UserPreferences; categories: Category[]; transactions: Transaction[] }) => void;
@@ -27,6 +28,7 @@ export const Settings: React.FC<SettingsProps> = ({
   transactions,
   activeProfileId,
   user,
+  lastSyncTime,
   onUpdatePreferences,
   onImportTransactions,
   onFullRestore,
@@ -469,10 +471,15 @@ Platform: ${navigator.userAgent}
                 <div className="flex-1 min-w-0">
                   <p className="font-bold text-green-900 text-sm">Signed In</p>
                   <p className="text-xs text-green-700 truncate">{user.email}</p>
+                  {lastSyncTime && lastSyncTime > 0 && (
+                    <p className="text-xs text-green-600 mt-1">
+                      Last synced: {new Date(lastSyncTime).toLocaleTimeString()}
+                    </p>
+                  )}
                 </div>
                 <div className="flex-shrink-0">
                   <span className="inline-block px-3 py-1 bg-green-100 text-green-700 text-xs font-bold rounded-full">
-                    ☁️ SYNCED
+                    {lastSyncTime && lastSyncTime > 0 ? '☁️ SYNCED' : '⏳ PENDING'}
                   </span>
                 </div>
               </div>
