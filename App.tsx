@@ -354,17 +354,17 @@ const App: React.FC = () => {
     }
   }, [splitTransactions, activeProfileId, isLoading]);
 
-  // Auto-sync to cloud when authenticated
+  // Auto-sync to cloud when authenticated (debounced)
   useEffect(() => {
     if (!user || !activeProfileId || isLoading || isCheckingAuth) return;
 
+    // Debounce: only sync if 5 seconds have passed since last sync
+    const now = Date.now();
+    if (now - lastSyncTime < 5000) return;
+
+    if (isSyncing) return; // Don't sync if already syncing
+
     const syncToCloud = async () => {
-      // Debounce: only sync if 5 seconds have passed since last sync
-      const now = Date.now();
-      if (now - lastSyncTime < 5000) return;
-
-      if (isSyncing) return; // Don't sync if already syncing
-
       try {
         setIsSyncing(true);
         const backupData = {
@@ -390,16 +390,22 @@ const App: React.FC = () => {
       }
     };
 
-    // Debounce the sync with a timeout
+    // Debounce with a timeout
     const timeoutId = setTimeout(syncToCloud, 2000);
     return () => clearTimeout(timeoutId);
-  }, [user, activeProfileId, transactions, categories, preferences, bills, merchantMappings, subscriptions, goals, splitTransactions, isLoading, isCheckingAuth]);
+    // Only sync when actual data changes, not when sync state changes
+  }, [user, activeProfileId, transactions, categories, bills, merchantMappings, subscriptions, goals, splitTransactions, isLoading, isCheckingAuth]);
 
-  // Load cloud data on first sign in
+  // Load cloud data on first sign in (only runs once when user signs in)
   useEffect(() => {
     if (!user || !activeProfileId) return;
 
+    let hasLoaded = false; // Prevent multiple loads
+
     const loadCloudData = async () => {
+      if (hasLoaded) return;
+      hasLoaded = true;
+
       try {
         const cloudData = await downloadAuthData(activeProfileId);
         if (cloudData && cloudData.content) {
@@ -440,7 +446,7 @@ const App: React.FC = () => {
     };
 
     loadCloudData();
-  }, [user]); // Only run when user changes (sign in)
+  }, [user, activeProfileId]); // Only run when user or profile changes
 
   // Profile Management Methods
   const handleProfileSelect = (id: string) => {
