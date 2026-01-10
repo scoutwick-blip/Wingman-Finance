@@ -10,7 +10,7 @@ import { Settings } from './components/Settings';
 import { SetupWizard } from './components/SetupWizard';
 import { ProfileSelector } from './components/ProfileSelector';
 import Auth from './components/Auth';
-import { Transaction, Category, UserPreferences, Notification, NotificationType, TransactionBehavior, UserProfile, Bill, BillStatus, MerchantMapping, Subscription, Goal, GoalStatus, SplitTransaction } from './types';
+import { Transaction, Category, UserPreferences, Notification, NotificationType, TransactionBehavior, UserProfile, Bill, BillStatus, MerchantMapping, Subscription, Goal, GoalStatus, SplitTransaction, Account, AccountType, SubscriptionStatus, RecurringFrequency } from './types';
 import { initSupabase, signIn, signUp, signInWithOAuth, signOut, getCurrentUser, onAuthStateChange, uploadAuthData, downloadAuthData, fetchUserProfiles } from './services/supabaseService';
 import { User } from '@supabase/supabase-js';
 import {
@@ -25,7 +25,9 @@ import {
   STORAGE_KEY_SUBSCRIPTIONS,
   STORAGE_KEY_GOALS,
   STORAGE_KEY_SPLIT_TRANSACTIONS,
-  DEFAULT_PREFERENCES
+  STORAGE_KEY_ACCOUNTS,
+  DEFAULT_PREFERENCES,
+  DEFAULT_ACCOUNTS
 } from './constants';
 import Bills from './components/Bills';
 import IncomeForecast from './components/IncomeForecast';
@@ -53,6 +55,7 @@ const App: React.FC = () => {
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
   const [goals, setGoals] = useState<Goal[]>([]);
   const [splitTransactions, setSplitTransactions] = useState<SplitTransaction[]>([]);
+  const [accounts, setAccounts] = useState<Account[]>(DEFAULT_ACCOUNTS);
 
   const [isLoading, setIsLoading] = useState(true);
   const [showBudgetTemplates, setShowBudgetTemplates] = useState(false);
@@ -271,6 +274,9 @@ const App: React.FC = () => {
             if (cloudData.splitTransactions) {
               localStorage.setItem(`${STORAGE_KEY_SPLIT_TRANSACTIONS}_${profileId}`, JSON.stringify(cloudData.splitTransactions));
             }
+            if (cloudData.accounts) {
+              localStorage.setItem(`${STORAGE_KEY_ACCOUNTS}_${profileId}`, JSON.stringify(cloudData.accounts));
+            }
             localStorage.setItem(`${STORAGE_KEY_NOTIFICATIONS}_${profileId}`, JSON.stringify([]));
 
             // Auto-select this profile
@@ -308,6 +314,7 @@ const App: React.FC = () => {
     const s = localStorage.getItem(`${STORAGE_KEY_SUBSCRIPTIONS}_${activeProfileId}`);
     const g = localStorage.getItem(`${STORAGE_KEY_GOALS}_${activeProfileId}`);
     const st = localStorage.getItem(`${STORAGE_KEY_SPLIT_TRANSACTIONS}_${activeProfileId}`);
+    const a = localStorage.getItem(`${STORAGE_KEY_ACCOUNTS}_${activeProfileId}`);
 
     setTransactions(t ? JSON.parse(t) : []);
 
@@ -320,6 +327,7 @@ const App: React.FC = () => {
     setSubscriptions(s ? JSON.parse(s) : []);
     setGoals(g ? JSON.parse(g) : []);
     setSplitTransactions(st ? JSON.parse(st) : []);
+    setAccounts(a ? JSON.parse(a) : DEFAULT_ACCOUNTS);
 
     if (p) {
       const parsed = JSON.parse(p);
@@ -441,6 +449,15 @@ const App: React.FC = () => {
     }
   }, [splitTransactions, activeProfileId, isLoading]);
 
+  useEffect(() => {
+    if (!activeProfileId || isLoading) return;
+    try {
+      localStorage.setItem(`${STORAGE_KEY_ACCOUNTS}_${activeProfileId}`, JSON.stringify(accounts));
+    } catch (e) {
+      console.error("Failed to save accounts to storage", e);
+    }
+  }, [accounts, activeProfileId, isLoading]);
+
   // Auto-sync to cloud when authenticated (debounced)
   useEffect(() => {
     if (!user || !activeProfileId || isLoading || isCheckingAuth) {
@@ -474,7 +491,8 @@ const App: React.FC = () => {
           merchantMappings,
           subscriptions,
           goals,
-          splitTransactions
+          splitTransactions,
+          accounts
         };
 
         await uploadAuthData(activeProfileId, backupData);
@@ -491,7 +509,7 @@ const App: React.FC = () => {
     const timeoutId = setTimeout(syncToCloud, 2000);
     return () => clearTimeout(timeoutId);
     // Only sync when actual data changes, not when sync state changes
-  }, [user, activeProfileId, transactions, categories, bills, merchantMappings, subscriptions, goals, splitTransactions, isLoading, isCheckingAuth]);
+  }, [user, activeProfileId, transactions, categories, bills, merchantMappings, subscriptions, goals, splitTransactions, accounts, isLoading, isCheckingAuth]);
 
   // Load cloud data on first sign in (only runs once when user signs in)
   useEffect(() => {
@@ -679,9 +697,9 @@ const App: React.FC = () => {
       ...newT,
       id: Math.random().toString(36).substring(2, 9)
     };
-    
+
     const largeThreshold = preferences.notificationSettings?.largeTransactionThreshold ?? 500;
-    
+
     if (preferences.notificationSettings?.largeTransactions && transaction.amount > largeThreshold) {
       const note: Notification = {
         id: Math.random().toString(36).substring(2, 9),
@@ -692,6 +710,92 @@ const App: React.FC = () => {
         isRead: false
       };
       setNotifications(prev => [note, ...prev]);
+    }
+
+    // Auto-create subscription if transaction is recurring and categorized as subscription
+    const category = categories.find(c => c.id === transaction.categoryId);
+    if (transaction.isRecurring && transaction.frequency && (category?.name === 'Subscriptions' || transaction.categoryId === '14')) {
+      // Check if subscription doesn't already exist for this transaction
+      const existingSubscription = subscriptions.find(s =>
+        s.name === transaction.description &&
+        s.cost === transaction.amount &&
+        s.categoryId === transaction.categoryId
+      );
+
+      if (!existingSubscription) {
+        // Calculate next billing date based on frequency
+        const nextBillingDate = new Date(transaction.date);
+        switch (transaction.frequency) {
+          case RecurringFrequency.WEEKLY:
+            nextBillingDate.setDate(nextBillingDate.getDate() + 7);
+            break;
+          case RecurringFrequency.BI_WEEKLY:
+            nextBillingDate.setDate(nextBillingDate.getDate() + 14);
+            break;
+          case RecurringFrequency.MONTHLY:
+            nextBillingDate.setMonth(nextBillingDate.getMonth() + 1);
+            break;
+          case RecurringFrequency.YEARLY:
+            nextBillingDate.setFullYear(nextBillingDate.getFullYear() + 1);
+            break;
+        }
+
+        const newSubscription: Subscription = {
+          id: `sub-${Date.now()}`,
+          name: transaction.description,
+          cost: transaction.amount,
+          billingCycle: transaction.frequency,
+          categoryId: transaction.categoryId,
+          startDate: transaction.date,
+          nextBillingDate: nextBillingDate.toISOString().split('T')[0],
+          status: SubscriptionStatus.ACTIVE,
+          notes: 'Auto-created from transaction'
+        };
+
+        setSubscriptions(prev => [...prev, newSubscription]);
+
+        // Link subscription to transaction
+        transaction.linkedSubscriptionId = newSubscription.id;
+
+        console.log('✅ Auto-created subscription:', newSubscription.name);
+      }
+    }
+
+    // Update account balance if transaction has an account
+    if (transaction.accountId) {
+      setAccounts(prev => prev.map(account => {
+        if (account.id === transaction.accountId) {
+          const txnType = preferences.transactionTypes.find(type => type.id === transaction.typeId);
+          const isInflow = txnType?.behavior === TransactionBehavior.INFLOW;
+          const newBalance = isInflow
+            ? account.balance + transaction.amount
+            : account.balance - transaction.amount;
+
+          return {
+            ...account,
+            balance: newBalance,
+            lastUpdated: new Date().toISOString()
+          };
+        }
+        return account;
+      }));
+
+      // Auto-update debt budget if transaction is from credit card account
+      const account = accounts.find(a => a.id === transaction.accountId);
+      if (account && account.type === AccountType.CREDIT_CARD) {
+        const debtCategory = categories.find(c => c.type === CategoryType.DEBT);
+        if (debtCategory) {
+          setCategories(prev => prev.map(cat => {
+            if (cat.id === debtCategory.id) {
+              return {
+                ...cat,
+                initialBalance: Math.abs(account.balance) // Credit card balance is debt
+              };
+            }
+            return cat;
+          }));
+        }
+      }
     }
 
     setTransactions(prev => [transaction, ...prev]);
@@ -898,6 +1002,38 @@ const App: React.FC = () => {
 
   const deleteSubscription = (subscriptionId: string) => {
     setSubscriptions(prev => prev.filter(s => s.id !== subscriptionId));
+  };
+
+  // Account Management
+  const addAccount = (account: Account) => {
+    setAccounts(prev => [...prev, account]);
+  };
+
+  const updateAccount = (account: Account) => {
+    setAccounts(prev => prev.map(a => a.id === account.id ? account : a));
+  };
+
+  const deleteAccount = (accountId: string) => {
+    // Don't delete if it's the only account or if it has transactions
+    const hasTransactions = transactions.some(t => t.accountId === accountId);
+    if (accounts.length === 1) {
+      addNotification(
+        NotificationType.WARNING,
+        'Cannot Delete',
+        'You must have at least one account.'
+      );
+      return;
+    }
+    if (hasTransactions) {
+      if (!confirm('This account has transactions. Deleting it will remove the account link from those transactions. Continue?')) {
+        return;
+      }
+      // Remove account link from transactions
+      setTransactions(prev => prev.map(t =>
+        t.accountId === accountId ? { ...t, accountId: undefined } : t
+      ));
+    }
+    setAccounts(prev => prev.filter(a => a.id !== accountId));
   };
 
   // Goal Management

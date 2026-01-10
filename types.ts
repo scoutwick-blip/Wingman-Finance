@@ -25,6 +25,33 @@ export enum CategoryType {
   SAVINGS = 'SAVINGS'
 }
 
+// Account Management
+export enum AccountType {
+  CHECKING = 'CHECKING',
+  SAVINGS = 'SAVINGS',
+  CREDIT_CARD = 'CREDIT_CARD',
+  CASH = 'CASH',
+  INVESTMENT = 'INVESTMENT',
+  LOAN = 'LOAN',
+  OTHER = 'OTHER'
+}
+
+export interface Account {
+  id: string;
+  name: string;
+  type: AccountType;
+  balance: number;
+  currency?: string;
+  color?: string;
+  icon?: string;
+  isDefault?: boolean;
+  isHidden?: boolean;
+  creditLimit?: number; // For credit cards
+  interestRate?: number; // For loans/credit cards
+  notes?: string;
+  lastUpdated: string;
+}
+
 export interface Category {
   id: string;
   name: string;
@@ -42,6 +69,7 @@ export interface Transaction {
   amount: number;
   categoryId: string;
   typeId: string;
+  accountId?: string; // Which account this transaction belongs to
   isRecurring?: boolean;
   frequency?: RecurringFrequency;
   recurringEndDate?: string;
@@ -50,6 +78,7 @@ export interface Transaction {
   tags?: string[]; // Custom tags
   isSplit?: boolean; // Is this a split transaction
   splitTransactionId?: string; // Parent split transaction ID
+  linkedSubscriptionId?: string; // Link to auto-created subscription
 }
 
 // Split Transactions
