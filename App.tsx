@@ -11,7 +11,7 @@ import { SetupWizard } from './components/SetupWizard';
 import { ProfileSelector } from './components/ProfileSelector';
 import Auth from './components/Auth';
 import { Transaction, Category, UserPreferences, Notification, NotificationType, TransactionBehavior, UserProfile, Bill, BillStatus, MerchantMapping, Subscription, Goal, GoalStatus, SplitTransaction } from './types';
-import { initSupabase, signIn, signUp, signInWithOAuth, signOut, getCurrentUser, onAuthStateChange, uploadAuthData, downloadAuthData } from './services/supabaseService';
+import { initSupabase, signIn, signUp, signInWithOAuth, signOut, getCurrentUser, onAuthStateChange, uploadAuthData, downloadAuthData, fetchUserProfiles } from './services/supabaseService';
 import { User } from '@supabase/supabase-js';
 import {
   INITIAL_CATEGORIES,
@@ -137,94 +137,163 @@ const App: React.FC = () => {
   useEffect(() => {
     if (isCheckingAuth) return; // Wait for auth check to complete
 
-    const storedProfiles = localStorage.getItem(STORAGE_KEY_PROFILES);
-    let loadedProfiles: UserProfile[] = storedProfiles ? JSON.parse(storedProfiles) : [];
+    const initializeProfiles = async () => {
+      const storedProfiles = localStorage.getItem(STORAGE_KEY_PROFILES);
+      let loadedProfiles: UserProfile[] = storedProfiles ? JSON.parse(storedProfiles) : [];
 
-    // Legacy Migration
-    if (loadedProfiles.length === 0) {
-      const legacyPrefs = localStorage.getItem(STORAGE_KEY_PREFERENCES);
-      if (legacyPrefs) {
-        // We have legacy data but no profile system. Create a profile for the legacy user.
-        const parsedPrefs = JSON.parse(legacyPrefs);
-        const legacyId = 'user-' + Date.now();
-        const legacyProfile: UserProfile = {
-          id: legacyId,
-          name: parsedPrefs.name || 'Pilot',
-          avatar: parsedPrefs.profileImage,
-          lastActive: new Date().toISOString()
-        };
-        loadedProfiles = [legacyProfile];
-        localStorage.setItem(STORAGE_KEY_PROFILES, JSON.stringify(loadedProfiles));
-        
-        // Migrate Data keys
-        const t = localStorage.getItem(STORAGE_KEY_TRANSACTIONS);
-        const c = localStorage.getItem(STORAGE_KEY_CATEGORIES);
-        const n = localStorage.getItem(STORAGE_KEY_NOTIFICATIONS);
+      // Legacy Migration
+      if (loadedProfiles.length === 0) {
+        const legacyPrefs = localStorage.getItem(STORAGE_KEY_PREFERENCES);
+        if (legacyPrefs) {
+          // We have legacy data but no profile system. Create a profile for the legacy user.
+          const parsedPrefs = JSON.parse(legacyPrefs);
+          const legacyId = 'user-' + Date.now();
+          const legacyProfile: UserProfile = {
+            id: legacyId,
+            name: parsedPrefs.name || 'Pilot',
+            avatar: parsedPrefs.profileImage,
+            lastActive: new Date().toISOString()
+          };
+          loadedProfiles = [legacyProfile];
+          localStorage.setItem(STORAGE_KEY_PROFILES, JSON.stringify(loadedProfiles));
 
-        if(t) localStorage.setItem(`${STORAGE_KEY_TRANSACTIONS}_${legacyId}`, t);
-        if(c) localStorage.setItem(`${STORAGE_KEY_CATEGORIES}_${legacyId}`, c);
-        if(n) localStorage.setItem(`${STORAGE_KEY_NOTIFICATIONS}_${legacyId}`, n);
-        localStorage.setItem(`${STORAGE_KEY_PREFERENCES}_${legacyId}`, legacyPrefs);
-      }
-    }
+          // Migrate Data keys
+          const t = localStorage.getItem(STORAGE_KEY_TRANSACTIONS);
+          const c = localStorage.getItem(STORAGE_KEY_CATEGORIES);
+          const n = localStorage.getItem(STORAGE_KEY_NOTIFICATIONS);
 
-    setProfiles(loadedProfiles);
-    
-    // MAGIC QR CODE IMPORT LISTENER
-    const params = new URLSearchParams(window.location.search);
-    const importData = params.get('import');
-    
-    if (importData) {
-      try {
-        const jsonString = LZString.decompressFromEncodedURIComponent(importData);
-        if (jsonString) {
-          const data = JSON.parse(jsonString);
-          if (confirm(`Import data from '${data.preferences?.name || 'Unknown'}'? This will CREATE A NEW PROFILE.`)) {
-             
-             // Create a new profile for this imported data
-             const newId = 'user-import-' + Date.now();
-             const newProfile: UserProfile = {
-                id: newId,
-                name: (data.preferences?.name || 'Imported User') + ' (Imported)',
-                avatar: data.preferences?.profileImage,
-                lastActive: new Date().toISOString(),
-                pin: data.preferences?.pin
-             };
-             
-             // Save to storage immediately
-             try {
-                const updatedProfiles = [...loadedProfiles, newProfile];
-                setProfiles(updatedProfiles);
-                localStorage.setItem(STORAGE_KEY_PROFILES, JSON.stringify(updatedProfiles));
-                
-                localStorage.setItem(`${STORAGE_KEY_PREFERENCES}_${newId}`, JSON.stringify(data.preferences));
-                localStorage.setItem(`${STORAGE_KEY_CATEGORIES}_${newId}`, JSON.stringify(data.categories));
-                localStorage.setItem(`${STORAGE_KEY_TRANSACTIONS}_${newId}`, JSON.stringify(data.transactions));
-                localStorage.setItem(`${STORAGE_KEY_NOTIFICATIONS}_${newId}`, JSON.stringify([]));
-                
-                // Clean URL
-                window.history.replaceState({}, document.title, window.location.pathname);
-                
-                alert('Import successful! Please select the new profile.');
-             } catch (e) {
-                console.error("Storage limit reached during import", e);
-                alert("Cannot import data: Not enough storage space available.");
-             }
-          }
+          if(t) localStorage.setItem(`${STORAGE_KEY_TRANSACTIONS}_${legacyId}`, t);
+          if(c) localStorage.setItem(`${STORAGE_KEY_CATEGORIES}_${legacyId}`, c);
+          if(n) localStorage.setItem(`${STORAGE_KEY_NOTIFICATIONS}_${legacyId}`, n);
+          localStorage.setItem(`${STORAGE_KEY_PREFERENCES}_${legacyId}`, legacyPrefs);
         }
-      } catch (e) {
-        console.error("Import failed", e);
-        alert("Failed to read QR code data.");
       }
-    }
 
-    if (loadedProfiles.length > 0) {
-      // Don't auto-login, show selector
-    } else {
-      setIsSetupMode(true);
-    }
-    setIsLoading(false);
-  }, [isCheckingAuth]); // Run again when auth check completes
+      // MAGIC QR CODE IMPORT LISTENER
+      const params = new URLSearchParams(window.location.search);
+      const importData = params.get('import');
+
+      if (importData) {
+        try {
+          const jsonString = LZString.decompressFromEncodedURIComponent(importData);
+          if (jsonString) {
+            const data = JSON.parse(jsonString);
+            if (confirm(`Import data from '${data.preferences?.name || 'Unknown'}'? This will CREATE A NEW PROFILE.`)) {
+
+               // Create a new profile for this imported data
+               const newId = 'user-import-' + Date.now();
+               const newProfile: UserProfile = {
+                  id: newId,
+                  name: (data.preferences?.name || 'Imported User') + ' (Imported)',
+                  avatar: data.preferences?.profileImage,
+                  lastActive: new Date().toISOString(),
+                  pin: data.preferences?.pin
+               };
+
+               // Save to storage immediately
+               try {
+                  const updatedProfiles = [...loadedProfiles, newProfile];
+                  loadedProfiles = updatedProfiles;
+                  setProfiles(updatedProfiles);
+                  localStorage.setItem(STORAGE_KEY_PROFILES, JSON.stringify(updatedProfiles));
+
+                  localStorage.setItem(`${STORAGE_KEY_PREFERENCES}_${newId}`, JSON.stringify(data.preferences));
+                  localStorage.setItem(`${STORAGE_KEY_CATEGORIES}_${newId}`, JSON.stringify(data.categories));
+                  localStorage.setItem(`${STORAGE_KEY_TRANSACTIONS}_${newId}`, JSON.stringify(data.transactions));
+                  localStorage.setItem(`${STORAGE_KEY_NOTIFICATIONS}_${newId}`, JSON.stringify([]));
+
+                  // Clean URL
+                  window.history.replaceState({}, document.title, window.location.pathname);
+
+                  alert('Import successful! Please select the new profile.');
+               } catch (e) {
+                  console.error("Storage limit reached during import", e);
+                  alert("Cannot import data: Not enough storage space available.");
+               }
+            }
+          }
+        } catch (e) {
+          console.error("Import failed", e);
+          alert("Failed to read QR code data.");
+        }
+      }
+
+      // Check cloud for existing profiles if user is authenticated and no local profiles
+      if (user && loadedProfiles.length === 0) {
+        try {
+          console.log('No local profiles found, checking cloud for user:', user.email);
+          const cloudProfiles = await fetchUserProfiles();
+          console.log('Cloud profiles found:', cloudProfiles.length);
+
+          if (cloudProfiles.length > 0) {
+            // Use the most recent cloud profile
+            const mostRecent = cloudProfiles[0];
+            const profileId = `user-${user.id}`;
+            console.log('Loading cloud profile:', profileId);
+
+            // Create local profile from cloud data
+            const cloudData = mostRecent.data;
+            const newProfile: UserProfile = {
+              id: profileId,
+              name: cloudData.preferences?.name || 'User',
+              avatar: cloudData.preferences?.profileImage,
+              pin: cloudData.preferences?.pin,
+              lastActive: new Date().toISOString()
+            };
+
+            // Save profile
+            loadedProfiles = [newProfile];
+            setProfiles(loadedProfiles);
+            localStorage.setItem(STORAGE_KEY_PROFILES, JSON.stringify(loadedProfiles));
+
+            // Restore data from cloud
+            if (cloudData.preferences) {
+              localStorage.setItem(`${STORAGE_KEY_PREFERENCES}_${profileId}`, JSON.stringify(cloudData.preferences));
+            }
+            if (cloudData.categories) {
+              localStorage.setItem(`${STORAGE_KEY_CATEGORIES}_${profileId}`, JSON.stringify(cloudData.categories));
+            }
+            if (cloudData.transactions) {
+              localStorage.setItem(`${STORAGE_KEY_TRANSACTIONS}_${profileId}`, JSON.stringify(cloudData.transactions));
+            }
+            if (cloudData.bills) {
+              localStorage.setItem(`${STORAGE_KEY_BILLS}_${profileId}`, JSON.stringify(cloudData.bills));
+            }
+            if (cloudData.merchantMappings) {
+              localStorage.setItem(`${STORAGE_KEY_MERCHANT_MAPPINGS}_${profileId}`, JSON.stringify(cloudData.merchantMappings));
+            }
+            if (cloudData.subscriptions) {
+              localStorage.setItem(`${STORAGE_KEY_SUBSCRIPTIONS}_${profileId}`, JSON.stringify(cloudData.subscriptions));
+            }
+            if (cloudData.goals) {
+              localStorage.setItem(`${STORAGE_KEY_GOALS}_${profileId}`, JSON.stringify(cloudData.goals));
+            }
+            if (cloudData.splitTransactions) {
+              localStorage.setItem(`${STORAGE_KEY_SPLIT_TRANSACTIONS}_${profileId}`, JSON.stringify(cloudData.splitTransactions));
+            }
+            localStorage.setItem(`${STORAGE_KEY_NOTIFICATIONS}_${profileId}`, JSON.stringify([]));
+
+            // Auto-select this profile
+            setActiveProfileId(profileId);
+            console.log('✅ Cloud profile loaded and activated');
+          }
+        } catch (error) {
+          console.error('Failed to check cloud profiles:', error);
+        }
+      }
+
+      setProfiles(loadedProfiles);
+
+      if (loadedProfiles.length > 0) {
+        // Don't auto-login, show selector (unless we just auto-selected from cloud)
+      } else {
+        setIsSetupMode(true);
+      }
+      setIsLoading(false);
+    };
+
+    initializeProfiles();
+  }, [isCheckingAuth, user]); // Run again when auth check completes or user changes
 
   // Load Profile Data when activeProfileId changes
   useEffect(() => {
@@ -505,7 +574,8 @@ const App: React.FC = () => {
   };
 
   const handleCreateProfile = (prefs: UserPreferences) => {
-    const newId = 'user-' + Date.now();
+    // Use user.id if authenticated, otherwise timestamp
+    const newId = user ? `user-${user.id}` : 'user-' + Date.now();
     const newProfile: UserProfile = {
       id: newId,
       name: prefs.name,
@@ -513,15 +583,15 @@ const App: React.FC = () => {
       pin: prefs.pin,
       lastActive: new Date().toISOString()
     };
-    
+
     try {
       const updatedProfiles = [...profiles, newProfile];
       setProfiles(updatedProfiles);
       localStorage.setItem(STORAGE_KEY_PROFILES, JSON.stringify(updatedProfiles));
-      
+
       // Initialize Data for new user
       localStorage.setItem(`${STORAGE_KEY_PREFERENCES}_${newId}`, JSON.stringify(prefs));
-      
+
       // ZERO OUT DEFAULT CATEGORIES for fresh start
       const zeroedCategories = INITIAL_CATEGORIES.map(c => ({
         ...c,
@@ -529,11 +599,11 @@ const App: React.FC = () => {
         initialBalance: 0
       }));
       localStorage.setItem(`${STORAGE_KEY_CATEGORIES}_${newId}`, JSON.stringify(zeroedCategories));
-      
+
       // Empty transaction and notification history
       localStorage.setItem(`${STORAGE_KEY_TRANSACTIONS}_${newId}`, JSON.stringify([]));
       localStorage.setItem(`${STORAGE_KEY_NOTIFICATIONS}_${newId}`, JSON.stringify([]));
-      
+
       setActiveProfileId(newId);
       setIsSetupMode(false);
     } catch (e) {
@@ -1103,6 +1173,7 @@ const App: React.FC = () => {
             transactions={transactions}
             activeProfileId={activeProfileId}
             user={user}
+            lastSyncTime={lastSyncTime}
             onUpdatePreferences={(updates) => setPreferences(prev => ({...prev, ...updates}))}
             onImportTransactions={importTransactions}
             onFullRestore={restoreFullState}
