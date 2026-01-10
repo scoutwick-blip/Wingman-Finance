@@ -1,5 +1,5 @@
 
-import { Category, UserPreferences, TransactionBehavior, CategoryType, BudgetTemplate } from './types';
+import { Category, UserPreferences, TransactionBehavior, CategoryType, BudgetTemplate, Account, AccountType } from './types';
 
 export const INITIAL_CATEGORIES: Category[] = [
   { id: '1', name: 'Housing', color: '#003087', icon: '🏠', budget: 1800, type: CategoryType.SPENDING },
@@ -59,6 +59,22 @@ export const STORAGE_KEY_MERCHANT_MAPPINGS = 'wingman_merchant_mappings';
 export const STORAGE_KEY_SPLIT_TRANSACTIONS = 'wingman_split_transactions';
 export const STORAGE_KEY_SUBSCRIPTIONS = 'wingman_subscriptions';
 export const STORAGE_KEY_GOALS = 'wingman_goals';
+export const STORAGE_KEY_ACCOUNTS = 'wingman_accounts';
+
+// Default Accounts
+export const DEFAULT_ACCOUNTS: Account[] = [
+  {
+    id: 'account-1',
+    name: 'Checking Account',
+    type: AccountType.CHECKING,
+    balance: 0,
+    color: '#3b82f6',
+    icon: '💳',
+    isDefault: true,
+    isHidden: false,
+    lastUpdated: new Date().toISOString()
+  }
+];
 
 // Budget Templates
 export const BUDGET_TEMPLATES: BudgetTemplate[] = [
