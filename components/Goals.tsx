@@ -169,7 +169,7 @@ export default function Goals({
 
     const amount = parseFloat(progressAmount);
     onUpdateGoalProgress(showProgressModal.id, amount);
-    onAddNotification(NotificationType.SUCCESS, 'Progress Updated', `Added ${currency}${amount} to ${showProgressModal.name}`);
+    onAddNotification(NotificationType.SUCCESS, 'Progress Updated', `Added ${currency}${amount.toFixed(2)} to ${showProgressModal.name}`);
 
     setShowProgressModal(null);
     setProgressAmount('');
@@ -277,7 +277,7 @@ export default function Goals({
           {goal.monthlyContribution && (
             <div className="flex items-center gap-2 text-green-600">
               <DollarSign className="w-4 h-4" />
-              <span className="font-medium">{currency}{goal.monthlyContribution}/month</span>
+              <span className="font-medium">{currency}{goal.monthlyContribution?.toFixed(2)}/month</span>
             </div>
           )}
           {nextMilestone && (
@@ -351,7 +351,7 @@ export default function Goals({
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-green-100 uppercase">Total Progress</p>
-              <p className="text-3xl font-bold">{currency}{stats.totalProgress.toFixed(0)}</p>
+              <p className="text-3xl font-bold">{currency}{stats.totalProgress.toFixed(2)}</p>
             </div>
             <DollarSign className="w-8 h-8 text-green-200" />
           </div>
@@ -360,7 +360,7 @@ export default function Goals({
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-purple-100 uppercase">Remaining</p>
-              <p className="text-3xl font-bold">{currency}{stats.totalRemaining.toFixed(0)}</p>
+              <p className="text-3xl font-bold">{currency}{stats.totalRemaining.toFixed(2)}</p>
             </div>
             <TrendingUp className="w-8 h-8 text-purple-200" />
           </div>

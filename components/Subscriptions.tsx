@@ -135,7 +135,7 @@ export default function Subscriptions({
       onAddNotification(NotificationType.SUCCESS, 'Subscription Updated', `Updated ${subscription.name}`);
     } else {
       onAddSubscription(subscription);
-      onAddNotification(NotificationType.SUCCESS, 'Subscription Added', `Added ${subscription.name} - ${currency}${subscription.cost}/${subscription.billingCycle}`);
+      onAddNotification(NotificationType.SUCCESS, 'Subscription Added', `Added ${subscription.name} - ${currency}${subscription.cost.toFixed(2)}/${subscription.billingCycle}`);
     }
 
     resetForm();
