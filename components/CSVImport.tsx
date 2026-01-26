@@ -223,9 +223,9 @@ export default function CSVImport({
             existing.timesUsed = 1;
           }
         } else {
-          // Create new mapping
+          // Create new mapping - store normalized (lowercase) merchant name
           updatedMerchantMappings.push({
-            merchant: imported.merchant,
+            merchant: imported.merchant.toLowerCase(),
             categoryId: categoryId,
             confidence: 0.7,
             timesUsed: 1

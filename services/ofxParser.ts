@@ -1,4 +1,5 @@
 import { ImportedTransaction } from '../types';
+import { extractMerchant } from './csvImportService';
 
 /**
  * Parse OFX/QFX/QBO files to extract transactions
@@ -224,7 +225,8 @@ export const parseOFXFile = (content: string): ImportedTransaction[] => {
         description = `Check #${checkNum} - ${description}`;
       }
 
-      const merchant = name || undefined;
+      // Extract merchant using the same logic as CSV imports for consistency
+      const merchant = name ? extractMerchant(name) : undefined;
 
       // Parse date
       const date = parseOFXDate(dtPosted);

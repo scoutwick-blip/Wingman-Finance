@@ -198,7 +198,7 @@ export function importCSVTransactions(
   return imported;
 }
 
-function extractMerchant(description: string): string {
+export function extractMerchant(description: string): string {
   // Try to extract merchant name from transaction description
   // Common patterns: "PURCHASE AUTHORIZED ON XX/XX MERCHANT NAME"
   // "POS PURCHASE - MERCHANT NAME"
