@@ -23,11 +23,6 @@ const cleanOFXData = (data: string): string => {
   // Remove any BOM or whitespace before XML declaration
   data = data.trim();
 
-  // If it's already XML (has <?xml), return as is
-  if (data.startsWith('<?xml') || data.startsWith('<OFX>')) {
-    return data;
-  }
-
   // Find where the actual OFX data starts (after headers)
   const ofxStart = data.indexOf('<OFX>');
   if (ofxStart === -1) {
@@ -37,9 +32,67 @@ const cleanOFXData = (data: string): string => {
   // Extract just the OFX portion
   data = data.substring(ofxStart);
 
-  // Convert SGML to XML by adding closing tags
-  // OFX SGML uses tags like <TAG>value without closing </TAG>
-  data = data.replace(/<([A-Z0-9]+)>([^<]+)/g, '<$1>$2</$1>');
+  // Check if it's already proper XML (has closing tags)
+  const hasClosingTags = data.includes('</STMTTRN>') || data.includes('</TRANSACTION>');
+
+  if (!hasClosingTags) {
+    // This is SGML format, need to add closing tags
+    // OFX SGML uses tags like <TAG>value or <TAG> without closing </TAG>
+
+    // Split into lines and process each line
+    const lines = data.split('\n');
+    const processedLines: string[] = [];
+    const tagStack: string[] = [];
+
+    for (let line of lines) {
+      line = line.trim();
+      if (!line) continue;
+
+      // Match opening tag with or without value
+      const openTagMatch = line.match(/^<([A-Z0-9_]+)>(.*)$/);
+
+      if (openTagMatch) {
+        const tagName = openTagMatch[1];
+        const value = openTagMatch[2].trim();
+
+        if (value) {
+          // Tag has a value on same line - this is a leaf node
+          processedLines.push(`<${tagName}>${value}</${tagName}>`);
+        } else {
+          // Tag without value - this opens a container
+          processedLines.push(`<${tagName}>`);
+          tagStack.push(tagName);
+        }
+      } else {
+        // Check for closing tag
+        const closeTagMatch = line.match(/^<\/([A-Z0-9_]+)>$/);
+        if (closeTagMatch) {
+          const tagName = closeTagMatch[1];
+          // Close any open tags until we find this one
+          while (tagStack.length > 0) {
+            const lastTag = tagStack.pop()!;
+            if (lastTag !== tagName) {
+              processedLines.push(`</${lastTag}>`);
+            } else {
+              processedLines.push(`</${tagName}>`);
+              break;
+            }
+          }
+        } else {
+          // Plain line, keep as is
+          processedLines.push(line);
+        }
+      }
+    }
+
+    // Close any remaining open tags
+    while (tagStack.length > 0) {
+      const tag = tagStack.pop()!;
+      processedLines.push(`</${tag}>`);
+    }
+
+    data = processedLines.join('\n');
+  }
 
   return data;
 };
@@ -84,8 +137,12 @@ const getElementText = (parent: Element, tagName: string): string | null => {
  */
 export const parseOFXFile = (content: string): ImportedTransaction[] => {
   try {
+    // Log first 500 chars for debugging
+    console.log('OFX File Preview:', content.substring(0, 500));
+
     // Clean and prepare the data
     const cleanedData = cleanOFXData(content);
+    console.log('Cleaned OFX Preview:', cleanedData.substring(0, 500));
 
     // Parse XML
     const parser = new DOMParser();
@@ -94,21 +151,32 @@ export const parseOFXFile = (content: string): ImportedTransaction[] => {
     // Check for parsing errors
     const parserError = xmlDoc.getElementsByTagName('parsererror')[0];
     if (parserError) {
-      throw new Error('Failed to parse OFX file: Invalid XML structure');
+      const errorText = parserError.textContent || 'Unknown XML parsing error';
+      console.error('XML Parser Error:', errorText);
+      console.error('Cleaned data that failed:', cleanedData.substring(0, 1000));
+      throw new Error(`XML parsing failed: ${errorText}`);
     }
 
     // Find all transaction elements (STMTTRN)
-    const transactions = xmlDoc.getElementsByTagName('STMTTRN');
+    let transactions = xmlDoc.getElementsByTagName('STMTTRN');
+    console.log('Found STMTTRN elements:', transactions.length);
 
     if (transactions.length === 0) {
       // Try alternative tag names
-      const altTransactions = xmlDoc.getElementsByTagName('TRANSACTION');
-      if (altTransactions.length === 0) {
-        throw new Error('No transactions found in OFX file');
+      transactions = xmlDoc.getElementsByTagName('TRANSACTION');
+      console.log('Found TRANSACTION elements:', transactions.length);
+
+      if (transactions.length === 0) {
+        // Log the structure to help debug
+        console.log('Root element:', xmlDoc.documentElement?.tagName);
+        console.log('All tags in document:', Array.from(xmlDoc.getElementsByTagName('*')).map(el => el.tagName).slice(0, 20));
+        throw new Error('No transaction elements found. The file may not contain transaction data in the expected format.');
       }
     }
 
     const importedTransactions: ImportedTransaction[] = [];
+
+    console.log(`Processing ${transactions.length} transactions...`);
 
     // Process each transaction
     for (let i = 0; i < transactions.length; i++) {
@@ -168,6 +236,7 @@ export const parseOFXFile = (content: string): ImportedTransaction[] => {
       });
     }
 
+    console.log(`✅ Successfully parsed ${importedTransactions.length} transactions`);
     return importedTransactions;
   } catch (error) {
     console.error('OFX parsing error:', error);
