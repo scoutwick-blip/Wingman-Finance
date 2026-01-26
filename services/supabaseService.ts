@@ -216,6 +216,23 @@ export const fetchUserProfiles = async () => {
   return data || [];
 };
 
+// Delete a profile's data
+export const deleteAuthData = async (profileId: string) => {
+  if (!supabaseInstance) throw new Error('Supabase not initialized');
+
+  const user = await getCurrentUser();
+  if (!user) throw new Error('User not authenticated');
+
+  const { error } = await supabaseInstance
+    .from('wingman_backups')
+    .delete()
+    .eq('id', profileId)
+    .eq('user_id', user.id);
+
+  if (error) throw error;
+  return true;
+};
+
 export const resetPassword = async (email: string) => {
   if (!supabaseInstance) throw new Error('Supabase not initialized');
 
