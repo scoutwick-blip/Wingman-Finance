@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Upload, Check, X, AlertCircle, FileText, Download } from 'lucide-react';
 import { importCSVTransactions, reconcileTransactions, BANK_PRESETS, CSVMapping } from '../services/csvImportService';
+import { parseOFXFile, isOFXFormat } from '../services/ofxParser';
 import { ImportedTransaction, ReconciliationMatch, ReconciliationStatus, Transaction, Category } from '../types';
 
 interface CSVImportProps {
@@ -21,6 +22,7 @@ export default function CSVImport({
   const [step, setStep] = useState<'upload' | 'preview' | 'categorize' | 'reconcile'>('upload');
   const [csvText, setCsvText] = useState('');
   const [selectedPreset, setSelectedPreset] = useState('generic');
+  const [fileType, setFileType] = useState<'csv' | 'ofx'>('csv');
   const [importedTransactions, setImportedTransactions] = useState<ImportedTransaction[]>([]);
   const [reconciliationMatches, setReconciliationMatches] = useState<ReconciliationMatch[]>([]);
   const [selectedMatches, setSelectedMatches] = useState<Set<number>>(new Set());
@@ -37,13 +39,40 @@ export default function CSVImport({
       const text = event.target?.result as string;
       setCsvText(text);
 
-      // Auto-parse with selected preset
-      handleParse(text, selectedPreset);
+      // Detect file type
+      const fileExtension = file.name.split('.').pop()?.toLowerCase();
+      const isOFX = fileExtension === 'ofx' || fileExtension === 'qfx' || fileExtension === 'qbo' || isOFXFormat(text);
+
+      if (isOFX) {
+        setFileType('ofx');
+        handleParseOFX(text);
+      } else {
+        setFileType('csv');
+        handleParse(text, selectedPreset);
+      }
     };
     reader.onerror = () => {
       setError('Failed to read file. Please try again.');
     };
     reader.readAsText(file);
+  };
+
+  const handleParseOFX = (text: string) => {
+    try {
+      setError('');
+      const imported = parseOFXFile(text);
+
+      if (imported.length === 0) {
+        setError('No transactions found in OFX file.');
+        return;
+      }
+
+      setImportedTransactions(imported);
+      setStep('preview');
+    } catch (error) {
+      console.error('Error parsing OFX:', error);
+      setError(`Failed to parse OFX file: ${error instanceof Error ? error.message : 'Unknown error'}. Please ensure the file is a valid OFX/QFX/QBO file.`);
+    }
   };
 
   const handleParse = (text: string, preset: string) => {
@@ -216,9 +245,9 @@ export default function CSVImport({
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h2 className="text-2xl font-black text-slate-900 uppercase tracking-wide">CSV IMPORT</h2>
+              <h2 className="text-2xl font-black text-slate-900 uppercase tracking-wide">TRANSACTION IMPORT</h2>
               <p className="text-sm text-gray-600 mt-1">
-                {step === 'upload' && 'Upload and parse your bank CSV file'}
+                {step === 'upload' && 'Upload your bank file (CSV, OFX, QFX, QBO)'}
                 {step === 'preview' && `Preview ${importedTransactions.length} imported transactions`}
                 {step === 'categorize' && 'Select categories for transaction groups'}
                 {step === 'reconcile' && 'Review and import transactions'}
@@ -237,30 +266,32 @@ export default function CSVImport({
           {/* Step 1: Upload */}
           {step === 'upload' && (
             <div className="space-y-6">
-              {/* Bank Preset Selection */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Select Bank Format</label>
-                <select
-                  value={selectedPreset}
-                  onChange={(e) => {
-                    setSelectedPreset(e.target.value);
-                    if (csvText) handleParse(csvText, e.target.value);
-                  }}
-                  className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  <option value="generic">Generic (date, description, amount)</option>
-                  <option value="chase">Chase Bank</option>
-                  <option value="bofa">Bank of America</option>
-                  <option value="wells">Wells Fargo</option>
-                  <option value="usaa">USAA</option>
-                </select>
-              </div>
+              {/* Bank Preset Selection - Only for CSV */}
+              {fileType === 'csv' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Select Bank Format (CSV only)</label>
+                  <select
+                    value={selectedPreset}
+                    onChange={(e) => {
+                      setSelectedPreset(e.target.value);
+                      if (csvText) handleParse(csvText, e.target.value);
+                    }}
+                    className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="generic">Generic (date, description, amount)</option>
+                    <option value="chase">Chase Bank</option>
+                    <option value="bofa">Bank of America</option>
+                    <option value="wells">Wells Fargo</option>
+                    <option value="usaa">USAA</option>
+                  </select>
+                </div>
+              )}
 
               {/* File Upload */}
               <div className="border-4 border-dashed border-gray-300 rounded-2xl p-12 text-center hover:border-blue-400 transition-colors">
                 <input
                   type="file"
-                  accept=".csv"
+                  accept=".csv,.ofx,.qfx,.qbo"
                   onChange={handleFileUpload}
                   className="hidden"
                   id="csv-upload"
@@ -271,9 +302,9 @@ export default function CSVImport({
                 >
                   <Upload className="w-16 h-16 text-blue-600" />
                   <div>
-                    <p className="font-bold text-lg text-gray-900 mb-1">Upload CSV File</p>
+                    <p className="font-bold text-lg text-gray-900 mb-1">Upload Bank File</p>
                     <p className="text-sm text-gray-600">
-                      Click to browse or drag and drop
+                      Supports CSV, OFX, QFX, QBO formats
                     </p>
                   </div>
                 </label>
@@ -294,15 +325,28 @@ export default function CSVImport({
               <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-4">
                 <h4 className="font-bold text-blue-900 mb-2 flex items-center gap-2">
                   <FileText className="w-5 h-5" />
-                  CSV Format Requirements
+                  Supported File Formats
                 </h4>
-                <ul className="text-sm text-blue-800 space-y-1 list-disc list-inside">
-                  <li>File must contain headers in the first row</li>
-                  <li>Required columns: Date, Description, Amount</li>
-                  <li>Date formats supported: MM/DD/YYYY, YYYY-MM-DD, MM-DD-YYYY</li>
-                  <li>Amounts can include currency symbols ($) and commas</li>
-                  <li>Select the correct bank preset for best results</li>
-                </ul>
+                <div className="space-y-3 text-sm text-blue-800">
+                  <div>
+                    <p className="font-bold">CSV Files:</p>
+                    <ul className="list-disc list-inside ml-2 space-y-1">
+                      <li>Must contain headers in the first row</li>
+                      <li>Required columns: Date, Description, Amount</li>
+                      <li>Date formats: MM/DD/YYYY, YYYY-MM-DD, MM-DD-YYYY</li>
+                      <li>Select the correct bank preset for best results</li>
+                    </ul>
+                  </div>
+                  <div>
+                    <p className="font-bold">OFX/QFX/QBO Files:</p>
+                    <ul className="list-disc list-inside ml-2 space-y-1">
+                      <li>Standard financial exchange format</li>
+                      <li>Download from your bank's website</li>
+                      <li>Automatically detects transactions</li>
+                      <li>No preset selection needed</li>
+                    </ul>
+                  </div>
+                </div>
               </div>
             </div>
           )}
