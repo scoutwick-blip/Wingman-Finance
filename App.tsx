@@ -82,28 +82,27 @@ const App: React.FC = () => {
           try {
             initSupabase(supabaseUrl, supabaseKey);
 
-            // Check for existing session
+            // ALWAYS require explicit sign-in - no auto sign-in
+            // Sign out any existing session on app start
             const currentUser = await getCurrentUser();
             if (currentUser) {
-              setUser(currentUser);
-              setShowAuthScreen(false);
-            } else {
-              // No session - check if user has chosen local-only mode before
-              const storedPrefs = localStorage.getItem(STORAGE_KEY_PREFERENCES);
-              if (storedPrefs) {
-                const prefs = JSON.parse(storedPrefs);
-                if (prefs.authMode === 'local') {
-                  setShowAuthScreen(false);
-                } else if (prefs.authMode === 'cloud') {
-                  setShowAuthScreen(true);
-                } else {
-                  // User has data but hasn't chosen auth mode yet - show auth screen
-                  setShowAuthScreen(true);
-                }
+              await signOut();
+              console.log('Signed out previous session - explicit sign-in required');
+            }
+
+            // Check if user has chosen local-only mode before
+            const storedPrefs = localStorage.getItem(STORAGE_KEY_PREFERENCES);
+            if (storedPrefs) {
+              const prefs = JSON.parse(storedPrefs);
+              if (prefs.authMode === 'local') {
+                setShowAuthScreen(false);
               } else {
-                // New user with no data - show auth screen by default
+                // Show auth screen for cloud mode or undecided
                 setShowAuthScreen(true);
               }
+            } else {
+              // New user with no data - show auth screen by default
+              setShowAuthScreen(true);
             }
 
             // Listen for auth state changes
@@ -229,59 +228,63 @@ const App: React.FC = () => {
           console.log('Cloud profiles found:', cloudProfiles.length);
 
           if (cloudProfiles.length > 0) {
-            // Use the most recent cloud profile
-            const mostRecent = cloudProfiles[0];
-            const profileId = `user-${user.id}`;
-            console.log('Loading cloud profile:', profileId);
+            // Load ALL cloud profiles for this user
+            const restoredProfiles: UserProfile[] = [];
 
-            // Create local profile from cloud data
-            const cloudData = mostRecent.data;
-            const newProfile: UserProfile = {
-              id: profileId,
-              name: cloudData.preferences?.name || 'User',
-              avatar: cloudData.preferences?.profileImage,
-              pin: cloudData.preferences?.pin,
-              lastActive: new Date().toISOString()
-            };
+            for (const cloudProfile of cloudProfiles) {
+              const profileId = cloudProfile.id; // Use the actual profile ID from cloud
+              const cloudData = cloudProfile.data;
 
-            // Save profile
-            loadedProfiles = [newProfile];
+              console.log('Loading cloud profile:', profileId);
+
+              // Create local profile from cloud data
+              const newProfile: UserProfile = {
+                id: profileId,
+                name: cloudData.preferences?.name || 'User',
+                avatar: cloudData.preferences?.profileImage,
+                pin: cloudData.preferences?.pin,
+                lastActive: cloudProfile.updated_at
+              };
+
+              restoredProfiles.push(newProfile);
+
+              // Restore all data from cloud for this profile
+              if (cloudData.preferences) {
+                localStorage.setItem(`${STORAGE_KEY_PREFERENCES}_${profileId}`, JSON.stringify(cloudData.preferences));
+              }
+              if (cloudData.categories) {
+                localStorage.setItem(`${STORAGE_KEY_CATEGORIES}_${profileId}`, JSON.stringify(cloudData.categories));
+              }
+              if (cloudData.transactions) {
+                localStorage.setItem(`${STORAGE_KEY_TRANSACTIONS}_${profileId}`, JSON.stringify(cloudData.transactions));
+              }
+              if (cloudData.bills) {
+                localStorage.setItem(`${STORAGE_KEY_BILLS}_${profileId}`, JSON.stringify(cloudData.bills));
+              }
+              if (cloudData.merchantMappings) {
+                localStorage.setItem(`${STORAGE_KEY_MERCHANT_MAPPINGS}_${profileId}`, JSON.stringify(cloudData.merchantMappings));
+              }
+              if (cloudData.subscriptions) {
+                localStorage.setItem(`${STORAGE_KEY_SUBSCRIPTIONS}_${profileId}`, JSON.stringify(cloudData.subscriptions));
+              }
+              if (cloudData.goals) {
+                localStorage.setItem(`${STORAGE_KEY_GOALS}_${profileId}`, JSON.stringify(cloudData.goals));
+              }
+              if (cloudData.splitTransactions) {
+                localStorage.setItem(`${STORAGE_KEY_SPLIT_TRANSACTIONS}_${profileId}`, JSON.stringify(cloudData.splitTransactions));
+              }
+              if (cloudData.accounts) {
+                localStorage.setItem(`${STORAGE_KEY_ACCOUNTS}_${profileId}`, JSON.stringify(cloudData.accounts));
+              }
+              localStorage.setItem(`${STORAGE_KEY_NOTIFICATIONS}_${profileId}`, JSON.stringify([]));
+            }
+
+            // Save all restored profiles
+            loadedProfiles = restoredProfiles;
             setProfiles(loadedProfiles);
             localStorage.setItem(STORAGE_KEY_PROFILES, JSON.stringify(loadedProfiles));
 
-            // Restore data from cloud
-            if (cloudData.preferences) {
-              localStorage.setItem(`${STORAGE_KEY_PREFERENCES}_${profileId}`, JSON.stringify(cloudData.preferences));
-            }
-            if (cloudData.categories) {
-              localStorage.setItem(`${STORAGE_KEY_CATEGORIES}_${profileId}`, JSON.stringify(cloudData.categories));
-            }
-            if (cloudData.transactions) {
-              localStorage.setItem(`${STORAGE_KEY_TRANSACTIONS}_${profileId}`, JSON.stringify(cloudData.transactions));
-            }
-            if (cloudData.bills) {
-              localStorage.setItem(`${STORAGE_KEY_BILLS}_${profileId}`, JSON.stringify(cloudData.bills));
-            }
-            if (cloudData.merchantMappings) {
-              localStorage.setItem(`${STORAGE_KEY_MERCHANT_MAPPINGS}_${profileId}`, JSON.stringify(cloudData.merchantMappings));
-            }
-            if (cloudData.subscriptions) {
-              localStorage.setItem(`${STORAGE_KEY_SUBSCRIPTIONS}_${profileId}`, JSON.stringify(cloudData.subscriptions));
-            }
-            if (cloudData.goals) {
-              localStorage.setItem(`${STORAGE_KEY_GOALS}_${profileId}`, JSON.stringify(cloudData.goals));
-            }
-            if (cloudData.splitTransactions) {
-              localStorage.setItem(`${STORAGE_KEY_SPLIT_TRANSACTIONS}_${profileId}`, JSON.stringify(cloudData.splitTransactions));
-            }
-            if (cloudData.accounts) {
-              localStorage.setItem(`${STORAGE_KEY_ACCOUNTS}_${profileId}`, JSON.stringify(cloudData.accounts));
-            }
-            localStorage.setItem(`${STORAGE_KEY_NOTIFICATIONS}_${profileId}`, JSON.stringify([]));
-
-            // Auto-select this profile
-            setActiveProfileId(profileId);
-            console.log('✅ Cloud profile loaded and activated');
+            console.log(`✅ Loaded ${restoredProfiles.length} cloud profile(s)`);
           }
         } catch (error) {
           console.error('Failed to check cloud profiles:', error);
@@ -579,8 +582,11 @@ const App: React.FC = () => {
   };
 
   const handleCreateProfile = (prefs: UserPreferences) => {
-    // Use user.id if authenticated, otherwise timestamp
-    const newId = user ? `user-${user.id}` : 'user-' + Date.now();
+    // Generate unique profile ID for each profile
+    // If authenticated: user-{userId}-profile-{timestamp} for multiple profiles per account
+    // If local: user-{timestamp}
+    const timestamp = Date.now();
+    const newId = user ? `user-${user.id}-profile-${timestamp}` : `user-${timestamp}`;
     const newProfile: UserProfile = {
       id: newId,
       name: prefs.name,
@@ -1172,10 +1178,12 @@ const App: React.FC = () => {
     try {
       await signOut();
       setUser(null);
+      setActiveProfileId(null); // Clear active profile on sign out
+      setShowAuthScreen(true); // Return to auth screen
       addNotification(
         NotificationType.INFO,
         'Signed Out',
-        'You have been signed out successfully.'
+        'You have been signed out successfully. Please sign in again to access cloud-synced profiles.'
       );
     } catch (error: any) {
       console.error('Sign out failed:', error);
