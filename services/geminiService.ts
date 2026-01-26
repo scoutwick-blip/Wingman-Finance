@@ -185,6 +185,7 @@ export const suggestCategory = async (
   const categoryList = categories.map(c => ({
     id: c.id,
     name: c.name,
+    icon: c.icon,
     type: c.type
   }));
 
@@ -213,6 +214,7 @@ export const suggestCategory = async (
 
     Return up to 3 category suggestions ranked by confidence (0-1), with reasoning for each suggestion.
     Consider the merchant name, transaction description, amount, and user's historical categorization patterns.
+    Be specific and confident - use the merchant name and common sense to categorize accurately.
   `;
 
   try {
@@ -241,5 +243,104 @@ export const suggestCategory = async (
   } catch (error) {
     console.error("Error suggesting category:", error);
     return [];
+  }
+};
+
+// Batch category suggestions for multiple transactions (more efficient)
+export const suggestCategoriesBatch = async (
+  transactions: Array<{ description: string; merchant?: string; amount: number }>,
+  categories: Category[],
+  recentTransactions: Transaction[]
+): Promise<Map<string, CategorySuggestion[]>> => {
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+
+  const categoryList = categories.map(c => ({
+    id: c.id,
+    name: c.name,
+    icon: c.icon,
+    type: c.type
+  }));
+
+  const recentHistory = recentTransactions
+    .slice(0, 30) // Last 30 transactions
+    .map(t => ({
+      description: t.description,
+      merchant: t.merchant,
+      categoryId: t.categoryId,
+      categoryName: categories.find(c => c.id === t.categoryId)?.name
+    }));
+
+  // Create a key for each transaction
+  const transactionKeys = transactions.map(t => t.merchant || t.description);
+
+  const prompt = `
+    Analyze these transactions and suggest the most appropriate budget category for each.
+    Return suggestions as an array where each item contains the transaction key (merchant or description) and up to 2 category suggestions.
+
+    Transactions to categorize:
+    ${transactions.map((t, i) => `
+    ${i + 1}. Key: "${transactionKeys[i]}"
+       - Description: ${t.description}
+       - Merchant: ${t.merchant || 'Unknown'}
+       - Amount: $${t.amount}
+    `).join('\n')}
+
+    Available Categories:
+    ${JSON.stringify(categoryList)}
+
+    Recent Transaction History (for learning patterns):
+    ${JSON.stringify(recentHistory)}
+
+    Be specific and confident. Use merchant names and common sense. Consider:
+    - Starbucks, McDonald's, restaurants → Dining
+    - Walmart, Target, grocery stores → Groceries
+    - Shell, Chevron, gas stations → Gas/Transportation
+    - Netflix, Spotify, streaming → Entertainment
+    - Amazon could be Shopping, depending on amount/description
+  `;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-flash-preview',
+      contents: prompt,
+      config: {
+        responseMimeType: 'application/json',
+        responseSchema: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              transactionKey: { type: Type.STRING },
+              suggestions: {
+                type: Type.ARRAY,
+                items: {
+                  type: Type.OBJECT,
+                  properties: {
+                    categoryId: { type: Type.STRING },
+                    confidence: { type: Type.NUMBER },
+                    reason: { type: Type.STRING }
+                  },
+                  required: ['categoryId', 'confidence', 'reason']
+                }
+              }
+            },
+            required: ['transactionKey', 'suggestions']
+          }
+        }
+      }
+    });
+
+    const result = JSON.parse(response.text || '[]');
+
+    // Convert to Map for easy lookup
+    const suggestionsMap = new Map<string, CategorySuggestion[]>();
+    result.forEach((item: any) => {
+      suggestionsMap.set(item.transactionKey, item.suggestions);
+    });
+
+    return suggestionsMap;
+  } catch (error) {
+    console.error("Error suggesting categories (batch):", error);
+    return new Map();
   }
 };
