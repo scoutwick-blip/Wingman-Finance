@@ -32,11 +32,20 @@ const cleanOFXData = (data: string): string => {
   // Extract just the OFX portion
   data = data.substring(ofxStart);
 
-  // Check if it's already proper XML (has closing tags for leaf nodes)
-  // SGML has closing tags for containers but not for leaf nodes
-  const testPattern = /<([A-Z0-9_]+)>([^<\n]+)\s*\n/;
-  const match = data.match(testPattern);
-  const needsConversion = match && !data.includes(`</${match[1]}>`);
+  // First pass: identify which tags are containers (have explicit closing tags)
+  const containerTags = new Set<string>();
+  const closingTagPattern = /<\/([A-Z0-9_]+)>/g;
+  let match;
+  while ((match = closingTagPattern.exec(data)) !== null) {
+    containerTags.add(match[1]);
+  }
+
+  console.log('Detected container tags:', Array.from(containerTags).slice(0, 10), '...');
+
+  // Check if conversion is needed
+  const testPattern = /<([A-Z0-9_]+)>([^<\n]+)/;
+  const testMatch = data.match(testPattern);
+  const needsConversion = testMatch && !containerTags.has(testMatch[1]);
 
   if (!needsConversion) {
     console.log('OFX file appears to be proper XML, no conversion needed');
@@ -45,12 +54,11 @@ const cleanOFXData = (data: string): string => {
 
   console.log('Converting OFX SGML to XML...');
 
-  // Process line by line to add closing tags
+  // Second pass: process line by line and add closing tags to non-containers
   const lines = data.split(/\r?\n/);
   const result: string[] = [];
 
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
+  for (const line of lines) {
     const indent = line.match(/^[\t ]*/)?.[0] || '';
     const trimmedLine = line.trim();
 
@@ -73,34 +81,18 @@ const cleanOFXData = (data: string): string => {
       const trimmedValue = value.trim();
 
       // Only add closing tag if:
-      // 1. The value is not empty
-      // 2. The value doesn't start with another tag (nested structure)
-      if (trimmedValue && !trimmedValue.startsWith('<')) {
-        // Check if the next line is a closing tag for THIS tag
-        const nextLine = lines[i + 1]?.trim();
-        if (nextLine === `</${tagName}>`) {
-          // Already has a closing tag on next line, keep as-is
-          result.push(line);
-        } else {
-          // Add closing tag on same line
-          result.push(`${indent}<${tagName}>${trimmedValue}</${tagName}>`);
-        }
+      // 1. This tag is NOT a container (doesn't have explicit closing tags in file)
+      // 2. The value is not empty and doesn't start with a tag
+      if (!containerTags.has(tagName) && trimmedValue && !trimmedValue.startsWith('<')) {
+        result.push(`${indent}<${tagName}>${trimmedValue}</${tagName}>`);
       } else {
-        // Empty value or starts with tag - treat as container
+        // It's a container opening tag, keep as-is
         result.push(line);
       }
       continue;
     }
 
-    // Check for opening tag without value: <TAG>
-    const containerMatch = trimmedLine.match(/^<([A-Z0-9_]+)>$/);
-    if (containerMatch) {
-      // This opens a container - keep as-is
-      result.push(line);
-      continue;
-    }
-
-    // Any other line, keep as-is
+    // Any other line (opening tag without value, plain text, etc.)
     result.push(line);
   }
 
