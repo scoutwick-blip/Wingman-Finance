@@ -49,11 +49,12 @@ const cleanOFXData = (data: string): string => {
   const lines = data.split(/\r?\n/);
   const result: string[] = [];
 
-  for (let line of lines) {
-    // Preserve original indentation
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
     const indent = line.match(/^[\t ]*/)?.[0] || '';
     const trimmedLine = line.trim();
 
+    // Skip empty lines or XML declarations
     if (!trimmedLine || trimmedLine.startsWith('<?')) {
       result.push(line);
       continue;
@@ -69,8 +70,25 @@ const cleanOFXData = (data: string): string => {
     const leafMatch = trimmedLine.match(/^<([A-Z0-9_]+)>(.+)$/);
     if (leafMatch) {
       const [, tagName, value] = leafMatch;
-      // This is a leaf node - add closing tag
-      result.push(`${indent}<${tagName}>${value}</${tagName}>`);
+      const trimmedValue = value.trim();
+
+      // Only add closing tag if:
+      // 1. The value is not empty
+      // 2. The value doesn't start with another tag (nested structure)
+      if (trimmedValue && !trimmedValue.startsWith('<')) {
+        // Check if the next line is a closing tag for THIS tag
+        const nextLine = lines[i + 1]?.trim();
+        if (nextLine === `</${tagName}>`) {
+          // Already has a closing tag on next line, keep as-is
+          result.push(line);
+        } else {
+          // Add closing tag on same line
+          result.push(`${indent}<${tagName}>${trimmedValue}</${tagName}>`);
+        }
+      } else {
+        // Empty value or starts with tag - treat as container
+        result.push(line);
+      }
       continue;
     }
 
