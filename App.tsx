@@ -594,7 +594,8 @@ const App: React.FC = () => {
       setProfiles(updatedProfiles);
       localStorage.setItem(STORAGE_KEY_PROFILES, JSON.stringify(updatedProfiles));
 
-      // Initialize Data for new user
+      // Initialize ALL data storage keys for the new profile with empty/default values
+      // This prevents any data leakage from other profiles
       localStorage.setItem(`${STORAGE_KEY_PREFERENCES}_${newId}`, JSON.stringify(prefs));
 
       // ZERO OUT DEFAULT CATEGORIES for fresh start
@@ -605,9 +606,15 @@ const App: React.FC = () => {
       }));
       localStorage.setItem(`${STORAGE_KEY_CATEGORIES}_${newId}`, JSON.stringify(zeroedCategories));
 
-      // Empty transaction and notification history
+      // Initialize ALL storage keys with empty arrays to prevent data from other profiles carrying over
       localStorage.setItem(`${STORAGE_KEY_TRANSACTIONS}_${newId}`, JSON.stringify([]));
       localStorage.setItem(`${STORAGE_KEY_NOTIFICATIONS}_${newId}`, JSON.stringify([]));
+      localStorage.setItem(`${STORAGE_KEY_BILLS}_${newId}`, JSON.stringify([]));
+      localStorage.setItem(`${STORAGE_KEY_MERCHANT_MAPPINGS}_${newId}`, JSON.stringify([]));
+      localStorage.setItem(`${STORAGE_KEY_SUBSCRIPTIONS}_${newId}`, JSON.stringify([]));
+      localStorage.setItem(`${STORAGE_KEY_GOALS}_${newId}`, JSON.stringify([]));
+      localStorage.setItem(`${STORAGE_KEY_SPLIT_TRANSACTIONS}_${newId}`, JSON.stringify([]));
+      localStorage.setItem(`${STORAGE_KEY_ACCOUNTS}_${newId}`, JSON.stringify(DEFAULT_ACCOUNTS));
 
       setActiveProfileId(newId);
       setIsSetupMode(false);
