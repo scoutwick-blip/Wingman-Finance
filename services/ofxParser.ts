@@ -32,69 +32,63 @@ const cleanOFXData = (data: string): string => {
   // Extract just the OFX portion
   data = data.substring(ofxStart);
 
-  // Check if it's already proper XML (has closing tags)
-  const hasClosingTags = data.includes('</STMTTRN>') || data.includes('</TRANSACTION>');
+  // Check if it's already proper XML (has closing tags for leaf nodes)
+  // SGML has closing tags for containers but not for leaf nodes
+  const testPattern = /<([A-Z0-9_]+)>([^<\n]+)\s*\n/;
+  const match = data.match(testPattern);
+  const needsConversion = match && !data.includes(`</${match[1]}>`);
 
-  if (!hasClosingTags) {
-    // This is SGML format, need to add closing tags
-    // OFX SGML uses tags like <TAG>value or <TAG> without closing </TAG>
-
-    // Split into lines and process each line
-    const lines = data.split('\n');
-    const processedLines: string[] = [];
-    const tagStack: string[] = [];
-
-    for (let line of lines) {
-      line = line.trim();
-      if (!line) continue;
-
-      // Match opening tag with or without value
-      const openTagMatch = line.match(/^<([A-Z0-9_]+)>(.*)$/);
-
-      if (openTagMatch) {
-        const tagName = openTagMatch[1];
-        const value = openTagMatch[2].trim();
-
-        if (value) {
-          // Tag has a value on same line - this is a leaf node
-          processedLines.push(`<${tagName}>${value}</${tagName}>`);
-        } else {
-          // Tag without value - this opens a container
-          processedLines.push(`<${tagName}>`);
-          tagStack.push(tagName);
-        }
-      } else {
-        // Check for closing tag
-        const closeTagMatch = line.match(/^<\/([A-Z0-9_]+)>$/);
-        if (closeTagMatch) {
-          const tagName = closeTagMatch[1];
-          // Close any open tags until we find this one
-          while (tagStack.length > 0) {
-            const lastTag = tagStack.pop()!;
-            if (lastTag !== tagName) {
-              processedLines.push(`</${lastTag}>`);
-            } else {
-              processedLines.push(`</${tagName}>`);
-              break;
-            }
-          }
-        } else {
-          // Plain line, keep as is
-          processedLines.push(line);
-        }
-      }
-    }
-
-    // Close any remaining open tags
-    while (tagStack.length > 0) {
-      const tag = tagStack.pop()!;
-      processedLines.push(`</${tag}>`);
-    }
-
-    data = processedLines.join('\n');
+  if (!needsConversion) {
+    console.log('OFX file appears to be proper XML, no conversion needed');
+    return data;
   }
 
-  return data;
+  console.log('Converting OFX SGML to XML...');
+
+  // Process line by line to add closing tags
+  const lines = data.split(/\r?\n/);
+  const result: string[] = [];
+
+  for (let line of lines) {
+    // Preserve original indentation
+    const indent = line.match(/^[\t ]*/)?.[0] || '';
+    const trimmedLine = line.trim();
+
+    if (!trimmedLine || trimmedLine.startsWith('<?')) {
+      result.push(line);
+      continue;
+    }
+
+    // Check if it's a closing tag (keep as-is)
+    if (trimmedLine.match(/^<\/[A-Z0-9_]+>$/)) {
+      result.push(line);
+      continue;
+    }
+
+    // Check for opening tag with value on same line: <TAG>value
+    const leafMatch = trimmedLine.match(/^<([A-Z0-9_]+)>(.+)$/);
+    if (leafMatch) {
+      const [, tagName, value] = leafMatch;
+      // This is a leaf node - add closing tag
+      result.push(`${indent}<${tagName}>${value}</${tagName}>`);
+      continue;
+    }
+
+    // Check for opening tag without value: <TAG>
+    const containerMatch = trimmedLine.match(/^<([A-Z0-9_]+)>$/);
+    if (containerMatch) {
+      // This opens a container - keep as-is
+      result.push(line);
+      continue;
+    }
+
+    // Any other line, keep as-is
+    result.push(line);
+  }
+
+  const converted = result.join('\n');
+  console.log('SGML to XML conversion complete');
+  return converted;
 };
 
 /**
