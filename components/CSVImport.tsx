@@ -3,6 +3,7 @@ import { Upload, Check, X, AlertCircle, FileText, Download, Sparkles } from 'luc
 import { importCSVTransactions, reconcileTransactions, BANK_PRESETS, CSVMapping } from '../services/csvImportService';
 import { parseOFXFile, isOFXFormat } from '../services/ofxParser';
 import { ImportedTransaction, ReconciliationMatch, ReconciliationStatus, Transaction, Category, MerchantMapping } from '../types';
+import { findBestCategoryMatch } from '../services/merchantDatabase';
 
 interface CSVImportProps {
   transactions: Transaction[];
@@ -109,7 +110,7 @@ export default function CSVImport({
     const desc = description.toLowerCase();
     const merch = merchant?.toLowerCase() || '';
 
-    // Check merchant mappings first (highest priority)
+    // Priority 1: Check merchant mappings first (user's own history - highest priority)
     const merchantName = merchant?.toLowerCase() || description.toLowerCase();
     const existingMapping = merchantMappings.find(m =>
       m.merchant.toLowerCase() === merchantName
@@ -121,54 +122,107 @@ export default function CSVImport({
         recommendations.push({
           categoryId: existingMapping.categoryId,
           reason: `Previously categorized ${existingMapping.timesUsed} time${existingMapping.timesUsed > 1 ? 's' : ''}`,
-          confidence: existingMapping.confidence
+          confidence: Math.min(0.99, existingMapping.confidence)
         });
       }
     }
 
-    // Check transaction history
+    // Priority 2: Check transaction history for similar merchants
     const similar = transactions.find(tx => {
       const txDesc = tx.description.toLowerCase();
       const txMerch = tx.merchant?.toLowerCase() || '';
-      return txDesc.includes(desc) || desc.includes(txDesc) || (merchant && txMerch && txMerch.includes(merch));
+
+      // More lenient matching
+      if (merchant && txMerch) {
+        // Check if either merchant contains the other
+        if (txMerch.includes(merch) || merch.includes(txMerch)) return true;
+      }
+
+      // Check description similarity
+      if (txDesc.includes(desc) || desc.includes(txDesc)) return true;
+
+      return false;
     });
 
     if (similar && !recommendations.find(r => r.categoryId === similar.categoryId)) {
       recommendations.push({
         categoryId: similar.categoryId,
         reason: 'Similar to past transaction',
-        confidence: 0.8
+        confidence: 0.85
       });
     }
 
-    // Keyword-based suggestions
-    const keywordMap: Record<string, { keywords: string[], categoryNames: string[], confidence: number }> = {
-      groceries: { keywords: ['grocery', 'safeway', 'kroger', 'whole foods', 'trader joe', 'walmart', 'target', 'costco', 'market', 'supermarket'], categoryNames: ['groceries', 'grocery', 'food'], confidence: 0.9 },
-      dining: { keywords: ['restaurant', 'cafe', 'coffee', 'pizza', 'burger', 'starbucks', 'mcdonalds', 'chipotle', 'subway', 'doordash', 'grubhub', 'uber eats'], categoryNames: ['dining', 'restaurant', 'food & dining'], confidence: 0.9 },
-      gas: { keywords: ['gas station', 'fuel', 'shell', 'chevron', 'exxon', 'bp', 'mobil'], categoryNames: ['gas', 'fuel', 'transportation'], confidence: 0.95 },
-      transport: { keywords: ['uber', 'lyft', 'taxi', 'parking', 'toll'], categoryNames: ['transport', 'transportation', 'travel'], confidence: 0.9 },
-      utilities: { keywords: ['electric', 'electricity', 'power company', 'gas company', 'water', 'utility'], categoryNames: ['utilities', 'utility', 'bills'], confidence: 0.95 },
-      entertainment: { keywords: ['netflix', 'spotify', 'hulu', 'disney', 'hbo', 'movie', 'theater'], categoryNames: ['entertainment', 'subscription'], confidence: 0.85 },
-      shopping: { keywords: ['amazon', 'ebay', 'store', 'shop'], categoryNames: ['shopping', 'retail'], confidence: 0.7 }
-    };
+    // Priority 3: Use comprehensive merchant database with fuzzy matching
+    const bestMatch = findBestCategoryMatch(merchant || description, description);
 
-    for (const [key, data] of Object.entries(keywordMap)) {
-      const hasKeywordMatch = data.keywords.some(term =>
-        desc.includes(term) || merch.includes(term)
-      );
+    if (bestMatch) {
+      // Find matching category in user's categories
+      const categoryMatch = categories.find(c => {
+        const catName = c.name.toLowerCase();
+        const targetCategory = bestMatch.category.toLowerCase();
 
-      if (hasKeywordMatch) {
-        const category = categories.find(c => {
-          const catName = c.name.toLowerCase();
-          return data.categoryNames.some(name => catName.includes(name) || name.includes(catName));
+        // Try multiple matching strategies
+        if (catName.includes(targetCategory)) return true;
+        if (targetCategory.includes(catName)) return true;
+
+        // Check common aliases
+        const aliases: Record<string, string[]> = {
+          'groceries': ['grocery', 'food', 'supermarket'],
+          'dining': ['restaurant', 'eating out', 'food & dining', 'meals'],
+          'gas': ['fuel', 'gasoline', 'transportation'],
+          'transport': ['transportation', 'travel', 'transit'],
+          'utilities': ['utility', 'bills'],
+          'internet': ['cable', 'broadband', 'isp'],
+          'phone': ['mobile', 'wireless', 'cell'],
+          'entertainment': ['fun', 'leisure', 'subscription'],
+          'shopping': ['retail', 'purchases'],
+          'healthcare': ['health', 'medical', 'doctor'],
+          'fitness': ['gym', 'health', 'personal care'],
+          'insurance': ['ins']
+        };
+
+        const categoryAliases = aliases[targetCategory] || [];
+        return categoryAliases.some(alias => catName.includes(alias) || alias.includes(catName));
+      });
+
+      if (categoryMatch && !recommendations.find(r => r.categoryId === categoryMatch.id)) {
+        recommendations.push({
+          categoryId: categoryMatch.id,
+          reason: bestMatch.reason,
+          confidence: bestMatch.confidence
         });
+      }
+    }
 
-        if (category && !recommendations.find(r => r.categoryId === category.id)) {
-          recommendations.push({
-            categoryId: category.id,
-            reason: `Matches "${key}" keywords`,
-            confidence: data.confidence
+    // Priority 4: Generic keyword fallbacks (only if we have < 2 recommendations)
+    if (recommendations.length < 2) {
+      const genericKeywords: Record<string, { keywords: string[], categoryNames: string[] }> = {
+        income: { keywords: ['salary', 'paycheck', 'deposit', 'payment received', 'income', 'wages', 'payroll'], categoryNames: ['income', 'salary'] },
+        investment: { keywords: ['dividend', 'interest', 'stock', 'etf', 'mutual fund', 'investment'], categoryNames: ['investment', 'investing'] },
+        auto: { keywords: ['car payment', 'auto loan', 'vehicle'], categoryNames: ['auto', 'car', 'vehicle'] },
+        housing: { keywords: ['rent', 'mortgage', 'hoa', 'apartment'], categoryNames: ['housing', 'rent', 'mortgage', 'home'] },
+        education: { keywords: ['tuition', 'school', 'university', 'college'], categoryNames: ['education', 'school'] },
+        pets: { keywords: ['vet', 'veterinary', 'pet', 'petsmart', 'petco'], categoryNames: ['pets', 'pet'] }
+      };
+
+      for (const [key, data] of Object.entries(genericKeywords)) {
+        const hasKeywordMatch = data.keywords.some(term =>
+          desc.includes(term.toLowerCase()) || merch.includes(term.toLowerCase())
+        );
+
+        if (hasKeywordMatch) {
+          const category = categories.find(c => {
+            const catName = c.name.toLowerCase();
+            return data.categoryNames.some(name => catName.includes(name) || name.includes(catName));
           });
+
+          if (category && !recommendations.find(r => r.categoryId === category.id)) {
+            recommendations.push({
+              categoryId: category.id,
+              reason: `Matches "${key}" keywords`,
+              confidence: 0.75
+            });
+          }
         }
       }
     }
