@@ -11,7 +11,7 @@ import { SetupWizard } from './components/SetupWizard';
 import { ProfileSelector } from './components/ProfileSelector';
 import Auth from './components/Auth';
 import { Transaction, Category, UserPreferences, Notification, NotificationType, TransactionBehavior, UserProfile, Bill, BillStatus, MerchantMapping, Subscription, Goal, GoalStatus, SplitTransaction, Account, AccountType, SubscriptionStatus, RecurringFrequency } from './types';
-import { initSupabase, signIn, signUp, signInWithOAuth, signOut, getCurrentUser, onAuthStateChange, uploadAuthData, downloadAuthData, fetchUserProfiles } from './services/supabaseService';
+import { initSupabase, signIn, signUp, signInWithOAuth, signOut, getCurrentUser, onAuthStateChange, uploadAuthData, downloadAuthData, deleteAuthData, fetchUserProfiles } from './services/supabaseService';
 import { User } from '@supabase/supabase-js';
 import {
   INITIAL_CATEGORIES,
@@ -312,162 +312,75 @@ const App: React.FC = () => {
     initializeProfiles();
   }, [isCheckingAuth, user]); // Run again when auth check completes or user changes
 
-  // Load Profile Data when activeProfileId changes
+  // Load Profile Data when activeProfileId changes (from cloud only)
   useEffect(() => {
-    if (!activeProfileId) return;
+    if (!activeProfileId || !user) return;
 
-    const t = localStorage.getItem(`${STORAGE_KEY_TRANSACTIONS}_${activeProfileId}`);
-    const c = localStorage.getItem(`${STORAGE_KEY_CATEGORIES}_${activeProfileId}`);
-    const p = localStorage.getItem(`${STORAGE_KEY_PREFERENCES}_${activeProfileId}`);
-    const n = localStorage.getItem(`${STORAGE_KEY_NOTIFICATIONS}_${activeProfileId}`);
-    const b = localStorage.getItem(`${STORAGE_KEY_BILLS}_${activeProfileId}`);
-    const m = localStorage.getItem(`${STORAGE_KEY_MERCHANT_MAPPINGS}_${activeProfileId}`);
-    const s = localStorage.getItem(`${STORAGE_KEY_SUBSCRIPTIONS}_${activeProfileId}`);
-    const g = localStorage.getItem(`${STORAGE_KEY_GOALS}_${activeProfileId}`);
-    const st = localStorage.getItem(`${STORAGE_KEY_SPLIT_TRANSACTIONS}_${activeProfileId}`);
-    const a = localStorage.getItem(`${STORAGE_KEY_ACCOUNTS}_${activeProfileId}`);
+    const loadProfileData = async () => {
+      try {
+        setIsLoading(true);
+        console.log('Loading profile data from cloud:', activeProfileId);
+        const cloudData = await downloadAuthData(activeProfileId);
 
-    setTransactions(t ? JSON.parse(t) : []);
-
-    // If loading categories, use them. If not (shouldn't happen for new profiles), use INITIAL.
-    setCategories(c ? JSON.parse(c) : INITIAL_CATEGORIES);
-
-    setNotifications(n ? JSON.parse(n) : []);
-    setBills(b ? JSON.parse(b) : []);
-    setMerchantMappings(m ? JSON.parse(m) : []);
-    setSubscriptions(s ? JSON.parse(s) : []);
-    setGoals(g ? JSON.parse(g) : []);
-    setSplitTransactions(st ? JSON.parse(st) : []);
-    setAccounts(a ? JSON.parse(a) : DEFAULT_ACCOUNTS);
-
-    if (p) {
-      const parsed = JSON.parse(p);
-      setPreferences({
-        ...DEFAULT_PREFERENCES,
-        ...parsed,
-        notificationSettings: {
-          ...DEFAULT_PREFERENCES.notificationSettings,
-          ...(parsed.notificationSettings || {})
-        },
-        billReminderSettings: {
-          ...DEFAULT_PREFERENCES.billReminderSettings,
-          ...(parsed.billReminderSettings || {})
+        if (cloudData && cloudData.content) {
+          console.log('Cloud data found, loading...');
+          restoreFullState(cloudData.content, false);
+        } else {
+          console.log('No cloud data found, using defaults');
+          // Initialize with defaults for new profile
+          setTransactions([]);
+          setCategories(INITIAL_CATEGORIES);
+          setNotifications([]);
+          setBills([]);
+          setMerchantMappings([]);
+          setSubscriptions([]);
+          setGoals([]);
+          setSplitTransactions([]);
+          setAccounts(DEFAULT_ACCOUNTS);
+          setPreferences(DEFAULT_PREFERENCES);
         }
-      });
-    } else {
-      setPreferences(DEFAULT_PREFERENCES);
-    }
-  }, [activeProfileId]);
+      } catch (error) {
+        console.error('Failed to load profile data:', error);
+        // Fall back to defaults on error
+        setTransactions([]);
+        setCategories(INITIAL_CATEGORIES);
+        setNotifications([]);
+        setBills([]);
+        setMerchantMappings([]);
+        setSubscriptions([]);
+        setGoals([]);
+        setSplitTransactions([]);
+        setAccounts(DEFAULT_ACCOUNTS);
+        setPreferences(DEFAULT_PREFERENCES);
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-  // Persistent Storage for Active Profile
+    loadProfileData();
+  }, [activeProfileId, user]);
+
+  // Update profile metadata when preferences change (name/avatar/pin)
   useEffect(() => {
     if (!activeProfileId || isLoading) return;
-    try {
-      localStorage.setItem(`${STORAGE_KEY_TRANSACTIONS}_${activeProfileId}`, JSON.stringify(transactions));
-    } catch (e) {
-      console.error("Failed to save transactions to storage", e);
-    }
-  }, [transactions, activeProfileId, isLoading]);
 
-  useEffect(() => {
-    if (!activeProfileId || isLoading) return;
-    try {
-      localStorage.setItem(`${STORAGE_KEY_CATEGORIES}_${activeProfileId}`, JSON.stringify(categories));
-    } catch (e) {
-      console.error("Failed to save categories to storage", e);
-    }
-  }, [categories, activeProfileId, isLoading]);
-
-  useEffect(() => {
-    if (!activeProfileId || isLoading) return;
-    try {
-      localStorage.setItem(`${STORAGE_KEY_PREFERENCES}_${activeProfileId}`, JSON.stringify(preferences));
-      
-      // Update profile list metadata (name/avatar update)
-      const updatedProfiles = profiles.map(p => 
-        p.id === activeProfileId 
-          ? { 
-              ...p, 
-              name: preferences.name, 
-              avatar: preferences.profileImage, 
+    const currentP = profiles.find(p => p.id === activeProfileId);
+    if (currentP && (currentP.name !== preferences.name || currentP.avatar !== preferences.profileImage || currentP.pin !== preferences.pin)) {
+      const updatedProfiles = profiles.map(p =>
+        p.id === activeProfileId
+          ? {
+              ...p,
+              name: preferences.name,
+              avatar: preferences.profileImage,
               pin: preferences.pin,
-              lastActive: new Date().toISOString() 
-            } 
+              lastActive: new Date().toISOString()
+            }
           : p
       );
-      // Only write if changed to avoid loop? Simple compare
-      const currentP = profiles.find(p => p.id === activeProfileId);
-      if (currentP && (currentP.name !== preferences.name || currentP.avatar !== preferences.profileImage || currentP.pin !== preferences.pin)) {
-        setProfiles(updatedProfiles);
-        localStorage.setItem(STORAGE_KEY_PROFILES, JSON.stringify(updatedProfiles));
-      }
-    } catch (e) {
-      console.error("Failed to save preferences to storage", e);
+      setProfiles(updatedProfiles);
+      localStorage.setItem(STORAGE_KEY_PROFILES, JSON.stringify(updatedProfiles));
     }
-  }, [preferences, activeProfileId, isLoading]);
-
-  useEffect(() => {
-    if (!activeProfileId || isLoading) return;
-    try {
-      localStorage.setItem(`${STORAGE_KEY_NOTIFICATIONS}_${activeProfileId}`, JSON.stringify(notifications));
-    } catch (e) {
-      console.error("Failed to save notifications to storage", e);
-    }
-  }, [notifications, activeProfileId, isLoading]);
-
-  useEffect(() => {
-    if (!activeProfileId || isLoading) return;
-    try {
-      localStorage.setItem(`${STORAGE_KEY_BILLS}_${activeProfileId}`, JSON.stringify(bills));
-    } catch (e) {
-      console.error("Failed to save bills to storage", e);
-    }
-  }, [bills, activeProfileId, isLoading]);
-
-  useEffect(() => {
-    if (!activeProfileId || isLoading) return;
-    try {
-      localStorage.setItem(`${STORAGE_KEY_MERCHANT_MAPPINGS}_${activeProfileId}`, JSON.stringify(merchantMappings));
-    } catch (e) {
-      console.error("Failed to save merchant mappings to storage", e);
-    }
-  }, [merchantMappings, activeProfileId, isLoading]);
-
-  useEffect(() => {
-    if (!activeProfileId || isLoading) return;
-    try {
-      localStorage.setItem(`${STORAGE_KEY_SUBSCRIPTIONS}_${activeProfileId}`, JSON.stringify(subscriptions));
-    } catch (e) {
-      console.error("Failed to save subscriptions to storage", e);
-    }
-  }, [subscriptions, activeProfileId, isLoading]);
-
-  useEffect(() => {
-    if (!activeProfileId || isLoading) return;
-    try {
-      localStorage.setItem(`${STORAGE_KEY_GOALS}_${activeProfileId}`, JSON.stringify(goals));
-    } catch (e) {
-      console.error("Failed to save goals to storage", e);
-    }
-  }, [goals, activeProfileId, isLoading]);
-
-  useEffect(() => {
-    if (!activeProfileId || isLoading) return;
-    try {
-      localStorage.setItem(`${STORAGE_KEY_SPLIT_TRANSACTIONS}_${activeProfileId}`, JSON.stringify(splitTransactions));
-    } catch (e) {
-      console.error("Failed to save split transactions to storage", e);
-    }
-  }, [splitTransactions, activeProfileId, isLoading]);
-
-  useEffect(() => {
-    if (!activeProfileId || isLoading) return;
-    try {
-      localStorage.setItem(`${STORAGE_KEY_ACCOUNTS}_${activeProfileId}`, JSON.stringify(accounts));
-    } catch (e) {
-      console.error("Failed to save accounts to storage", e);
-    }
-  }, [accounts, activeProfileId, isLoading]);
+  }, [preferences.name, preferences.profileImage, preferences.pin, activeProfileId, isLoading]);
 
   // Auto-sync to cloud when authenticated (debounced)
   useEffect(() => {
@@ -522,62 +435,8 @@ const App: React.FC = () => {
     // Only sync when actual data changes, not when sync state changes
   }, [user, activeProfileId, transactions, categories, bills, merchantMappings, subscriptions, goals, splitTransactions, accounts, isLoading, isCheckingAuth]);
 
-  // Load cloud data on first sign in (only runs once when user signs in)
-  useEffect(() => {
-    if (!user || !activeProfileId) {
-      console.log('Cloud data load skipped:', { user: !!user, activeProfileId });
-      return;
-    }
-
-    let hasLoaded = false; // Prevent multiple loads
-
-    const loadCloudData = async () => {
-      if (hasLoaded) return;
-      hasLoaded = true;
-
-      try {
-        console.log('Attempting to load cloud data for profile:', activeProfileId);
-        const cloudData = await downloadAuthData(activeProfileId);
-        console.log('Cloud data response:', cloudData);
-
-        if (cloudData && cloudData.content) {
-          console.log('Cloud data found, checking timestamps...');
-          // Check if cloud data is newer than local data
-          const cloudTime = new Date(cloudData.updatedAt).getTime();
-          const localPrefs = localStorage.getItem(`${STORAGE_KEY_PREFERENCES}_${activeProfileId}`);
-
-          if (localPrefs) {
-            const parsed = JSON.parse(localPrefs);
-            const localTime = parsed.supabaseConfig?.lastSynced
-              ? new Date(parsed.supabaseConfig.lastSynced).getTime()
-              : 0;
-
-            console.log('Cloud time:', new Date(cloudTime), 'Local time:', new Date(localTime));
-
-            if (cloudTime > localTime) {
-              // Cloud data is newer, load it automatically
-              console.log('Cloud data is newer, loading automatically...');
-              restoreFullState(cloudData.content, false);
-              console.log('✅ Cloud data loaded successfully');
-            } else {
-              console.log('Local data is newer or same, skipping cloud load');
-            }
-          } else {
-            // No local data, load cloud data automatically
-            console.log('No local data found, loading cloud data automatically...');
-            restoreFullState(cloudData.content, false);
-            console.log('✅ Cloud data loaded successfully');
-          }
-        } else {
-          console.log('No cloud data found for this profile');
-        }
-      } catch (error) {
-        console.error('❌ Failed to load cloud data:', error);
-      }
-    };
-
-    loadCloudData();
-  }, [user, activeProfileId]); // Only run when user or profile changes
+  // Note: Cloud data loading is now handled in the profile data loading useEffect above
+  // No separate cloud data loading needed since all data comes from cloud
 
   // Profile Management Methods
   const handleProfileSelect = (id: string) => {
@@ -589,7 +448,7 @@ const App: React.FC = () => {
     localStorage.setItem(STORAGE_KEY_PROFILES, JSON.stringify(updatedProfiles));
   };
 
-  const handleCreateProfile = (prefs: UserPreferences) => {
+  const handleCreateProfile = async (prefs: UserPreferences) => {
     // Generate unique profile ID for each profile
     // If authenticated: user-{userId}-profile-{timestamp} for multiple profiles per account
     // If local: user-{timestamp}
@@ -608,64 +467,62 @@ const App: React.FC = () => {
       setProfiles(updatedProfiles);
       localStorage.setItem(STORAGE_KEY_PROFILES, JSON.stringify(updatedProfiles));
 
-      // Initialize ALL data storage keys for the new profile with empty/default values
-      // This prevents any data leakage from other profiles
-      localStorage.setItem(`${STORAGE_KEY_PREFERENCES}_${newId}`, JSON.stringify(prefs));
-
-      // ZERO OUT DEFAULT CATEGORIES for fresh start
+      // Initialize in-memory state with defaults for new profile
+      setPreferences(prefs);
       const zeroedCategories = INITIAL_CATEGORIES.map(c => ({
         ...c,
         budget: 0,
         initialBalance: 0
       }));
-      localStorage.setItem(`${STORAGE_KEY_CATEGORIES}_${newId}`, JSON.stringify(zeroedCategories));
-
-      // Initialize ALL storage keys with empty arrays to prevent data from other profiles carrying over
-      localStorage.setItem(`${STORAGE_KEY_TRANSACTIONS}_${newId}`, JSON.stringify([]));
-      localStorage.setItem(`${STORAGE_KEY_NOTIFICATIONS}_${newId}`, JSON.stringify([]));
-      localStorage.setItem(`${STORAGE_KEY_BILLS}_${newId}`, JSON.stringify([]));
-      localStorage.setItem(`${STORAGE_KEY_MERCHANT_MAPPINGS}_${newId}`, JSON.stringify([]));
-      localStorage.setItem(`${STORAGE_KEY_SUBSCRIPTIONS}_${newId}`, JSON.stringify([]));
-      localStorage.setItem(`${STORAGE_KEY_GOALS}_${newId}`, JSON.stringify([]));
-      localStorage.setItem(`${STORAGE_KEY_SPLIT_TRANSACTIONS}_${newId}`, JSON.stringify([]));
-      localStorage.setItem(`${STORAGE_KEY_ACCOUNTS}_${newId}`, JSON.stringify(DEFAULT_ACCOUNTS));
+      setCategories(zeroedCategories);
+      setTransactions([]);
+      setNotifications([]);
+      setBills([]);
+      setMerchantMappings([]);
+      setSubscriptions([]);
+      setGoals([]);
+      setSplitTransactions([]);
+      setAccounts(DEFAULT_ACCOUNTS);
 
       setActiveProfileId(newId);
       setIsSetupMode(false);
+
+      // If authenticated, save initial state to cloud
+      if (user) {
+        await uploadAuthData(newId, {
+          version: '1.0',
+          timestamp: new Date().toISOString(),
+          preferences: prefs,
+          categories: zeroedCategories,
+          transactions: [],
+          bills: [],
+          merchantMappings: [],
+          subscriptions: [],
+          goals: [],
+          splitTransactions: [],
+          accounts: DEFAULT_ACCOUNTS
+        });
+        console.log('✅ New profile created and synced to cloud');
+      }
     } catch (e) {
-      alert("Failed to create profile: Storage full.");
+      console.error('Failed to create profile:', e);
+      alert("Failed to create profile. Please try again.");
     }
   };
 
-  const handleDeleteProfile = (id: string) => {
+  const handleDeleteProfile = async (id: string) => {
     const updatedProfiles = profiles.filter(p => p.id !== id);
     setProfiles(updatedProfiles);
     localStorage.setItem(STORAGE_KEY_PROFILES, JSON.stringify(updatedProfiles));
 
-    // Clean ALL data for this profile
-    localStorage.removeItem(`${STORAGE_KEY_TRANSACTIONS}_${id}`);
-    localStorage.removeItem(`${STORAGE_KEY_CATEGORIES}_${id}`);
-    localStorage.removeItem(`${STORAGE_KEY_PREFERENCES}_${id}`);
-    localStorage.removeItem(`${STORAGE_KEY_NOTIFICATIONS}_${id}`);
-    localStorage.removeItem(`${STORAGE_KEY_BILLS}_${id}`);
-    localStorage.removeItem(`${STORAGE_KEY_MERCHANT_MAPPINGS}_${id}`);
-    localStorage.removeItem(`${STORAGE_KEY_SUBSCRIPTIONS}_${id}`);
-    localStorage.removeItem(`${STORAGE_KEY_GOALS}_${id}`);
-    localStorage.removeItem(`${STORAGE_KEY_SPLIT_TRANSACTIONS}_${id}`);
-    localStorage.removeItem(`${STORAGE_KEY_ACCOUNTS}_${id}`);
-
-    // If this was the last profile, also clean up any legacy data (without profile IDs)
-    if (updatedProfiles.length === 0) {
-      localStorage.removeItem(STORAGE_KEY_TRANSACTIONS);
-      localStorage.removeItem(STORAGE_KEY_CATEGORIES);
-      localStorage.removeItem(STORAGE_KEY_PREFERENCES);
-      localStorage.removeItem(STORAGE_KEY_NOTIFICATIONS);
-      localStorage.removeItem(STORAGE_KEY_BILLS);
-      localStorage.removeItem(STORAGE_KEY_MERCHANT_MAPPINGS);
-      localStorage.removeItem(STORAGE_KEY_SUBSCRIPTIONS);
-      localStorage.removeItem(STORAGE_KEY_GOALS);
-      localStorage.removeItem(STORAGE_KEY_SPLIT_TRANSACTIONS);
-      localStorage.removeItem(STORAGE_KEY_ACCOUNTS);
+    // If authenticated, delete from cloud as well
+    if (user) {
+      try {
+        await deleteAuthData(id);
+        console.log('✅ Profile deleted from cloud');
+      } catch (error) {
+        console.error('Failed to delete profile from cloud:', error);
+      }
     }
 
     if (activeProfileId === id) {
@@ -904,10 +761,31 @@ const App: React.FC = () => {
     handleDeleteProfile(activeProfileId);
   };
   
-  const restoreFullState = (data: { preferences: UserPreferences; categories: Category[]; transactions: Transaction[] }, showNotification: boolean = true) => {
-    if (data.preferences) setPreferences(data.preferences);
+  const restoreFullState = (data: any, showNotification: boolean = true) => {
+    // Restore all data fields from cloud backup
+    if (data.preferences) {
+      setPreferences({
+        ...DEFAULT_PREFERENCES,
+        ...data.preferences,
+        notificationSettings: {
+          ...DEFAULT_PREFERENCES.notificationSettings,
+          ...(data.preferences.notificationSettings || {})
+        },
+        billReminderSettings: {
+          ...DEFAULT_PREFERENCES.billReminderSettings,
+          ...(data.preferences.billReminderSettings || {})
+        }
+      });
+    }
     if (data.categories) setCategories(data.categories);
     if (data.transactions) setTransactions(data.transactions);
+    if (data.bills) setBills(data.bills);
+    if (data.merchantMappings) setMerchantMappings(data.merchantMappings);
+    if (data.subscriptions) setSubscriptions(data.subscriptions);
+    if (data.goals) setGoals(data.goals);
+    if (data.splitTransactions) setSplitTransactions(data.splitTransactions);
+    if (data.accounts) setAccounts(data.accounts);
+    // Note: notifications are not restored from cloud as they are transient
 
     // Add notification about restore (only if requested)
     if (showNotification) {
