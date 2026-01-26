@@ -627,12 +627,32 @@ const App: React.FC = () => {
     const updatedProfiles = profiles.filter(p => p.id !== id);
     setProfiles(updatedProfiles);
     localStorage.setItem(STORAGE_KEY_PROFILES, JSON.stringify(updatedProfiles));
-    
-    // Clean data
+
+    // Clean ALL data for this profile
     localStorage.removeItem(`${STORAGE_KEY_TRANSACTIONS}_${id}`);
     localStorage.removeItem(`${STORAGE_KEY_CATEGORIES}_${id}`);
     localStorage.removeItem(`${STORAGE_KEY_PREFERENCES}_${id}`);
     localStorage.removeItem(`${STORAGE_KEY_NOTIFICATIONS}_${id}`);
+    localStorage.removeItem(`${STORAGE_KEY_BILLS}_${id}`);
+    localStorage.removeItem(`${STORAGE_KEY_MERCHANT_MAPPINGS}_${id}`);
+    localStorage.removeItem(`${STORAGE_KEY_SUBSCRIPTIONS}_${id}`);
+    localStorage.removeItem(`${STORAGE_KEY_GOALS}_${id}`);
+    localStorage.removeItem(`${STORAGE_KEY_SPLIT_TRANSACTIONS}_${id}`);
+    localStorage.removeItem(`${STORAGE_KEY_ACCOUNTS}_${id}`);
+
+    // If this was the last profile, also clean up any legacy data (without profile IDs)
+    if (updatedProfiles.length === 0) {
+      localStorage.removeItem(STORAGE_KEY_TRANSACTIONS);
+      localStorage.removeItem(STORAGE_KEY_CATEGORIES);
+      localStorage.removeItem(STORAGE_KEY_PREFERENCES);
+      localStorage.removeItem(STORAGE_KEY_NOTIFICATIONS);
+      localStorage.removeItem(STORAGE_KEY_BILLS);
+      localStorage.removeItem(STORAGE_KEY_MERCHANT_MAPPINGS);
+      localStorage.removeItem(STORAGE_KEY_SUBSCRIPTIONS);
+      localStorage.removeItem(STORAGE_KEY_GOALS);
+      localStorage.removeItem(STORAGE_KEY_SPLIT_TRANSACTIONS);
+      localStorage.removeItem(STORAGE_KEY_ACCOUNTS);
+    }
 
     if (activeProfileId === id) {
       setActiveProfileId(null);
