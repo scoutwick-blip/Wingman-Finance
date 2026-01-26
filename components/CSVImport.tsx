@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import { Upload, Check, X, AlertCircle, FileText, Download, Sparkles } from 'lucide-react';
 import { importCSVTransactions, reconcileTransactions, BANK_PRESETS, CSVMapping } from '../services/csvImportService';
 import { parseOFXFile, isOFXFormat } from '../services/ofxParser';
-import { ImportedTransaction, ReconciliationMatch, ReconciliationStatus, Transaction, Category, MerchantMapping } from '../types';
+import { ImportedTransaction, ReconciliationMatch, ReconciliationStatus, Transaction, Category, MerchantMapping, CategorySuggestion } from '../types';
 import { findBestCategoryMatch } from '../services/merchantDatabase';
+import { suggestCategoriesBatch } from '../services/geminiService';
 
 interface CSVImportProps {
   transactions: Transaction[];
@@ -33,6 +34,8 @@ export default function CSVImport({
   const [selectedMatches, setSelectedMatches] = useState<Set<number>>(new Set());
   const [error, setError] = useState<string>('');
   const [transactionGroups, setTransactionGroups] = useState<Map<string, { transactions: ImportedTransaction[], categoryId?: string }>>(new Map());
+  const [aiSuggestions, setAiSuggestions] = useState<Map<string, CategorySuggestion[]>>(new Map());
+  const [isLoadingAI, setIsLoadingAI] = useState(false);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -127,7 +130,22 @@ export default function CSVImport({
       }
     }
 
-    // Priority 2: Check transaction history for similar merchants
+    // Priority 2: Check AI suggestions
+    const transactionKey = merchant || description;
+    const aiSuggestionsForTx = aiSuggestions.get(transactionKey);
+    if (aiSuggestionsForTx && aiSuggestionsForTx.length > 0) {
+      aiSuggestionsForTx.forEach(suggestion => {
+        if (!recommendations.find(r => r.categoryId === suggestion.categoryId)) {
+          recommendations.push({
+            categoryId: suggestion.categoryId,
+            reason: `AI: ${suggestion.reason}`,
+            confidence: suggestion.confidence
+          });
+        }
+      });
+    }
+
+    // Priority 3: Check transaction history for similar merchants
     const similar = transactions.find(tx => {
       const txDesc = tx.description.toLowerCase();
       const txMerch = tx.merchant?.toLowerCase() || '';
@@ -152,7 +170,7 @@ export default function CSVImport({
       });
     }
 
-    // Priority 3: Use comprehensive merchant database with fuzzy matching
+    // Priority 4: Use comprehensive merchant database with fuzzy matching
     const bestMatch = findBestCategoryMatch(merchant || description, description);
 
     if (bestMatch) {
@@ -194,7 +212,7 @@ export default function CSVImport({
       }
     }
 
-    // Priority 4: Generic keyword fallbacks (only if we have < 2 recommendations)
+    // Priority 5: Generic keyword fallbacks (only if we have < 2 recommendations)
     if (recommendations.length < 2) {
       const genericKeywords: Record<string, { keywords: string[], categoryNames: string[] }> = {
         income: { keywords: ['salary', 'paycheck', 'deposit', 'payment received', 'income', 'wages', 'payroll'], categoryNames: ['income', 'salary'] },
@@ -231,7 +249,7 @@ export default function CSVImport({
     return recommendations.sort((a, b) => b.confidence - a.confidence).slice(0, 3);
   };
 
-  const handleCategorize = () => {
+  const handleCategorize = async () => {
     // Group transactions by merchant/description
     const groups = new Map<string, { transactions: ImportedTransaction[], categoryId?: string }>();
 
@@ -254,6 +272,32 @@ export default function CSVImport({
 
     setTransactionGroups(groups);
     setStep('categorize');
+
+    // Fetch AI suggestions in the background for transactions without existing mappings
+    const transactionsNeedingSuggestions = Array.from(groups.entries())
+      .filter(([key, group]) => !group.categoryId) // Only get suggestions for unmapped transactions
+      .map(([key, group]) => ({
+        description: group.transactions[0].description,
+        merchant: group.transactions[0].merchant,
+        amount: group.transactions[0].amount
+      }));
+
+    if (transactionsNeedingSuggestions.length > 0) {
+      setIsLoadingAI(true);
+      try {
+        const suggestions = await suggestCategoriesBatch(
+          transactionsNeedingSuggestions,
+          categories,
+          transactions
+        );
+        setAiSuggestions(suggestions);
+      } catch (error) {
+        console.error('Error getting AI suggestions:', error);
+        // Don't show error to user, just silently fall back to fuzzy matching
+      } finally {
+        setIsLoadingAI(false);
+      }
+    }
   };
 
   const handleSetGroupCategory = (groupKey: string, categoryId: string) => {
@@ -608,6 +652,19 @@ export default function CSVImport({
                 </p>
               </div>
 
+              {/* AI Loading Indicator */}
+              {isLoadingAI && (
+                <div className="bg-purple-50 border-2 border-purple-200 rounded-xl p-4 flex items-center gap-3">
+                  <Sparkles className="w-5 h-5 text-purple-600 animate-pulse" />
+                  <div>
+                    <p className="font-bold text-purple-900">AI Analysis in Progress</p>
+                    <p className="text-sm text-purple-700">
+                      Getting intelligent category suggestions...
+                    </p>
+                  </div>
+                </div>
+              )}
+
               {/* Transaction Groups */}
               <div className="space-y-3 max-h-96 overflow-y-auto">
                 {Array.from(transactionGroups.entries()).map(([groupKey, group]) => {
@@ -683,6 +740,7 @@ export default function CSVImport({
                                 if (!category || category.id === selectedCategory?.id) return null;
 
                                 const confidenceColor = rec.confidence >= 0.9 ? 'purple' : rec.confidence >= 0.8 ? 'blue' : 'gray';
+                                const isAIPowered = rec.reason.startsWith('AI:');
 
                                 return (
                                   <button
@@ -695,6 +753,7 @@ export default function CSVImport({
                                     }`}
                                   >
                                     <div className="flex items-center gap-2">
+                                      {isAIPowered && <Sparkles className="w-3 h-3 text-purple-600 flex-shrink-0" />}
                                       <span className="text-base">{category.icon}</span>
                                       <div className="text-left">
                                         <p className="text-sm font-bold text-gray-900">{category.name}</p>

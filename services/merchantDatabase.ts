@@ -130,19 +130,23 @@ export const MERCHANT_PATTERNS: Record<string, MerchantPattern[]> = {
     { keywords: ['disney+', 'disney plus', 'disneyplus'], category: 'entertainment', confidence: 0.95, tags: ['streaming', 'subscription'] },
     { keywords: ['hbo', 'hbo max', 'hbomax'], category: 'entertainment', confidence: 0.95, tags: ['streaming', 'subscription'] },
     { keywords: ['amazon prime', 'prime video'], category: 'entertainment', confidence: 0.9, tags: ['streaming', 'subscription'] },
-    { keywords: ['apple music'], category: 'entertainment', confidence: 0.95, tags: ['music', 'subscription'] },
-    { keywords: ['youtube premium', 'youtube music'], category: 'entertainment', confidence: 0.95, tags: ['streaming', 'subscription'] },
+    { keywords: ['apple music', 'apple tv', 'apple tv+'], category: 'entertainment', confidence: 0.95, tags: ['music', 'subscription'] },
+    { keywords: ['youtube premium', 'youtube music', 'youtube tv', 'google youtube'], category: 'entertainment', confidence: 0.95, tags: ['streaming', 'subscription'] },
     { keywords: ['paramount+', 'paramount plus'], category: 'entertainment', confidence: 0.95, tags: ['streaming', 'subscription'] },
     { keywords: ['peacock'], category: 'entertainment', confidence: 0.95, tags: ['streaming', 'subscription'] },
+    { keywords: ['twitch'], category: 'entertainment', confidence: 0.95, tags: ['streaming', 'subscription'] },
+    { keywords: ['audible', 'kindle unlimited'], category: 'entertainment', confidence: 0.95, tags: ['books', 'subscription'] },
     { keywords: ['amc', 'regal', 'cinemark', 'movie theater', 'cinema'], category: 'entertainment', confidence: 0.9, tags: ['movies'] },
     { keywords: ['playstation', 'xbox', 'nintendo', 'steam', 'epic games'], category: 'entertainment', confidence: 0.9, tags: ['gaming'] },
-    { keywords: ['ticketmaster', 'stubhub'], category: 'entertainment', confidence: 0.9, tags: ['tickets'] }
+    { keywords: ['ticketmaster', 'stubhub', 'eventbrite'], category: 'entertainment', confidence: 0.9, tags: ['tickets'] }
   ],
 
   shopping: [
     { keywords: ['amazon', 'amzn'], category: 'shopping', confidence: 0.95, tags: ['online', 'retail'] },
     { keywords: ['ebay'], category: 'shopping', confidence: 0.95, tags: ['online', 'marketplace'] },
     { keywords: ['etsy'], category: 'shopping', confidence: 0.95, tags: ['online', 'handmade'] },
+    { keywords: ['google store', 'google play'], category: 'shopping', confidence: 0.95, tags: ['online', 'apps'] },
+    { keywords: ['apple store', 'apple.com'], category: 'shopping', confidence: 0.95, tags: ['electronics', 'online'] },
     { keywords: ['best buy', 'bestbuy'], category: 'shopping', confidence: 0.95, tags: ['electronics', 'retail'] },
     { keywords: ['home depot', 'homedepot'], category: 'shopping', confidence: 0.95, tags: ['hardware', 'home-improvement'] },
     { keywords: ['lowes', 'lowe'], category: 'shopping', confidence: 0.95, tags: ['hardware', 'home-improvement'] },
@@ -202,17 +206,47 @@ export function fuzzyMatch(str1: string, str2: string): number {
   // Exact match
   if (s1 === s2) return 1.0;
 
-  // Contains match
-  if (s1.includes(s2) || s2.includes(s1)) return 0.9;
+  // Contains match - but only if the keyword is a substantial part
+  if (s1.includes(s2)) {
+    // If keyword is at least 40% of the string length, it's a good match
+    const ratio = s2.length / s1.length;
+    if (ratio >= 0.4) return 0.9;
+    if (ratio >= 0.25) return 0.7;
+    return 0.5; // Lower confidence for small keyword in large string
+  }
 
-  // Calculate Levenshtein distance for similarity
+  if (s2.includes(s1)) {
+    const ratio = s1.length / s2.length;
+    if (ratio >= 0.4) return 0.9;
+    if (ratio >= 0.25) return 0.7;
+    return 0.5;
+  }
+
+  // Word boundary matching - keywords should match whole words
+  const words1 = s1.split(/\s+/);
+  const words2 = s2.split(/\s+/);
+
+  // Check if any words match exactly
+  const matchingWords = words1.filter(w => words2.includes(w));
+  if (matchingWords.length > 0) {
+    const matchRatio = matchingWords.length / Math.max(words1.length, words2.length);
+    return 0.6 + (matchRatio * 0.3); // 0.6 to 0.9 based on word overlap
+  }
+
+  // Calculate Levenshtein distance only for strings of similar length
   const maxLength = Math.max(s1.length, s2.length);
+  const minLength = Math.min(s1.length, s2.length);
+
+  // Don't use Levenshtein if strings are very different in length
+  if (maxLength > minLength * 2) return 0;
+
   if (maxLength === 0) return 1.0;
 
   const distance = levenshteinDistance(s1, s2);
   const similarity = 1 - distance / maxLength;
 
-  return similarity;
+  // Only return if similarity is reasonably high
+  return similarity > 0.7 ? similarity : 0;
 }
 
 // Levenshtein distance algorithm for fuzzy matching
@@ -249,32 +283,85 @@ export function findBestCategoryMatch(
   merchantName: string,
   description: string
 ): { category: string; confidence: number; reason: string; tags: string[] } | null {
-  const searchText = `${merchantName} ${description}`.toLowerCase();
+  const merchant = merchantName.toLowerCase().trim();
+  const desc = description.toLowerCase().trim();
+  const searchText = `${merchant} ${desc}`;
+
   let bestMatch: { category: string; confidence: number; reason: string; tags: string[] } | null = null;
   let highestScore = 0;
 
   for (const [categoryKey, patterns] of Object.entries(MERCHANT_PATTERNS)) {
     for (const pattern of patterns) {
       for (const keyword of pattern.keywords) {
-        const matchScore = fuzzyMatch(searchText, keyword);
+        const keywordLower = keyword.toLowerCase();
 
-        // Also check if keyword appears anywhere in the text
-        const containsScore = searchText.includes(keyword.toLowerCase()) ? 0.95 : 0;
+        // Priority 1: Check if merchant name exactly matches or starts with keyword
+        if (merchant === keywordLower || merchant.startsWith(keywordLower + ' ')) {
+          const finalScore = 0.95 * pattern.confidence;
+          if (finalScore > highestScore) {
+            highestScore = finalScore;
+            bestMatch = {
+              category: pattern.category,
+              confidence: finalScore,
+              reason: `Matches "${keyword}"`,
+              tags: pattern.tags || []
+            };
+          }
+          continue;
+        }
 
-        const finalScore = Math.max(matchScore, containsScore) * pattern.confidence;
+        // Priority 2: Check if keyword is in merchant as a whole word
+        const merchantWords = merchant.split(/\s+/);
+        if (merchantWords.includes(keywordLower)) {
+          const finalScore = 0.9 * pattern.confidence;
+          if (finalScore > highestScore) {
+            highestScore = finalScore;
+            bestMatch = {
+              category: pattern.category,
+              confidence: finalScore,
+              reason: `Matches "${keyword}"`,
+              tags: pattern.tags || []
+            };
+          }
+          continue;
+        }
 
-        if (finalScore > highestScore && finalScore > 0.7) {
-          highestScore = finalScore;
-          bestMatch = {
-            category: pattern.category,
-            confidence: finalScore,
-            reason: `Matches "${keyword}"`,
-            tags: pattern.tags || []
-          };
+        // Priority 3: Check if merchant contains keyword (with minimum length requirement)
+        if (merchant.includes(keywordLower) && keywordLower.length >= 4) {
+          const ratio = keywordLower.length / merchant.length;
+          if (ratio >= 0.3) { // Keyword must be at least 30% of merchant name
+            const finalScore = 0.85 * pattern.confidence;
+            if (finalScore > highestScore) {
+              highestScore = finalScore;
+              bestMatch = {
+                category: pattern.category,
+                confidence: finalScore,
+                reason: `Contains "${keyword}"`,
+                tags: pattern.tags || []
+              };
+            }
+          }
+          continue;
+        }
+
+        // Priority 4: Fuzzy match on merchant name only (not description)
+        const fuzzyScore = fuzzyMatch(merchant, keywordLower);
+        if (fuzzyScore > 0.75) {
+          const finalScore = fuzzyScore * pattern.confidence;
+          if (finalScore > highestScore) {
+            highestScore = finalScore;
+            bestMatch = {
+              category: pattern.category,
+              confidence: finalScore,
+              reason: `Similar to "${keyword}"`,
+              tags: pattern.tags || []
+            };
+          }
         }
       }
     }
   }
 
-  return bestMatch;
+  // Only return matches with confidence > 0.7
+  return bestMatch && bestMatch.confidence > 0.7 ? bestMatch : null;
 }
