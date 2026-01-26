@@ -17,26 +17,30 @@ const ICONS = [
   '☕', '🍔', '🍺', '⛽', '🚕', '🚌', '🚅', '🎢', '🎬', '🎨', '🎸', '📷', '💡', '💧', '🔥', '📡', '🛡️', '💊', '🕶️', '💍'
 ];
 
-export const Budgets: React.FC<BudgetsProps> = ({ 
-  categories, 
-  transactions, 
+export const Budgets: React.FC<BudgetsProps> = ({
+  categories,
+  transactions,
   onUpdateCategory,
   onAddCategory,
   onDeleteCategory,
   preferences
 }) => {
   const [isAdding, setIsAdding] = useState(false);
-  const [newCat, setNewCat] = useState({ 
-    name: '', 
-    icon: '📁', 
-    color: '#6366f1', 
-    budget: 0, 
+  const [newCat, setNewCat] = useState({
+    name: '',
+    icon: '📁',
+    color: '#6366f1',
+    budget: 0,
     type: CategoryType.SPENDING,
-    initialBalance: 0 
+    initialBalance: 0
   });
   const [editingNameId, setEditingNameId] = useState<string | null>(null);
   const [pickingIconForId, setPickingIconForId] = useState<string | null>(null); // For editing existing
   const [pickingIconNew, setPickingIconNew] = useState(false); // For new category
+
+  // Filter and Search State
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterType, setFilterType] = useState<CategoryType | 'ALL'>('ALL');
 
   // AI Suggestion State
   const [suggestions, setSuggestions] = useState<BudgetSuggestion[]>([]);
@@ -463,40 +467,170 @@ export const Budgets: React.FC<BudgetsProps> = ({
         )}
       </section>
 
-      <div className="grid grid-cols-1 gap-12">
-        <section className="space-y-6">
-          <div className="border-l-4 border-emerald-500 pl-4">
-            <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest">Income Goals</h3>
+      {/* Filter and Search Bar */}
+      <section className="bg-white border border-slate-200 rounded-2xl p-6">
+        <div className="flex flex-col md:flex-row gap-4">
+          {/* Search Input */}
+          <div className="flex-1">
+            <input
+              type="text"
+              placeholder="Search categories..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-900 outline-none focus:border-indigo-400 focus:bg-white transition-all"
+            />
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {categories.filter(c => c.type === CategoryType.INCOME).map(renderCategoryCard)}
-          </div>
-        </section>
 
-        <section className="space-y-6">
-          <div className="border-l-4 border-af-blue pl-4">
-            <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest">Expense Limits</h3>
+          {/* Category Type Filter */}
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            <button
+              onClick={() => setFilterType('ALL')}
+              className={`px-4 py-3 rounded-xl text-xs font-bold uppercase tracking-widest whitespace-nowrap transition-all ${
+                filterType === 'ALL'
+                  ? 'bg-slate-900 text-white'
+                  : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
+              }`}
+            >
+              All ({categories.length})
+            </button>
+            <button
+              onClick={() => setFilterType(CategoryType.SPENDING)}
+              className={`px-4 py-3 rounded-xl text-xs font-bold uppercase tracking-widest whitespace-nowrap transition-all ${
+                filterType === CategoryType.SPENDING
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
+              }`}
+            >
+              💸 Expenses ({categories.filter(c => c.type === CategoryType.SPENDING).length})
+            </button>
+            <button
+              onClick={() => setFilterType(CategoryType.INCOME)}
+              className={`px-4 py-3 rounded-xl text-xs font-bold uppercase tracking-widest whitespace-nowrap transition-all ${
+                filterType === CategoryType.INCOME
+                  ? 'bg-emerald-600 text-white'
+                  : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'
+              }`}
+            >
+              💰 Income ({categories.filter(c => c.type === CategoryType.INCOME).length})
+            </button>
+            <button
+              onClick={() => setFilterType(CategoryType.SAVINGS)}
+              className={`px-4 py-3 rounded-xl text-xs font-bold uppercase tracking-widest whitespace-nowrap transition-all ${
+                filterType === CategoryType.SAVINGS
+                  ? 'bg-indigo-600 text-white'
+                  : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100'
+              }`}
+            >
+              🎯 Savings ({categories.filter(c => c.type === CategoryType.SAVINGS).length})
+            </button>
+            <button
+              onClick={() => setFilterType(CategoryType.DEBT)}
+              className={`px-4 py-3 rounded-xl text-xs font-bold uppercase tracking-widest whitespace-nowrap transition-all ${
+                filterType === CategoryType.DEBT
+                  ? 'bg-rose-600 text-white'
+                  : 'bg-rose-50 text-rose-600 hover:bg-rose-100'
+              }`}
+            >
+              📉 Debt ({categories.filter(c => c.type === CategoryType.DEBT).length})
+            </button>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {categories.filter(c => c.type === CategoryType.SPENDING).map(renderCategoryCard)}
-          </div>
-        </section>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <section className="space-y-6">
-                <div className="border-l-4 border-rose-500 pl-4">
-                    <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest">Debt Reduction</h3>
-                </div>
-                {categories.filter(c => c.type === CategoryType.DEBT).map(renderCategoryCard)}
-            </section>
-            <section className="space-y-6">
-                <div className="border-l-4 border-indigo-500 pl-4">
-                    <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest">Savings Goals</h3>
-                </div>
-                {categories.filter(c => c.type === CategoryType.SAVINGS).map(renderCategoryCard)}
-            </section>
         </div>
-      </div>
+      </section>
+
+      {/* Filtered Categories Grid */}
+      <section>
+        {(() => {
+          // Apply filters
+          let filteredCategories = categories;
+
+          // Filter by type
+          if (filterType !== 'ALL') {
+            filteredCategories = filteredCategories.filter(c => c.type === filterType);
+          }
+
+          // Filter by search query
+          if (searchQuery.trim()) {
+            const query = searchQuery.toLowerCase();
+            filteredCategories = filteredCategories.filter(c =>
+              c.name.toLowerCase().includes(query) ||
+              c.icon.includes(query)
+            );
+          }
+
+          // Show message if no results
+          if (filteredCategories.length === 0) {
+            return (
+              <div className="text-center py-20 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200">
+                <span className="text-4xl mb-4 block">🔍</span>
+                <p className="text-slate-600 font-bold">No categories found</p>
+                <p className="text-xs text-slate-400 mt-2">
+                  {searchQuery ? `No categories match "${searchQuery}"` : 'Create your first category above'}
+                </p>
+              </div>
+            );
+          }
+
+          // Group by type for better organization when showing all
+          if (filterType === 'ALL') {
+            return (
+              <div className="space-y-12">
+                {/* Income */}
+                {filteredCategories.some(c => c.type === CategoryType.INCOME) && (
+                  <div className="space-y-6">
+                    <div className="border-l-4 border-emerald-500 pl-4">
+                      <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest">Income Goals</h3>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {filteredCategories.filter(c => c.type === CategoryType.INCOME).map(renderCategoryCard)}
+                    </div>
+                  </div>
+                )}
+
+                {/* Spending */}
+                {filteredCategories.some(c => c.type === CategoryType.SPENDING) && (
+                  <div className="space-y-6">
+                    <div className="border-l-4 border-blue-500 pl-4">
+                      <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest">Expense Limits</h3>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {filteredCategories.filter(c => c.type === CategoryType.SPENDING).map(renderCategoryCard)}
+                    </div>
+                  </div>
+                )}
+
+                {/* Debt and Savings side by side */}
+                {(filteredCategories.some(c => c.type === CategoryType.DEBT) || filteredCategories.some(c => c.type === CategoryType.SAVINGS)) && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    {filteredCategories.some(c => c.type === CategoryType.DEBT) && (
+                      <div className="space-y-6">
+                        <div className="border-l-4 border-rose-500 pl-4">
+                          <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest">Debt Reduction</h3>
+                        </div>
+                        {filteredCategories.filter(c => c.type === CategoryType.DEBT).map(renderCategoryCard)}
+                      </div>
+                    )}
+                    {filteredCategories.some(c => c.type === CategoryType.SAVINGS) && (
+                      <div className="space-y-6">
+                        <div className="border-l-4 border-indigo-500 pl-4">
+                          <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest">Savings Goals</h3>
+                        </div>
+                        {filteredCategories.filter(c => c.type === CategoryType.SAVINGS).map(renderCategoryCard)}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          }
+
+          // Single type filter - show as grid
+          return (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredCategories.map(renderCategoryCard)}
+            </div>
+          );
+        })()}
+      </section>
     </div>
   );
 };
