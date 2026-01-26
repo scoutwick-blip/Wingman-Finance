@@ -2,12 +2,14 @@ import React, { useState } from 'react';
 import { Upload, Check, X, AlertCircle, FileText, Download } from 'lucide-react';
 import { importCSVTransactions, reconcileTransactions, BANK_PRESETS, CSVMapping } from '../services/csvImportService';
 import { parseOFXFile, isOFXFormat } from '../services/ofxParser';
-import { ImportedTransaction, ReconciliationMatch, ReconciliationStatus, Transaction, Category } from '../types';
+import { ImportedTransaction, ReconciliationMatch, ReconciliationStatus, Transaction, Category, MerchantMapping } from '../types';
 
 interface CSVImportProps {
   transactions: Transaction[];
   categories: Category[];
+  merchantMappings: MerchantMapping[];
   onImport: (transactions: Omit<Transaction, 'id'>[]) => void;
+  onUpdateMerchantMappings: (mappings: MerchantMapping[]) => void;
   onClose: () => void;
   currency: string;
 }
@@ -15,7 +17,9 @@ interface CSVImportProps {
 export default function CSVImport({
   transactions,
   categories,
+  merchantMappings,
   onImport,
+  onUpdateMerchantMappings,
   onClose,
   currency
 }: CSVImportProps) {
@@ -106,7 +110,16 @@ export default function CSVImport({
     importedTransactions.forEach(tx => {
       const key = tx.merchant || tx.description;
       if (!groups.has(key)) {
-        groups.set(key, { transactions: [], categoryId: undefined });
+        // Auto-apply merchant mapping if one exists
+        const merchantName = tx.merchant?.toLowerCase() || tx.description.toLowerCase();
+        const existingMapping = merchantMappings.find(m =>
+          m.merchant.toLowerCase() === merchantName
+        );
+
+        groups.set(key, {
+          transactions: [],
+          categoryId: existingMapping?.categoryId
+        });
       }
       groups.get(key)!.transactions.push(tx);
     });
@@ -150,6 +163,7 @@ export default function CSVImport({
 
   const handleImport = () => {
     const toImport: Omit<Transaction, 'id'>[] = [];
+    const updatedMerchantMappings = [...merchantMappings];
 
     selectedMatches.forEach(index => {
       const match = reconciliationMatches[index];
@@ -188,6 +202,48 @@ export default function CSVImport({
         }
       }
 
+      // Update or create merchant mapping if category was selected
+      if (categoryId && imported.merchant) {
+        const merchantName = imported.merchant.toLowerCase();
+        const existingMappingIndex = updatedMerchantMappings.findIndex(
+          m => m.merchant.toLowerCase() === merchantName
+        );
+
+        if (existingMappingIndex >= 0) {
+          // Update existing mapping
+          const existing = updatedMerchantMappings[existingMappingIndex];
+          if (existing.categoryId === categoryId) {
+            // Same category - increase confidence and usage
+            existing.confidence = Math.min(1, existing.confidence + 0.1);
+            existing.timesUsed += 1;
+          } else {
+            // Different category - user changed their mind, reset with new category
+            existing.categoryId = categoryId;
+            existing.confidence = 0.6;
+            existing.timesUsed = 1;
+          }
+        } else {
+          // Create new mapping
+          updatedMerchantMappings.push({
+            merchant: imported.merchant,
+            categoryId: categoryId,
+            confidence: 0.7,
+            timesUsed: 1
+          });
+        }
+      }
+
+      // Detect recurring transactions
+      const merchantOrDesc = imported.merchant || imported.description;
+      const similarTransactions = transactions.filter(tx => {
+        const txMerchant = tx.merchant || tx.description;
+        return txMerchant.toLowerCase() === merchantOrDesc.toLowerCase() &&
+               Math.abs(tx.amount - imported.amount) < 0.01; // Same amount within 1 cent
+      });
+
+      // If we find 2+ similar transactions with the same merchant and amount, mark as recurring
+      const isRecurring = similarTransactions.length >= 2;
+
       toImport.push({
         date: imported.date,
         description: imported.description,
@@ -195,9 +251,12 @@ export default function CSVImport({
         categoryId: categoryId,
         typeId: typeId,
         merchant: imported.merchant,
-        isRecurring: false
+        isRecurring: isRecurring
       });
     });
+
+    // Update merchant mappings
+    onUpdateMerchantMappings(updatedMerchantMappings);
 
     onImport(toImport);
     onClose();

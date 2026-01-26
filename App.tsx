@@ -1396,7 +1396,9 @@ const App: React.FC = () => {
         <CSVImport
           transactions={transactions}
           categories={categories}
+          merchantMappings={merchantMappings}
           onImport={importTransactions}
+          onUpdateMerchantMappings={setMerchantMappings}
           onClose={() => setShowCSVImport(false)}
           currency={preferences.currency}
         />
