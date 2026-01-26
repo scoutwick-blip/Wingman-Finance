@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Upload, Check, X, AlertCircle, FileText, Download } from 'lucide-react';
+import { Upload, Check, X, AlertCircle, FileText, Download, Sparkles } from 'lucide-react';
 import { importCSVTransactions, reconcileTransactions, BANK_PRESETS, CSVMapping } from '../services/csvImportService';
 import { parseOFXFile, isOFXFormat } from '../services/ofxParser';
 import { ImportedTransaction, ReconciliationMatch, ReconciliationStatus, Transaction, Category, MerchantMapping } from '../types';
@@ -101,6 +101,80 @@ export default function CSVImport({
       console.error('Error parsing CSV:', error);
       setError(`Failed to parse CSV: ${error instanceof Error ? error.message : 'Unknown error'}. Please check the file format and try a different bank preset.`);
     }
+  };
+
+  // Get category recommendations for a transaction group
+  const getRecommendations = (description: string, merchant: string | undefined): Array<{ categoryId: string; reason: string; confidence: number }> => {
+    const recommendations: Array<{ categoryId: string; reason: string; confidence: number }> = [];
+    const desc = description.toLowerCase();
+    const merch = merchant?.toLowerCase() || '';
+
+    // Check merchant mappings first (highest priority)
+    const merchantName = merchant?.toLowerCase() || description.toLowerCase();
+    const existingMapping = merchantMappings.find(m =>
+      m.merchant.toLowerCase() === merchantName
+    );
+
+    if (existingMapping) {
+      const category = categories.find(c => c.id === existingMapping.categoryId);
+      if (category) {
+        recommendations.push({
+          categoryId: existingMapping.categoryId,
+          reason: `Previously categorized ${existingMapping.timesUsed} time${existingMapping.timesUsed > 1 ? 's' : ''}`,
+          confidence: existingMapping.confidence
+        });
+      }
+    }
+
+    // Check transaction history
+    const similar = transactions.find(tx => {
+      const txDesc = tx.description.toLowerCase();
+      const txMerch = tx.merchant?.toLowerCase() || '';
+      return txDesc.includes(desc) || desc.includes(txDesc) || (merchant && txMerch && txMerch.includes(merch));
+    });
+
+    if (similar && !recommendations.find(r => r.categoryId === similar.categoryId)) {
+      recommendations.push({
+        categoryId: similar.categoryId,
+        reason: 'Similar to past transaction',
+        confidence: 0.8
+      });
+    }
+
+    // Keyword-based suggestions
+    const keywordMap: Record<string, { keywords: string[], categoryNames: string[], confidence: number }> = {
+      groceries: { keywords: ['grocery', 'safeway', 'kroger', 'whole foods', 'trader joe', 'walmart', 'target', 'costco', 'market', 'supermarket'], categoryNames: ['groceries', 'grocery', 'food'], confidence: 0.9 },
+      dining: { keywords: ['restaurant', 'cafe', 'coffee', 'pizza', 'burger', 'starbucks', 'mcdonalds', 'chipotle', 'subway', 'doordash', 'grubhub', 'uber eats'], categoryNames: ['dining', 'restaurant', 'food & dining'], confidence: 0.9 },
+      gas: { keywords: ['gas station', 'fuel', 'shell', 'chevron', 'exxon', 'bp', 'mobil'], categoryNames: ['gas', 'fuel', 'transportation'], confidence: 0.95 },
+      transport: { keywords: ['uber', 'lyft', 'taxi', 'parking', 'toll'], categoryNames: ['transport', 'transportation', 'travel'], confidence: 0.9 },
+      utilities: { keywords: ['electric', 'electricity', 'power company', 'gas company', 'water', 'utility'], categoryNames: ['utilities', 'utility', 'bills'], confidence: 0.95 },
+      entertainment: { keywords: ['netflix', 'spotify', 'hulu', 'disney', 'hbo', 'movie', 'theater'], categoryNames: ['entertainment', 'subscription'], confidence: 0.85 },
+      shopping: { keywords: ['amazon', 'ebay', 'store', 'shop'], categoryNames: ['shopping', 'retail'], confidence: 0.7 }
+    };
+
+    for (const [key, data] of Object.entries(keywordMap)) {
+      const hasKeywordMatch = data.keywords.some(term =>
+        desc.includes(term) || merch.includes(term)
+      );
+
+      if (hasKeywordMatch) {
+        const category = categories.find(c => {
+          const catName = c.name.toLowerCase();
+          return data.categoryNames.some(name => catName.includes(name) || name.includes(catName));
+        });
+
+        if (category && !recommendations.find(r => r.categoryId === category.id)) {
+          recommendations.push({
+            categoryId: category.id,
+            reason: `Matches "${key}" keywords`,
+            confidence: data.confidence
+          });
+        }
+      }
+    }
+
+    // Sort by confidence (highest first) and limit to top 3
+    return recommendations.sort((a, b) => b.confidence - a.confidence).slice(0, 3);
   };
 
   const handleCategorize = () => {
@@ -474,29 +548,9 @@ export default function CSVImport({
           {/* Step 3: Categorize */}
           {step === 'categorize' && (
             <div className="space-y-6">
-              {/* Debug Info Banner */}
-              <div className="bg-yellow-50 border-2 border-yellow-300 rounded-xl p-4">
-                <h4 className="font-bold text-yellow-900 mb-2">🔍 Debug Information</h4>
-                <div className="text-xs space-y-1 font-mono text-yellow-800">
-                  <p><strong>Total groups:</strong> {transactionGroups.size}</p>
-                  <p><strong>Total transactions:</strong> {importedTransactions.length}</p>
-                  <p><strong>Sample transaction data:</strong></p>
-                  {importedTransactions[0] && (
-                    <div className="ml-4 space-y-1 bg-yellow-100 p-2 rounded">
-                      <p>Description: "{importedTransactions[0].description}"</p>
-                      <p>Amount (parsed): {importedTransactions[0].amount}</p>
-                      <p>Original Amount: "{importedTransactions[0].originalAmount || 'NOT SET'}"</p>
-                      <p>Original Type: "{importedTransactions[0].originalType || 'NOT SET'}"</p>
-                      <p>Detected Type: "{importedTransactions[0].type || 'NOT SET'}"</p>
-                      <p>Merchant: "{importedTransactions[0].merchant || 'NOT SET'}"</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-
               <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-4">
                 <p className="text-sm text-blue-800">
-                  <strong>Group similar transactions</strong> and assign categories. All transactions with the same merchant will be categorized together.
+                  <strong>Click on recommended categories</strong> to quickly categorize transactions. AI suggestions are based on merchant names, transaction history, and keywords.
                 </p>
               </div>
 
@@ -505,11 +559,18 @@ export default function CSVImport({
                 {Array.from(transactionGroups.entries()).map(([groupKey, group]) => {
                   const totalAmount = group.transactions.reduce((sum, tx) => sum + tx.amount, 0);
                   const isIncome = group.transactions[0]?.type === 'income';
+                  const recommendations = getRecommendations(
+                    group.transactions[0]?.description,
+                    group.transactions[0]?.merchant
+                  );
+                  const selectedCategory = group.categoryId ? categories.find(c => c.id === group.categoryId) : null;
 
                   return (
                     <div
                       key={groupKey}
-                      className="border-2 border-gray-200 rounded-xl p-4 hover:border-blue-300 transition-colors"
+                      className={`border-2 rounded-xl p-4 transition-colors ${
+                        group.categoryId ? 'border-green-300 bg-green-50/30' : 'border-gray-200 hover:border-blue-300'
+                      }`}
                     >
                       <div className="flex items-start justify-between gap-4 mb-3">
                         <div className="flex-1">
@@ -533,21 +594,93 @@ export default function CSVImport({
                             </span>
                           </div>
                         </div>
-                        <div className="w-64">
-                          <label className="block text-xs font-medium text-gray-700 mb-1">Category</label>
-                          <select
-                            value={group.categoryId || ''}
-                            onChange={(e) => handleSetGroupCategory(groupKey, e.target.value)}
-                            className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-                          >
-                            <option value="">Select category...</option>
-                            {categories.map(cat => (
-                              <option key={cat.id} value={cat.id}>
-                                {cat.icon} {cat.name}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
+                      </div>
+
+                      {/* Category Selection */}
+                      <div className="mt-3 space-y-3">
+                        {/* Show selected category if one is chosen */}
+                        {selectedCategory && (
+                          <div className="flex items-center gap-2 pb-2 border-b border-gray-200">
+                            <Check className="w-4 h-4 text-green-600" />
+                            <span className="text-sm font-bold text-gray-900">
+                              Selected: {selectedCategory.icon} {selectedCategory.name}
+                            </span>
+                            <button
+                              onClick={() => handleSetGroupCategory(groupKey, '')}
+                              className="ml-auto text-xs text-red-600 hover:text-red-800 underline"
+                            >
+                              Clear
+                            </button>
+                          </div>
+                        )}
+
+                        {/* Show recommendations if no category selected or as alternatives */}
+                        {recommendations.length > 0 && (
+                          <div>
+                            <div className="flex items-center gap-2 mb-2">
+                              <Sparkles className="w-4 h-4 text-purple-600" />
+                              <p className="text-xs font-bold text-gray-700">
+                                {selectedCategory ? 'Other Suggestions:' : 'Recommended Categories:'}
+                              </p>
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                              {recommendations.map((rec) => {
+                                const category = categories.find(c => c.id === rec.categoryId);
+                                if (!category || category.id === selectedCategory?.id) return null;
+
+                                const confidenceColor = rec.confidence >= 0.9 ? 'purple' : rec.confidence >= 0.8 ? 'blue' : 'gray';
+
+                                return (
+                                  <button
+                                    key={rec.categoryId}
+                                    onClick={() => handleSetGroupCategory(groupKey, rec.categoryId)}
+                                    className={`group px-3 py-2 rounded-lg border-2 transition-all hover:scale-105 ${
+                                      confidenceColor === 'purple' ? 'border-purple-300 bg-purple-50 hover:bg-purple-100' :
+                                      confidenceColor === 'blue' ? 'border-blue-300 bg-blue-50 hover:bg-blue-100' :
+                                      'border-gray-300 bg-gray-50 hover:bg-gray-100'
+                                    }`}
+                                  >
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-base">{category.icon}</span>
+                                      <div className="text-left">
+                                        <p className="text-sm font-bold text-gray-900">{category.name}</p>
+                                        <p className="text-xs text-gray-600">{rec.reason}</p>
+                                      </div>
+                                      <div className={`ml-2 px-1.5 py-0.5 rounded text-xs font-bold ${
+                                        confidenceColor === 'purple' ? 'bg-purple-200 text-purple-800' :
+                                        confidenceColor === 'blue' ? 'bg-blue-200 text-blue-800' :
+                                        'bg-gray-200 text-gray-800'
+                                      }`}>
+                                        {Math.round(rec.confidence * 100)}%
+                                      </div>
+                                    </div>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Fallback dropdown for manual selection */}
+                        <details className="group">
+                          <summary className="cursor-pointer text-xs text-blue-600 hover:text-blue-800 font-medium">
+                            {recommendations.length === 0 ? '↓ Choose from all categories' : '↓ Choose different category'}
+                          </summary>
+                          <div className="mt-2">
+                            <select
+                              value={group.categoryId || ''}
+                              onChange={(e) => handleSetGroupCategory(groupKey, e.target.value)}
+                              className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                            >
+                              <option value="">Select category...</option>
+                              {categories.map(cat => (
+                                <option key={cat.id} value={cat.id}>
+                                  {cat.icon} {cat.name}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        </details>
                       </div>
 
                       {/* Show sample transactions */}
