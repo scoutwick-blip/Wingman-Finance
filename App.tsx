@@ -82,12 +82,20 @@ const App: React.FC = () => {
           try {
             initSupabase(supabaseUrl, supabaseKey);
 
+            // Check if returning from OAuth callback (hash fragments or query params)
+            const isOAuthCallback = window.location.hash.includes('access_token') ||
+                                   window.location.search.includes('code=');
+
             // ALWAYS require explicit sign-in - no auto sign-in
-            // Sign out any existing session on app start
-            const currentUser = await getCurrentUser();
-            if (currentUser) {
-              await signOut();
-              console.log('Signed out previous session - explicit sign-in required');
+            // BUT: Don't sign out if returning from OAuth callback
+            if (!isOAuthCallback) {
+              const currentUser = await getCurrentUser();
+              if (currentUser) {
+                await signOut();
+                console.log('Signed out previous session - explicit sign-in required');
+              }
+            } else {
+              console.log('OAuth callback detected - preserving session');
             }
 
             // Check if user has chosen local-only mode before
