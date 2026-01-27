@@ -100,7 +100,8 @@ export const Transactions: React.FC<TransactionsProps> = ({
     startDate: '',
     endDate: '',
     categoryId: 'all',
-    typeId: 'all'
+    typeId: 'all',
+    accountId: 'all'
   });
 
   const calculateNextDate = (dateStr: string, freq: RecurringFrequency) => {
@@ -248,9 +249,10 @@ export const Transactions: React.FC<TransactionsProps> = ({
       const matchesSearch = t.description.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesType = filters.typeId === 'all' || t.typeId === filters.typeId;
       const matchesCategory = filters.categoryId === 'all' || t.categoryId === filters.categoryId;
+      const matchesAccount = filters.accountId === 'all' || t.accountId === filters.accountId;
       const matchesStartDate = !filters.startDate || t.date >= filters.startDate;
       const matchesEndDate = !filters.endDate || t.date <= filters.endDate;
-      return matchesSearch && matchesType && matchesCategory && matchesStartDate && matchesEndDate;
+      return matchesSearch && matchesType && matchesCategory && matchesAccount && matchesStartDate && matchesEndDate;
     }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [transactions, filters, searchQuery]);
 
@@ -304,12 +306,13 @@ export const Transactions: React.FC<TransactionsProps> = ({
       startDate: '',
       endDate: '',
       categoryId: 'all',
-      typeId: 'all'
+      typeId: 'all',
+      accountId: 'all'
     });
     setSearchQuery('');
   };
 
-  const hasActiveFilters = !!(filters.startDate || filters.endDate || filters.categoryId !== 'all' || filters.typeId !== 'all' || searchQuery);
+  const hasActiveFilters = !!(filters.startDate || filters.endDate || filters.categoryId !== 'all' || filters.typeId !== 'all' || filters.accountId !== 'all' || searchQuery);
   const currentTypeBehavior = preferences.transactionTypes.find(t => t.id === formData.typeId)?.behavior;
   const allSelected = filteredTransactions.length > 0 && selectedIds.size === filteredTransactions.length;
 
@@ -590,7 +593,7 @@ export const Transactions: React.FC<TransactionsProps> = ({
           </div>
           <div className="flex flex-col gap-1 min-w-[100px]">
             <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-2">Type</label>
-            <select 
+            <select
               value={filters.typeId}
               onChange={e => setFilters({...filters, typeId: e.target.value})}
               className="bg-white border border-slate-100 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-900 outline-none"
@@ -598,6 +601,19 @@ export const Transactions: React.FC<TransactionsProps> = ({
               <option value="all">All Types</option>
               {preferences.transactionTypes.map(type => (
                 <option key={type.id} value={type.id}>{type.label}</option>
+              ))}
+            </select>
+          </div>
+          <div className="flex flex-col gap-1 min-w-[140px]">
+            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-2">Account</label>
+            <select
+              value={filters.accountId}
+              onChange={e => setFilters({...filters, accountId: e.target.value})}
+              className="bg-white border border-slate-100 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-900 outline-none"
+            >
+              <option value="all">All Accounts</option>
+              {accounts.map(acc => (
+                <option key={acc.id} value={acc.id}>{acc.icon} {acc.name}</option>
               ))}
             </select>
           </div>
@@ -619,6 +635,7 @@ export const Transactions: React.FC<TransactionsProps> = ({
                 </th>
                 <th className="px-4 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Date</th>
                 <th className="px-4 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Description</th>
+                <th className="px-4 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Account</th>
                 <th className="px-4 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Category</th>
                 <th className="px-4 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Type</th>
                 <th className="px-4 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Amount</th>
@@ -629,10 +646,11 @@ export const Transactions: React.FC<TransactionsProps> = ({
               {filteredTransactions.length > 0 ? (
                 filteredTransactions.map(t => {
                   const cat = categories.find(c => c.id === t.categoryId);
+                  const acc = accounts.find(a => a.id === t.accountId);
                   const typeDef = preferences.transactionTypes.find(type => type.id === t.typeId);
-                  const behaviorIcon = typeDef?.behavior === TransactionBehavior.INFLOW ? '+' : 
+                  const behaviorIcon = typeDef?.behavior === TransactionBehavior.INFLOW ? '+' :
                                      typeDef?.behavior === TransactionBehavior.OUTFLOW ? '-' : '';
-                  const behaviorColor = typeDef?.behavior === TransactionBehavior.INFLOW ? 'text-emerald-600' : 
+                  const behaviorColor = typeDef?.behavior === TransactionBehavior.INFLOW ? 'text-emerald-600' :
                                       typeDef?.behavior === TransactionBehavior.OUTFLOW ? 'text-slate-800' : 'text-slate-400';
                   const isSelected = selectedIds.has(t.id);
                   const isEditing = editingId === t.id;
@@ -661,6 +679,16 @@ export const Transactions: React.FC<TransactionsProps> = ({
                             </div>
                           )}
                         </div>
+                      </td>
+                      <td className="px-4 py-4">
+                        {acc ? (
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm">{acc.icon}</span>
+                            <span className="text-xs font-bold text-slate-600">{acc.name}</span>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-slate-400 italic">No account</span>
+                        )}
                       </td>
                       <td className="px-4 py-4">
                         <button
@@ -703,7 +731,7 @@ export const Transactions: React.FC<TransactionsProps> = ({
                 })
               ) : (
                 <tr>
-                  <td colSpan={7} className="px-8 py-20 text-center text-slate-400 italic font-medium">
+                  <td colSpan={8} className="px-8 py-20 text-center text-slate-400 italic font-medium">
                     No transactions found for these filters.
                   </td>
                 </tr>
