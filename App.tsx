@@ -7,6 +7,7 @@ import { Transactions } from './components/Transactions';
 import { Budgets } from './components/Budgets';
 import { AIAdvisor } from './components/AIAdvisor';
 import { Settings } from './components/Settings';
+import AutomationDashboard from './components/AutomationDashboard';
 import { SetupWizard } from './components/SetupWizard';
 import { ProfileSelector } from './components/ProfileSelector';
 import Auth from './components/Auth';
@@ -1123,13 +1124,33 @@ const App: React.FC = () => {
     switch (activeTab) {
       case 'dashboard':
         return (
-            <Dashboard 
-                transactions={transactions} 
-                categories={categories} 
-                preferences={preferences} 
+          <>
+            <AutomationDashboard
+              transactions={transactions}
+              categories={categories}
+              bills={bills}
+              subscriptions={subscriptions}
+              merchantMappings={merchantMappings}
+              onCreateBill={addBill}
+              onUpdateCategoryBudget={(categoryId, newBudget) => {
+                const category = categories.find(c => c.id === categoryId);
+                if (category) {
+                  updateCategory(categoryId, { budget: newBudget });
+                }
+              }}
+              onCreateMerchantMapping={(mapping) => {
+                setMerchantMappings(prev => [...prev, mapping]);
+              }}
+              currency={preferences.currency}
+            />
+            <Dashboard
+                transactions={transactions}
+                categories={categories}
+                preferences={preferences}
                 onNavigateToTab={setActiveTab}
                 onAddTransaction={handleNavigateToTransactionEntry}
             />
+          </>
         );
       case 'transactions':
         return (
