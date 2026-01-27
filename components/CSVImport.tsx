@@ -329,7 +329,11 @@ export default function CSVImport({
   const handleReconcile = () => {
     // Apply categories to transactions based on groups
     const updatedTransactions = importedTransactions.map(tx => {
-      const key = tx.merchant || tx.description;
+      // Recreate the same composite key used during grouping
+      const merchantName = (tx.merchant || tx.description).trim();
+      const amountBucket = Math.round(Math.abs(tx.amount) / 10) * 10;
+      const key = `${merchantName}||${amountBucket}`;
+
       const group = transactionGroups.get(key);
       if (group?.categoryId) {
         return { ...tx, category: group.categoryId };
@@ -363,7 +367,11 @@ export default function CSVImport({
       const typeId = imported.type === 'income' ? 'type-income' : 'type-expense';
 
       // Use category from group selection, then suggested, then default
-      const groupKey = imported.merchant || imported.description;
+      // Recreate the same composite key used during grouping
+      const merchantName = (imported.merchant || imported.description).trim();
+      const amountBucket = Math.round(Math.abs(imported.amount) / 10) * 10;
+      const groupKey = `${merchantName}||${amountBucket}`;
+
       const group = transactionGroups.get(groupKey);
       let categoryId = group?.categoryId || match.suggestedCategoryId;
 
