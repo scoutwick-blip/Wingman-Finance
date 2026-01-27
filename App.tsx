@@ -612,52 +612,97 @@ const App: React.FC = () => {
       setNotifications(prev => [note, ...prev]);
     }
 
-    // Auto-create subscription if transaction is recurring and categorized as subscription
+    // Auto-create subscription or bill if transaction is recurring
     const category = categories.find(c => c.id === transaction.categoryId);
-    if (transaction.isRecurring && transaction.frequency && (category?.name === 'Subscriptions' || transaction.categoryId === '14')) {
-      // Check if subscription doesn't already exist for this transaction
-      const existingSubscription = subscriptions.find(s =>
-        s.name === transaction.description &&
-        s.cost === transaction.amount &&
-        s.categoryId === transaction.categoryId
-      );
 
-      if (!existingSubscription) {
-        // Calculate next billing date based on frequency
-        const nextBillingDate = new Date(transaction.date);
-        switch (transaction.frequency) {
-          case RecurringFrequency.WEEKLY:
-            nextBillingDate.setDate(nextBillingDate.getDate() + 7);
-            break;
-          case RecurringFrequency.BI_WEEKLY:
-            nextBillingDate.setDate(nextBillingDate.getDate() + 14);
-            break;
-          case RecurringFrequency.MONTHLY:
-            nextBillingDate.setMonth(nextBillingDate.getMonth() + 1);
-            break;
-          case RecurringFrequency.YEARLY:
-            nextBillingDate.setFullYear(nextBillingDate.getFullYear() + 1);
-            break;
+    if (transaction.isRecurring && transaction.frequency && category) {
+      // Auto-create SUBSCRIPTION if categorized as Subscriptions
+      if (category.name === 'Subscriptions' || transaction.categoryId === '14') {
+        const existingSubscription = subscriptions.find(s =>
+          s.name === transaction.description &&
+          s.cost === transaction.amount &&
+          s.categoryId === transaction.categoryId
+        );
+
+        if (!existingSubscription) {
+          // Calculate next billing date based on frequency
+          const nextBillingDate = new Date(transaction.date);
+          switch (transaction.frequency) {
+            case RecurringFrequency.WEEKLY:
+              nextBillingDate.setDate(nextBillingDate.getDate() + 7);
+              break;
+            case RecurringFrequency.BI_WEEKLY:
+              nextBillingDate.setDate(nextBillingDate.getDate() + 14);
+              break;
+            case RecurringFrequency.MONTHLY:
+              nextBillingDate.setMonth(nextBillingDate.getMonth() + 1);
+              break;
+            case RecurringFrequency.YEARLY:
+              nextBillingDate.setFullYear(nextBillingDate.getFullYear() + 1);
+              break;
+          }
+
+          const newSubscription: Subscription = {
+            id: `sub-${Date.now()}`,
+            name: transaction.description,
+            cost: transaction.amount,
+            billingCycle: transaction.frequency,
+            categoryId: transaction.categoryId,
+            accountId: transaction.accountId,
+            startDate: transaction.date,
+            nextBillingDate: nextBillingDate.toISOString().split('T')[0],
+            status: SubscriptionStatus.ACTIVE,
+            notes: 'Auto-created from transaction'
+          };
+
+          setSubscriptions(prev => [...prev, newSubscription]);
+          transaction.linkedSubscriptionId = newSubscription.id;
+          console.log('✅ Auto-created subscription:', newSubscription.name);
         }
+      }
+      // Auto-create BILL for any recurring spending/debt transaction
+      else if (category.type === CategoryType.SPENDING || category.type === CategoryType.DEBT) {
+        const existingBill = bills.find(b =>
+          b.name === transaction.description &&
+          b.amount === transaction.amount &&
+          b.categoryId === transaction.categoryId &&
+          b.isRecurring
+        );
 
-        const newSubscription: Subscription = {
-          id: `sub-${Date.now()}`,
-          name: transaction.description,
-          cost: transaction.amount,
-          billingCycle: transaction.frequency,
-          categoryId: transaction.categoryId,
-          startDate: transaction.date,
-          nextBillingDate: nextBillingDate.toISOString().split('T')[0],
-          status: SubscriptionStatus.ACTIVE,
-          notes: 'Auto-created from transaction'
-        };
+        if (!existingBill) {
+          // Calculate next due date
+          const nextDueDate = new Date(transaction.date);
+          switch (transaction.frequency) {
+            case RecurringFrequency.WEEKLY:
+              nextDueDate.setDate(nextDueDate.getDate() + 7);
+              break;
+            case RecurringFrequency.BI_WEEKLY:
+              nextDueDate.setDate(nextDueDate.getDate() + 14);
+              break;
+            case RecurringFrequency.MONTHLY:
+              nextDueDate.setMonth(nextDueDate.getMonth() + 1);
+              break;
+            case RecurringFrequency.YEARLY:
+              nextDueDate.setFullYear(nextDueDate.getFullYear() + 1);
+              break;
+          }
 
-        setSubscriptions(prev => [...prev, newSubscription]);
+          const newBill: Bill = {
+            id: `bill-${Date.now()}`,
+            name: transaction.description,
+            amount: transaction.amount,
+            dueDate: nextDueDate.toISOString().split('T')[0],
+            categoryId: transaction.categoryId,
+            accountId: transaction.accountId,
+            isRecurring: true,
+            frequency: transaction.frequency,
+            status: BillStatus.UPCOMING,
+            notes: 'Auto-created from transaction'
+          };
 
-        // Link subscription to transaction
-        transaction.linkedSubscriptionId = newSubscription.id;
-
-        console.log('✅ Auto-created subscription:', newSubscription.name);
+          setBills(prev => [...prev, newBill]);
+          console.log('✅ Auto-created bill:', newBill.name);
+        }
       }
     }
 
@@ -710,12 +755,114 @@ const App: React.FC = () => {
       ...t,
       id: Math.random().toString(36).substring(2, 9)
     }));
+
+    // Auto-create bills and subscriptions for recurring transactions
+    const newBills: Bill[] = [];
+    const newSubscriptions: Subscription[] = [];
+
+    transactionsWithIds.forEach(transaction => {
+      if (transaction.isRecurring && transaction.frequency) {
+        const category = categories.find(c => c.id === transaction.categoryId);
+        if (!category) return;
+
+        // Auto-create SUBSCRIPTION if categorized as Subscriptions
+        if (category.name === 'Subscriptions' || transaction.categoryId === '14') {
+          const existingSubscription = subscriptions.find(s =>
+            s.name === transaction.description &&
+            s.cost === transaction.amount &&
+            s.categoryId === transaction.categoryId
+          );
+
+          if (!existingSubscription) {
+            const nextBillingDate = new Date(transaction.date);
+            switch (transaction.frequency) {
+              case RecurringFrequency.WEEKLY:
+                nextBillingDate.setDate(nextBillingDate.getDate() + 7);
+                break;
+              case RecurringFrequency.BI_WEEKLY:
+                nextBillingDate.setDate(nextBillingDate.getDate() + 14);
+                break;
+              case RecurringFrequency.MONTHLY:
+                nextBillingDate.setMonth(nextBillingDate.getMonth() + 1);
+                break;
+              case RecurringFrequency.YEARLY:
+                nextBillingDate.setFullYear(nextBillingDate.getFullYear() + 1);
+                break;
+            }
+
+            newSubscriptions.push({
+              id: `sub-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+              name: transaction.description,
+              cost: transaction.amount,
+              billingCycle: transaction.frequency,
+              categoryId: transaction.categoryId,
+              accountId: transaction.accountId,
+              startDate: transaction.date,
+              nextBillingDate: nextBillingDate.toISOString().split('T')[0],
+              status: SubscriptionStatus.ACTIVE,
+              notes: 'Auto-created from import'
+            });
+          }
+        }
+        // Auto-create BILL for recurring spending/debt transactions
+        else if (category.type === CategoryType.SPENDING || category.type === CategoryType.DEBT) {
+          const existingBill = bills.find(b =>
+            b.name === transaction.description &&
+            b.amount === transaction.amount &&
+            b.categoryId === transaction.categoryId &&
+            b.isRecurring
+          );
+
+          if (!existingBill) {
+            const nextDueDate = new Date(transaction.date);
+            switch (transaction.frequency) {
+              case RecurringFrequency.WEEKLY:
+                nextDueDate.setDate(nextDueDate.getDate() + 7);
+                break;
+              case RecurringFrequency.BI_WEEKLY:
+                nextDueDate.setDate(nextDueDate.getDate() + 14);
+                break;
+              case RecurringFrequency.MONTHLY:
+                nextDueDate.setMonth(nextDueDate.getMonth() + 1);
+                break;
+              case RecurringFrequency.YEARLY:
+                nextDueDate.setFullYear(nextDueDate.getFullYear() + 1);
+                break;
+            }
+
+            newBills.push({
+              id: `bill-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+              name: transaction.description,
+              amount: transaction.amount,
+              dueDate: nextDueDate.toISOString().split('T')[0],
+              categoryId: transaction.categoryId,
+              accountId: transaction.accountId,
+              isRecurring: true,
+              frequency: transaction.frequency,
+              status: BillStatus.UPCOMING,
+              notes: 'Auto-created from import'
+            });
+          }
+        }
+      }
+    });
+
+    // Add all new items
     setTransactions(prev => [...transactionsWithIds, ...prev]);
+    if (newBills.length > 0) {
+      setBills(prev => [...newBills, ...prev]);
+      console.log(`✅ Auto-created ${newBills.length} bill(s) from import`);
+    }
+    if (newSubscriptions.length > 0) {
+      setSubscriptions(prev => [...newSubscriptions, ...prev]);
+      console.log(`✅ Auto-created ${newSubscriptions.length} subscription(s) from import`);
+    }
+
     const note: Notification = {
       id: Math.random().toString(36).substring(2, 9),
       type: NotificationType.SUCCESS,
       title: 'Import Successful',
-      message: `Successfully imported ${transactionsWithIds.length} records to your history.`,
+      message: `Successfully imported ${transactionsWithIds.length} records${newBills.length + newSubscriptions.length > 0 ? ` and auto-created ${newBills.length} bill(s) and ${newSubscriptions.length} subscription(s)` : ''}.`,
       timestamp: new Date().toISOString(),
       isRead: false
     };
