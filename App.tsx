@@ -1129,6 +1129,7 @@ const App: React.FC = () => {
             <AutomationDashboard
               transactions={transactions}
               categories={categories}
+              accounts={accounts}
               bills={bills}
               subscriptions={subscriptions}
               merchantMappings={merchantMappings}
@@ -1172,9 +1173,10 @@ const App: React.FC = () => {
         );
       case 'budgets':
         return (
-          <Budgets 
-            categories={categories} 
-            transactions={transactions} 
+          <Budgets
+            categories={categories}
+            transactions={transactions}
+            accounts={accounts}
             onUpdateCategory={updateCategory}
             onAddCategory={addCategory}
             onDeleteCategory={deleteCategory}
@@ -1241,6 +1243,7 @@ const App: React.FC = () => {
           <SavingsDebtDashboard
             transactions={transactions}
             categories={categories}
+            accounts={accounts}
             goals={goals}
             preferences={preferences}
             onNavigateToGoals={() => setActiveTab('goals')}

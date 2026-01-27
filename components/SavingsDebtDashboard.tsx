@@ -1,10 +1,11 @@
 import React, { useState, useMemo } from 'react';
 import { TrendingUp, TrendingDown, Target, Zap, Calculator, Calendar, Award, AlertCircle, CheckCircle, DollarSign, PiggyBank } from 'lucide-react';
-import { Transaction, Category, CategoryType, Goal, GoalStatus, UserPreferences, TransactionBehavior } from '../types';
+import { Transaction, Category, CategoryType, Goal, GoalStatus, UserPreferences, TransactionBehavior, Account, AccountType } from '../types';
 
 interface SavingsDebtDashboardProps {
   transactions: Transaction[];
   categories: Category[];
+  accounts: Account[];
   goals: Goal[];
   preferences: UserPreferences;
   onNavigateToGoals: () => void;
@@ -26,6 +27,7 @@ type PayoffStrategy = 'snowball' | 'avalanche' | 'custom';
 export default function SavingsDebtDashboard({
   transactions,
   categories,
+  accounts,
   goals,
   preferences,
   onNavigateToGoals,
@@ -66,7 +68,32 @@ export default function SavingsDebtDashboard({
       }
     });
 
-    // Calculate total savings
+    // Add debt from credit card and loan accounts
+    const debtAccountsFromAccounts = accounts.filter(a =>
+      a.type === AccountType.CREDIT_CARD || a.type === AccountType.LOAN
+    );
+    debtAccountsFromAccounts.forEach(acc => {
+      // Credit cards have negative balance = debt
+      // Loans have positive balance = remaining loan
+      const debtAmount = acc.type === AccountType.CREDIT_CARD
+        ? Math.abs(Math.min(0, acc.balance))
+        : acc.balance;
+
+      if (debtAmount > 0) {
+        debtAccounts.push({
+          id: acc.id,
+          name: acc.name,
+          balance: debtAmount,
+          interestRate: acc.interestRate || 0.18,
+          minimumPayment: Math.max(25, debtAmount * 0.02),
+          color: acc.color || '#ef4444',
+          icon: acc.icon || '💳'
+        });
+        totalDebt += debtAmount;
+      }
+    });
+
+    // Calculate total savings from categories
     let totalSavings = 0;
     savingsCategories.forEach(cat => {
       const contributions = transactions
@@ -75,10 +102,19 @@ export default function SavingsDebtDashboard({
       totalSavings += contributions;
     });
 
+    // Add savings from actual savings/checking accounts
+    const savingsAccounts = accounts.filter(a =>
+      a.type === AccountType.SAVINGS || a.type === AccountType.CHECKING
+    );
+    savingsAccounts.forEach(acc => {
+      totalSavings += acc.balance;
+    });
+
     // Calculate savings from goals
     const savingsGoals = goals.filter(g => g.type === 'savings');
     const goalProgress = savingsGoals.reduce((sum, g) => sum + g.currentAmount, 0);
-    totalSavings += goalProgress;
+    // Don't double-count if goal is already tracked in account balance
+    // totalSavings += goalProgress;
 
     // Calculate income and expenses for savings rate
     let totalIncome = 0;

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Zap, TrendingUp, Calendar, DollarSign, CheckCircle, X, Sparkles } from 'lucide-react';
-import { Transaction, Category, Bill, Subscription, MerchantMapping } from '../types';
+import { Transaction, Category, Bill, Subscription, MerchantMapping, Account } from '../types';
 import {
   detectRecurringTransactions,
   suggestBudgetAdjustments,
@@ -13,6 +13,7 @@ import {
 interface AutomationDashboardProps {
   transactions: Transaction[];
   categories: Category[];
+  accounts: Account[];
   bills: Bill[];
   subscriptions: Subscription[];
   merchantMappings: MerchantMapping[];
@@ -25,6 +26,7 @@ interface AutomationDashboardProps {
 export default function AutomationDashboard({
   transactions,
   categories,
+  accounts,
   bills,
   subscriptions,
   merchantMappings,
@@ -52,14 +54,32 @@ export default function AutomationDashboard({
   }, [transactions, categories, bills, subscriptions, merchantMappings]);
 
   const handleAcceptRecurring = (suggestion: RecurringTransactionSuggestion) => {
+    // Find the most commonly used account in the transactions
+    const accountCounts = new Map<string, number>();
+    suggestion.transactions.forEach(tx => {
+      if (tx.accountId) {
+        accountCounts.set(tx.accountId, (accountCounts.get(tx.accountId) || 0) + 1);
+      }
+    });
+
+    let mostCommonAccountId: string | undefined;
+    let maxCount = 0;
+    accountCounts.forEach((count, accountId) => {
+      if (count > maxCount) {
+        maxCount = count;
+        mostCommonAccountId = accountId;
+      }
+    });
+
     const newBill: Omit<Bill, 'id'> = {
       name: suggestion.suggestedBillName,
       amount: suggestion.amount,
       dueDate: suggestion.nextDueDate?.getDate() || new Date().getDate(),
       categoryId: suggestion.categoryId,
+      accountId: mostCommonAccountId,
       isRecurring: true,
       frequency: suggestion.frequency,
-      isPaid: false,
+      status: 'UPCOMING' as any,
       notes: `Auto-detected from ${suggestion.transactions.length} transactions`
     };
 
