@@ -1,7 +1,7 @@
 // Automation service for intelligent financial management
 // Auto-detects patterns, suggests budgets, and identifies recurring transactions
 
-import { Transaction, Category, Bill, Subscription, MerchantMapping } from '../types';
+import { Transaction, Category, CategoryType, Bill, Subscription, MerchantMapping } from '../types';
 
 export interface RecurringTransactionSuggestion {
   merchant: string;
@@ -52,8 +52,8 @@ export function detectRecurringTransactions(
 
     // Skip if no category, or if it's income/savings
     if (!txCategory ||
-        txCategory.type === 'income' ||
-        txCategory.type === 'savings') {
+        txCategory.type === CategoryType.INCOME ||
+        txCategory.type === CategoryType.SAVINGS) {
       return;
     }
 
@@ -83,8 +83,8 @@ export function detectRecurringTransactions(
     // IMPORTANT: Only detect bills for SPENDING and DEBT categories
     // Skip income, savings, and investment categories
     if (!firstTxCategory ||
-        firstTxCategory.type === 'income' ||
-        firstTxCategory.type === 'savings') {
+        firstTxCategory.type === CategoryType.INCOME ||
+        firstTxCategory.type === CategoryType.SAVINGS) {
       return;
     }
 
