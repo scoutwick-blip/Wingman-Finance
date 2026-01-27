@@ -2,22 +2,49 @@
 import { Category, UserPreferences, TransactionBehavior, CategoryType, BudgetTemplate, Account, AccountType } from './types';
 
 export const INITIAL_CATEGORIES: Category[] = [
-  { id: '1', name: 'Housing', color: '#003087', icon: '🏠', budget: 1800, type: CategoryType.SPENDING },
-  { id: '2', name: 'Groceries', color: '#1d4e89', icon: '🍽️', budget: 400, type: CategoryType.SPENDING },
-  { id: '3', name: 'Transport', color: '#475569', icon: '🚗', budget: 250, type: CategoryType.SPENDING },
-  { id: '4', name: 'Income', color: '#10b981', icon: '💰', budget: 0, type: CategoryType.INCOME },
-  { id: '5', name: 'Personal', color: '#334155', icon: '📦', budget: 50, type: CategoryType.SPENDING },
-  { id: '6', name: 'Debt', color: '#ef4444', icon: '💳', budget: 2000, type: CategoryType.DEBT, initialBalance: 2000 },
-  { id: '7', name: 'Savings', color: '#fbbf24', icon: '🏦', budget: 5000, type: CategoryType.SAVINGS },
-  { id: '8', name: 'Utilities', color: '#1e40af', icon: '💡', budget: 150, type: CategoryType.SPENDING },
-  { id: '9', name: 'Entertainment', color: '#8b5cf6', icon: '🎮', budget: 200, type: CategoryType.SPENDING },
-  { id: '10', name: 'Dining Out', color: '#f59e0b', icon: '🍔', budget: 150, type: CategoryType.SPENDING },
-  { id: '11', name: 'Shopping', color: '#ec4899', icon: '🛍️', budget: 100, type: CategoryType.SPENDING },
-  { id: '12', name: 'Healthcare', color: '#06b6d4', icon: '🏥', budget: 100, type: CategoryType.SPENDING },
-  { id: '13', name: 'Insurance', color: '#64748b', icon: '🛡️', budget: 200, type: CategoryType.SPENDING },
+  // Income
+  { id: '1', name: 'Income', color: '#10b981', icon: '💰', budget: 0, type: CategoryType.INCOME },
+
+  // Housing & Utilities
+  { id: '2', name: 'Housing', color: '#003087', icon: '🏠', budget: 1800, type: CategoryType.SPENDING },
+  { id: '3', name: 'Utilities', color: '#1e40af', icon: '💡', budget: 150, type: CategoryType.SPENDING },
+  { id: '4', name: 'Internet/Cable', color: '#0891b2', icon: '📡', budget: 80, type: CategoryType.SPENDING },
+  { id: '5', name: 'Phone', color: '#0e7490', icon: '📞', budget: 60, type: CategoryType.SPENDING },
+
+  // Food & Dining
+  { id: '6', name: 'Groceries', color: '#1d4e89', icon: '🛒', budget: 400, type: CategoryType.SPENDING },
+  { id: '7', name: 'Dining', color: '#f59e0b', icon: '🍔', budget: 150, type: CategoryType.SPENDING },
+
+  // Transportation
+  { id: '8', name: 'Gas', color: '#dc2626', icon: '⛽', budget: 120, type: CategoryType.SPENDING },
+  { id: '9', name: 'Transport', color: '#475569', icon: '🚗', budget: 250, type: CategoryType.SPENDING },
+
+  // Health & Wellness
+  { id: '10', name: 'Healthcare', color: '#06b6d4', icon: '🏥', budget: 100, type: CategoryType.SPENDING },
+  { id: '11', name: 'Fitness', color: '#14b8a6', icon: '💪', budget: 50, type: CategoryType.SPENDING },
+  { id: '12', name: 'Insurance', color: '#64748b', icon: '🛡️', budget: 200, type: CategoryType.SPENDING },
+
+  // Entertainment & Lifestyle
+  { id: '13', name: 'Entertainment', color: '#8b5cf6', icon: '🎮', budget: 100, type: CategoryType.SPENDING },
   { id: '14', name: 'Subscriptions', color: '#a855f7', icon: '📱', budget: 50, type: CategoryType.SPENDING },
-  { id: '15', name: 'Education', color: '#0ea5e9', icon: '📚', budget: 100, type: CategoryType.SPENDING },
-  { id: '16', name: 'Unassigned', color: '#94a3b8', icon: '❓', budget: 0, type: CategoryType.SPENDING },
+  { id: '15', name: 'Shopping', color: '#ec4899', icon: '🛍️', budget: 100, type: CategoryType.SPENDING },
+  { id: '16', name: 'Clothing', color: '#db2777', icon: '👕', budget: 75, type: CategoryType.SPENDING },
+
+  // Personal & Other
+  { id: '17', name: 'Personal Care', color: '#c026d3', icon: '💅', budget: 50, type: CategoryType.SPENDING },
+  { id: '18', name: 'Pets', color: '#f97316', icon: '🐾', budget: 80, type: CategoryType.SPENDING },
+  { id: '19', name: 'Education', color: '#0ea5e9', icon: '📚', budget: 100, type: CategoryType.SPENDING },
+  { id: '20', name: 'Gifts', color: '#f43f5e', icon: '🎁', budget: 50, type: CategoryType.SPENDING },
+  { id: '21', name: 'Travel', color: '#8b5cf6', icon: '✈️', budget: 200, type: CategoryType.SPENDING },
+  { id: '22', name: 'Home Improvement', color: '#0369a1', icon: '🔨', budget: 100, type: CategoryType.SPENDING },
+
+  // Financial
+  { id: '23', name: 'Debt', color: '#ef4444', icon: '💳', budget: 500, type: CategoryType.DEBT, initialBalance: 2000 },
+  { id: '24', name: 'Savings', color: '#fbbf24', icon: '🏦', budget: 500, type: CategoryType.SAVINGS },
+  { id: '25', name: 'Investments', color: '#059669', icon: '📈', budget: 300, type: CategoryType.SAVINGS },
+
+  // Catch-all
+  { id: '26', name: 'Unassigned', color: '#94a3b8', icon: '❓', budget: 0, type: CategoryType.SPENDING },
 ];
 
 export const DEFAULT_TRANSACTION_TYPES = [

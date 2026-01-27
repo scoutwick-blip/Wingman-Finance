@@ -186,17 +186,25 @@ export default function CSVImport({
         // Check common aliases
         const aliases: Record<string, string[]> = {
           'groceries': ['grocery', 'food', 'supermarket'],
-          'dining': ['restaurant', 'eating out', 'food & dining', 'meals'],
-          'gas': ['fuel', 'gasoline', 'transportation'],
-          'transport': ['transportation', 'travel', 'transit'],
+          'dining': ['restaurant', 'eating out', 'food & dining', 'meals', 'dining out'],
+          'gas': ['fuel', 'gasoline'],
+          'transport': ['transportation', 'travel', 'transit', 'auto'],
           'utilities': ['utility', 'bills'],
-          'internet': ['cable', 'broadband', 'isp'],
-          'phone': ['mobile', 'wireless', 'cell'],
-          'entertainment': ['fun', 'leisure', 'subscription'],
-          'shopping': ['retail', 'purchases'],
-          'healthcare': ['health', 'medical', 'doctor'],
-          'fitness': ['gym', 'health', 'personal care'],
-          'insurance': ['ins']
+          'internet': ['cable', 'broadband', 'isp', 'internet/cable'],
+          'phone': ['mobile', 'wireless', 'cell', 'cellular'],
+          'entertainment': ['fun', 'leisure', 'subscription', 'streaming'],
+          'shopping': ['retail', 'purchases', 'store'],
+          'healthcare': ['health', 'medical', 'doctor', 'pharmacy'],
+          'fitness': ['gym', 'workout', 'exercise'],
+          'insurance': ['ins'],
+          'pets': ['pet', 'veterinary', 'vet'],
+          'clothing': ['clothes', 'apparel', 'fashion'],
+          'travel': ['trip', 'vacation', 'hotel', 'flight'],
+          'personal care': ['personal', 'beauty', 'salon', 'spa'],
+          'home improvement': ['home', 'hardware', 'improvement'],
+          'gifts': ['gift', 'present'],
+          'education': ['school', 'tuition', 'learning'],
+          'subscriptions': ['subscription', 'membership']
         };
 
         const categoryAliases = aliases[targetCategory] || [];
@@ -652,15 +660,37 @@ export default function CSVImport({
                 </p>
               </div>
 
-              {/* AI Loading Indicator */}
+              {/* AI Loading Overlay */}
               {isLoadingAI && (
-                <div className="bg-purple-50 border-2 border-purple-200 rounded-xl p-4 flex items-center gap-3">
-                  <Sparkles className="w-5 h-5 text-purple-600 animate-pulse" />
-                  <div>
-                    <p className="font-bold text-purple-900">AI Analysis in Progress</p>
-                    <p className="text-sm text-purple-700">
-                      Getting intelligent category suggestions...
-                    </p>
+                <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-[100] backdrop-blur-sm">
+                  <div className="bg-white rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl border-4 border-purple-300">
+                    <div className="flex flex-col items-center gap-4">
+                      <div className="relative">
+                        <Sparkles className="w-16 h-16 text-purple-600 animate-pulse" />
+                        <div className="absolute inset-0 animate-ping">
+                          <Sparkles className="w-16 h-16 text-purple-400 opacity-75" />
+                        </div>
+                      </div>
+                      <div className="text-center">
+                        <h3 className="text-2xl font-black text-purple-900 mb-2">AI ANALYZING TRANSACTIONS</h3>
+                        <p className="text-sm text-purple-700 mb-4">
+                          Our AI is reading your transactions and finding the best categories...
+                        </p>
+                      </div>
+                      {/* Animated Progress Bar */}
+                      <div className="w-full bg-purple-100 rounded-full h-4 overflow-hidden border-2 border-purple-300 relative">
+                        <div className="absolute inset-0 flex gap-1 items-center px-1">
+                          <div className="h-2 w-2 bg-purple-600 rounded-full animate-bounce" style={{ animationDelay: '0s' }}></div>
+                          <div className="h-2 w-2 bg-purple-600 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                          <div className="h-2 w-2 bg-purple-600 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                          <div className="flex-1"></div>
+                          <div className="h-2 w-2 bg-purple-600 rounded-full animate-bounce" style={{ animationDelay: '0.3s' }}></div>
+                          <div className="h-2 w-2 bg-purple-600 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
+                          <div className="h-2 w-2 bg-purple-600 rounded-full animate-bounce" style={{ animationDelay: '0.5s' }}></div>
+                        </div>
+                      </div>
+                      <p className="text-xs text-purple-600 font-medium">This usually takes 2-5 seconds</p>
+                    </div>
                   </div>
                 </div>
               )}
