@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Zap, TrendingUp, Calendar, DollarSign, CheckCircle, X, Sparkles } from 'lucide-react';
+import { Zap, TrendingUp, Calendar, DollarSign, CheckCircle, X, Sparkles, EyeOff } from 'lucide-react';
 import { Transaction, Category, Bill, Subscription, MerchantMapping, Account } from '../types';
 import {
   detectRecurringTransactions,
@@ -23,6 +23,8 @@ interface AutomationDashboardProps {
   currency: string;
 }
 
+const STORAGE_KEY_HIDDEN_SUGGESTIONS = 'wingman_hidden_suggestion_types';
+
 export default function AutomationDashboard({
   transactions,
   categories,
@@ -41,6 +43,29 @@ export default function AutomationDashboard({
   const [dismissedRecurring, setDismissedRecurring] = useState<Set<string>>(new Set());
   const [dismissedBudgets, setDismissedBudgets] = useState<Set<string>>(new Set());
   const [dismissedMappings, setDismissedMappings] = useState<Set<string>>(new Set());
+
+  // Persistent hiding of entire suggestion types
+  const [hiddenTypes, setHiddenTypes] = useState<Set<string>>(() => {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY_HIDDEN_SUGGESTIONS);
+      return stored ? new Set(JSON.parse(stored)) : new Set();
+    } catch {
+      return new Set();
+    }
+  });
+
+  // Save hidden types to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY_HIDDEN_SUGGESTIONS, JSON.stringify(Array.from(hiddenTypes)));
+    } catch (error) {
+      console.error('Failed to save hidden suggestion types:', error);
+    }
+  }, [hiddenTypes]);
+
+  const hideType = (type: 'recurring' | 'budget' | 'mapping') => {
+    setHiddenTypes(prev => new Set(prev).add(type));
+  };
 
   // Analyze transactions when component mounts or data changes
   useEffect(() => {
@@ -113,9 +138,15 @@ export default function AutomationDashboard({
     setDismissedMappings(prev => new Set(prev).add(suggestion.merchant.toLowerCase()));
   };
 
-  const visibleRecurring = recurringSuggestions.filter(s => !dismissedRecurring.has(s.merchant));
-  const visibleBudgets = budgetSuggestions.filter(s => !dismissedBudgets.has(s.categoryId));
-  const visibleMappings = mappingSuggestions.filter(s => !dismissedMappings.has(s.merchant.toLowerCase()));
+  const visibleRecurring = !hiddenTypes.has('recurring')
+    ? recurringSuggestions.filter(s => !dismissedRecurring.has(s.merchant))
+    : [];
+  const visibleBudgets = !hiddenTypes.has('budget')
+    ? budgetSuggestions.filter(s => !dismissedBudgets.has(s.categoryId))
+    : [];
+  const visibleMappings = !hiddenTypes.has('mapping')
+    ? mappingSuggestions.filter(s => !dismissedMappings.has(s.merchant.toLowerCase()))
+    : [];
 
   const totalSuggestions = visibleRecurring.length + visibleBudgets.length + visibleMappings.length;
 
@@ -151,12 +182,22 @@ export default function AutomationDashboard({
       {/* Recurring Transaction Suggestions */}
       {visibleRecurring.length > 0 && (
         <div className="bg-white border-2 border-blue-200 rounded-2xl p-4">
-          <div className="flex items-center gap-2 mb-4">
-            <Calendar className="w-5 h-5 text-blue-600" />
-            <h3 className="font-bold text-blue-900">Recurring Bills Detected</h3>
-            <span className="px-2 py-0.5 bg-blue-100 text-blue-800 rounded-full text-xs font-bold">
-              {visibleRecurring.length}
-            </span>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Calendar className="w-5 h-5 text-blue-600" />
+              <h3 className="font-bold text-blue-900">Recurring Bills Detected</h3>
+              <span className="px-2 py-0.5 bg-blue-100 text-blue-800 rounded-full text-xs font-bold">
+                {visibleRecurring.length}
+              </span>
+            </div>
+            <button
+              onClick={() => hideType('recurring')}
+              className="flex items-center gap-1 px-2 py-1 text-xs text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+              title="Don't show recurring bill suggestions again"
+            >
+              <EyeOff className="w-3 h-3" />
+              Don't show again
+            </button>
           </div>
 
           <div className="space-y-3">
@@ -207,12 +248,22 @@ export default function AutomationDashboard({
       {/* Budget Adjustment Suggestions */}
       {visibleBudgets.length > 0 && (
         <div className="bg-white border-2 border-green-200 rounded-2xl p-4">
-          <div className="flex items-center gap-2 mb-4">
-            <TrendingUp className="w-5 h-5 text-green-600" />
-            <h3 className="font-bold text-green-900">Budget Adjustments</h3>
-            <span className="px-2 py-0.5 bg-green-100 text-green-800 rounded-full text-xs font-bold">
-              {visibleBudgets.length}
-            </span>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <TrendingUp className="w-5 h-5 text-green-600" />
+              <h3 className="font-bold text-green-900">Budget Adjustments</h3>
+              <span className="px-2 py-0.5 bg-green-100 text-green-800 rounded-full text-xs font-bold">
+                {visibleBudgets.length}
+              </span>
+            </div>
+            <button
+              onClick={() => hideType('budget')}
+              className="flex items-center gap-1 px-2 py-1 text-xs text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+              title="Don't show budget suggestions again"
+            >
+              <EyeOff className="w-3 h-3" />
+              Don't show again
+            </button>
           </div>
 
           <div className="space-y-3">
@@ -275,12 +326,22 @@ export default function AutomationDashboard({
       {/* Merchant Mapping Suggestions */}
       {visibleMappings.length > 0 && (
         <div className="bg-white border-2 border-purple-200 rounded-2xl p-4">
-          <div className="flex items-center gap-2 mb-4">
-            <Zap className="w-5 h-5 text-purple-600" />
-            <h3 className="font-bold text-purple-900">Auto-Categorization</h3>
-            <span className="px-2 py-0.5 bg-purple-100 text-purple-800 rounded-full text-xs font-bold">
-              {visibleMappings.length}
-            </span>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Zap className="w-5 h-5 text-purple-600" />
+              <h3 className="font-bold text-purple-900">Auto-Categorization</h3>
+              <span className="px-2 py-0.5 bg-purple-100 text-purple-800 rounded-full text-xs font-bold">
+                {visibleMappings.length}
+              </span>
+            </div>
+            <button
+              onClick={() => hideType('mapping')}
+              className="flex items-center gap-1 px-2 py-1 text-xs text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+              title="Don't show auto-categorization suggestions again"
+            >
+              <EyeOff className="w-3 h-3" />
+              Don't show again
+            </button>
           </div>
 
           <div className="space-y-3">

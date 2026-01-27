@@ -615,9 +615,18 @@ const App: React.FC = () => {
     // Auto-create subscription or bill if transaction is recurring
     const category = categories.find(c => c.id === transaction.categoryId);
 
+    console.log('🔍 Transaction auto-create check:', {
+      description: transaction.description,
+      isRecurring: transaction.isRecurring,
+      frequency: transaction.frequency,
+      categoryName: category?.name,
+      categoryType: category?.type
+    });
+
     if (transaction.isRecurring && transaction.frequency && category) {
       // Auto-create SUBSCRIPTION if categorized as Subscriptions
       if (category.name === 'Subscriptions' || transaction.categoryId === '14') {
+        console.log('✅ Creating subscription for:', transaction.description);
         const existingSubscription = subscriptions.find(s =>
           s.name === transaction.description &&
           s.cost === transaction.amount &&
@@ -662,6 +671,7 @@ const App: React.FC = () => {
       }
       // Auto-create BILL for any recurring spending/debt transaction
       else if (category.type === CategoryType.SPENDING || category.type === CategoryType.DEBT) {
+        console.log('✅ Creating bill for:', transaction.description);
         const existingBill = bills.find(b =>
           b.name === transaction.description &&
           b.amount === transaction.amount &&
