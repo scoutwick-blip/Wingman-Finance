@@ -47,6 +47,21 @@ export function detectRecurringTransactions(
   const merchantGroups = new Map<string, Transaction[]>();
 
   transactions.forEach(tx => {
+    // CRITICAL: Only process transactions from SPENDING or DEBT categories
+    const txCategory = categories.find(c => c.id === tx.categoryId);
+
+    // Skip if no category, or if it's income/savings
+    if (!txCategory ||
+        txCategory.type === 'income' ||
+        txCategory.type === 'savings') {
+      return;
+    }
+
+    // Skip if already marked as recurring
+    if (tx.isRecurring) {
+      return;
+    }
+
     const merchant = (tx.merchant || tx.description).toLowerCase().trim();
     if (!merchantGroups.has(merchant)) {
       merchantGroups.set(merchant, []);

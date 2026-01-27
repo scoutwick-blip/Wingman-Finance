@@ -258,16 +258,24 @@ export default function CSVImport({
   };
 
   const handleCategorize = async () => {
-    // Group transactions by merchant/description
+    // Group transactions by merchant/description AND similar amounts
     const groups = new Map<string, { transactions: ImportedTransaction[], categoryId?: string }>();
 
     importedTransactions.forEach(tx => {
-      const key = tx.merchant || tx.description;
+      const merchantName = (tx.merchant || tx.description).trim();
+
+      // Round amount to nearest $10 for grouping similar transactions
+      const amountBucket = Math.round(Math.abs(tx.amount) / 10) * 10;
+
+      // Create a composite key: merchant + amount bucket
+      // This groups "Walmart $45" separately from "Walmart $350"
+      const key = `${merchantName}||${amountBucket}`;
+
       if (!groups.has(key)) {
         // Auto-apply merchant mapping if one exists
-        const merchantName = tx.merchant?.toLowerCase() || tx.description.toLowerCase();
+        const normalizedMerchant = tx.merchant?.toLowerCase() || tx.description.toLowerCase();
         const existingMapping = merchantMappings.find(m =>
-          m.merchant.toLowerCase() === merchantName
+          m.merchant.toLowerCase() === normalizedMerchant
         );
 
         groups.set(key, {
@@ -656,7 +664,7 @@ export default function CSVImport({
             <div className="space-y-6">
               <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-4">
                 <p className="text-sm text-blue-800">
-                  <strong>Click on recommended categories</strong> to quickly categorize transactions. AI suggestions are based on merchant names, transaction history, and keywords.
+                  <strong>Click on recommended categories</strong> to quickly categorize transactions. Transactions are grouped by merchant and similar amounts. AI suggestions are based on merchant names, transaction history, and keywords.
                 </p>
               </div>
 
@@ -699,7 +707,12 @@ export default function CSVImport({
               <div className="space-y-3 max-h-96 overflow-y-auto">
                 {Array.from(transactionGroups.entries()).map(([groupKey, group]) => {
                   const totalAmount = group.transactions.reduce((sum, tx) => sum + tx.amount, 0);
+                  const avgAmount = totalAmount / group.transactions.length;
                   const isIncome = group.transactions[0]?.type === 'income';
+
+                  // Extract merchant name from composite key (format: "merchant||amountBucket")
+                  const [merchantName, amountBucket] = groupKey.split('||');
+
                   const recommendations = getRecommendations(
                     group.transactions[0]?.description,
                     group.transactions[0]?.merchant
@@ -715,9 +728,9 @@ export default function CSVImport({
                     >
                       <div className="flex items-start justify-between gap-4 mb-3">
                         <div className="flex-1">
-                          <h4 className="font-bold text-gray-900">{groupKey}</h4>
+                          <h4 className="font-bold text-gray-900">{merchantName}</h4>
                           <p className="text-sm text-gray-600">
-                            {group.transactions.length} transaction{group.transactions.length !== 1 ? 's' : ''} · Total: {currency}{totalAmount.toFixed(2)}
+                            {group.transactions.length} transaction{group.transactions.length !== 1 ? 's' : ''} · Avg: {currency}{avgAmount.toFixed(2)} · Total: {currency}{totalAmount.toFixed(2)}
                           </p>
                           <div className="flex items-center gap-2 mt-1 flex-wrap">
                             <span className={`text-xs px-2 py-0.5 rounded-full border font-bold ${
