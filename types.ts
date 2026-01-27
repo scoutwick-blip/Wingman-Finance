@@ -176,6 +176,7 @@ export interface Bill {
   amount: number;
   dueDate: string; // ISO date
   categoryId: string;
+  accountId?: string; // Which account this bill is paid from
   isRecurring: boolean;
   frequency?: RecurringFrequency;
   status: BillStatus;
@@ -254,6 +255,7 @@ export interface Subscription {
   cost: number;
   billingCycle: RecurringFrequency;
   categoryId: string;
+  accountId?: string; // Which account this subscription is charged to
   startDate: string;
   nextBillingDate: string;
   status: SubscriptionStatus;
@@ -295,6 +297,7 @@ export interface Goal {
   deadline?: string;
   status: GoalStatus;
   categoryId?: string;
+  accountId?: string; // For savings goals - which account holds the funds
   monthlyContribution?: number;
   icon?: string;
   color?: string;

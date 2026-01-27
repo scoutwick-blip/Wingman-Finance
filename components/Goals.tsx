@@ -1,10 +1,11 @@
 import React, { useState, useMemo } from 'react';
-import { Goal, GoalType, GoalStatus, GoalMilestone, Category, NotificationType, Transaction, TransactionBehavior, UserPreferences } from '../types';
+import { Goal, GoalType, GoalStatus, GoalMilestone, Category, NotificationType, Transaction, TransactionBehavior, UserPreferences, Account } from '../types';
 import { Target, TrendingUp, DollarSign, Calendar, Award, Zap, Edit2, Trash2, Play, Pause, CheckCircle } from 'lucide-react';
 
 interface GoalsProps {
   goals: Goal[];
   categories: Category[];
+  accounts: Account[];
   transactions: Transaction[];
   preferences: UserPreferences;
   currency: string;
@@ -18,6 +19,7 @@ interface GoalsProps {
 export default function Goals({
   goals,
   categories,
+  accounts,
   transactions,
   preferences,
   currency,
@@ -40,6 +42,7 @@ export default function Goals({
     currentAmount: '0',
     deadline: '',
     categoryId: '',
+    accountId: '',
     monthlyContribution: '',
     icon: '🎯',
     color: '#3b82f6'
@@ -105,6 +108,7 @@ export default function Goals({
       deadline: formData.deadline || undefined,
       status: currentAmount >= targetAmount ? GoalStatus.COMPLETED : GoalStatus.IN_PROGRESS,
       categoryId: formData.categoryId || undefined,
+      accountId: formData.accountId || undefined,
       monthlyContribution: formData.monthlyContribution ? parseFloat(formData.monthlyContribution) : undefined,
       icon: formData.icon,
       color: formData.color,
@@ -132,6 +136,7 @@ export default function Goals({
       currentAmount: '0',
       deadline: '',
       categoryId: '',
+      accountId: '',
       monthlyContribution: '',
       icon: '🎯',
       color: '#3b82f6'
@@ -150,6 +155,7 @@ export default function Goals({
       currentAmount: goal.currentAmount.toString(),
       deadline: goal.deadline || '',
       categoryId: goal.categoryId || '',
+      accountId: goal.accountId || '',
       monthlyContribution: goal.monthlyContribution?.toString() || '',
       icon: goal.icon || '🎯',
       color: goal.color || '#3b82f6'
@@ -199,6 +205,7 @@ export default function Goals({
     const projection = calculateProjection(goal);
     const nextMilestone = goal.milestones.find(m => !m.achieved);
     const isOverdue = goal.deadline && new Date(goal.deadline) < new Date() && goal.status !== GoalStatus.COMPLETED;
+    const account = accounts.find(a => a.id === goal.accountId);
 
     return (
       <div
@@ -212,6 +219,12 @@ export default function Goals({
             <div>
               <h3 className="font-bold text-xl">{goal.name}</h3>
               <p className="text-sm text-gray-600">{goal.description}</p>
+              {account && (
+                <p className="text-xs text-gray-500 flex items-center gap-1 mt-1">
+                  <span>{account.icon}</span>
+                  <span>{account.name}</span>
+                </p>
+              )}
             </div>
           </div>
           <span className={`text-xs px-2 py-1 rounded-full font-bold uppercase ${getTypeColor(goal.type)} bg-opacity-10`}>
@@ -466,6 +479,21 @@ export default function Goals({
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="200"
                 />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Account (Optional)</label>
+                <select
+                  value={formData.accountId}
+                  onChange={(e) => setFormData({ ...formData, accountId: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="">None</option>
+                  {accounts.filter(a => a.type === 'SAVINGS' || a.type === 'CHECKING').map(acc => (
+                    <option key={acc.id} value={acc.id}>
+                      {acc.icon} {acc.name}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Icon</label>

@@ -1,10 +1,11 @@
 import React, { useState, useMemo } from 'react';
-import { Bill, BillStatus, Category, RecurringFrequency, Transaction, NotificationType } from '../types';
+import { Bill, BillStatus, Category, RecurringFrequency, Transaction, NotificationType, Account } from '../types';
 import { Calendar, Bell, Check, AlertTriangle, Plus, Edit2, Trash2, DollarSign } from 'lucide-react';
 
 interface BillsProps {
   bills: Bill[];
   categories: Category[];
+  accounts: Account[];
   transactions: Transaction[];
   currency: string;
   onAddBill: (bill: Bill) => void;
@@ -17,6 +18,7 @@ interface BillsProps {
 export default function Bills({
   bills,
   categories,
+  accounts,
   transactions,
   currency,
   onAddBill,
@@ -32,6 +34,7 @@ export default function Bills({
     amount: '',
     dueDate: '',
     categoryId: categories[0]?.id || '',
+    accountId: accounts.find(a => a.isDefault)?.id || accounts[0]?.id || '',
     isRecurring: false,
     frequency: RecurringFrequency.MONTHLY,
     notes: ''
@@ -86,6 +89,7 @@ export default function Bills({
       amount: parseFloat(formData.amount),
       dueDate: formData.dueDate,
       categoryId: formData.categoryId,
+      accountId: formData.accountId || undefined,
       isRecurring: formData.isRecurring,
       frequency: formData.isRecurring ? formData.frequency : undefined,
       status: BillStatus.UPCOMING,
@@ -110,6 +114,7 @@ export default function Bills({
       amount: '',
       dueDate: '',
       categoryId: categories[0]?.id || '',
+      accountId: accounts.find(a => a.isDefault)?.id || accounts[0]?.id || '',
       isRecurring: false,
       frequency: RecurringFrequency.MONTHLY,
       notes: ''
@@ -125,6 +130,7 @@ export default function Bills({
       amount: bill.amount.toString(),
       dueDate: bill.dueDate,
       categoryId: bill.categoryId,
+      accountId: bill.accountId || accounts.find(a => a.isDefault)?.id || accounts[0]?.id || '',
       isRecurring: bill.isRecurring,
       frequency: bill.frequency || RecurringFrequency.MONTHLY,
       notes: bill.notes || ''
@@ -180,6 +186,7 @@ export default function Bills({
   const renderBillCard = (bill: Bill) => {
     const status = getBillStatus(bill);
     const category = categories.find(c => c.id === bill.categoryId);
+    const account = accounts.find(a => a.id === bill.accountId);
     const daysUntilDue = Math.ceil((new Date(bill.dueDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
 
     return (
@@ -194,6 +201,12 @@ export default function Bills({
               <h3 className="font-bold text-lg">{bill.name}</h3>
             </div>
             <p className="text-sm text-gray-600">{getCategoryName(bill.categoryId)}</p>
+            {account && (
+              <p className="text-xs text-gray-500 flex items-center gap-1 mt-1">
+                <span>{account.icon}</span>
+                <span>{account.name}</span>
+              </p>
+            )}
           </div>
           <div className="flex items-center gap-2">
             {getStatusIcon(status)}
@@ -359,6 +372,20 @@ export default function Bills({
                   {categories.map(cat => (
                     <option key={cat.id} value={cat.id}>
                       {cat.icon} {cat.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Account</label>
+                <select
+                  value={formData.accountId}
+                  onChange={(e) => setFormData({ ...formData, accountId: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  {accounts.map(acc => (
+                    <option key={acc.id} value={acc.id}>
+                      {acc.icon} {acc.name}
                     </option>
                   ))}
                 </select>
