@@ -71,10 +71,19 @@ export default function AutomationDashboard({
       }
     });
 
+    // Calculate proper due date - use nextDueDate if available, otherwise use today + 1 month
+    const dueDate = suggestion.nextDueDate
+      ? suggestion.nextDueDate.toISOString().split('T')[0]
+      : (() => {
+          const today = new Date();
+          today.setMonth(today.getMonth() + 1);
+          return today.toISOString().split('T')[0];
+        })();
+
     const newBill: Omit<Bill, 'id'> = {
       name: suggestion.suggestedBillName,
       amount: suggestion.amount,
-      dueDate: suggestion.nextDueDate?.getDate() || new Date().getDate(),
+      dueDate: dueDate,
       categoryId: suggestion.categoryId,
       accountId: mostCommonAccountId,
       isRecurring: true,
