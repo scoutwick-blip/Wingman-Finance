@@ -1129,6 +1129,7 @@ const App: React.FC = () => {
             <AutomationDashboard
               transactions={transactions}
               categories={categories}
+              accounts={accounts}
               bills={bills}
               subscriptions={subscriptions}
               merchantMappings={merchantMappings}
@@ -1172,9 +1173,10 @@ const App: React.FC = () => {
         );
       case 'budgets':
         return (
-          <Budgets 
-            categories={categories} 
-            transactions={transactions} 
+          <Budgets
+            categories={categories}
+            transactions={transactions}
+            accounts={accounts}
             onUpdateCategory={updateCategory}
             onAddCategory={addCategory}
             onDeleteCategory={deleteCategory}
@@ -1188,6 +1190,7 @@ const App: React.FC = () => {
           <Bills
             bills={bills}
             categories={categories}
+            accounts={accounts}
             transactions={transactions}
             currency={preferences.currency}
             onAddBill={addBill}
@@ -1211,6 +1214,7 @@ const App: React.FC = () => {
           <Subscriptions
             subscriptions={subscriptions}
             categories={categories}
+            accounts={accounts}
             currency={preferences.currency}
             onAddSubscription={addSubscription}
             onEditSubscription={updateSubscription}
@@ -1223,6 +1227,7 @@ const App: React.FC = () => {
           <Goals
             goals={goals}
             categories={categories}
+            accounts={accounts}
             transactions={transactions}
             preferences={preferences}
             currency={preferences.currency}
@@ -1238,6 +1243,7 @@ const App: React.FC = () => {
           <SavingsDebtDashboard
             transactions={transactions}
             categories={categories}
+            accounts={accounts}
             goals={goals}
             preferences={preferences}
             onNavigateToGoals={() => setActiveTab('goals')}
@@ -1306,6 +1312,7 @@ const App: React.FC = () => {
         <CSVImport
           transactions={transactions}
           categories={categories}
+          accounts={accounts}
           merchantMappings={merchantMappings}
           onImport={importTransactions}
           onUpdateMerchantMappings={setMerchantMappings}

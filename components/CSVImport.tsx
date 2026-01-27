@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Upload, Check, X, AlertCircle, FileText, Download, Sparkles } from 'lucide-react';
 import { importCSVTransactions, reconcileTransactions, BANK_PRESETS, CSVMapping } from '../services/csvImportService';
 import { parseOFXFile, isOFXFormat } from '../services/ofxParser';
-import { ImportedTransaction, ReconciliationMatch, ReconciliationStatus, Transaction, Category, MerchantMapping, CategorySuggestion } from '../types';
+import { ImportedTransaction, ReconciliationMatch, ReconciliationStatus, Transaction, Category, MerchantMapping, CategorySuggestion, Account } from '../types';
 import { findBestCategoryMatch } from '../services/merchantDatabase';
 import { suggestCategoriesBatch } from '../services/geminiService';
 
@@ -10,6 +10,7 @@ interface CSVImportProps {
   transactions: Transaction[];
   categories: Category[];
   merchantMappings: MerchantMapping[];
+  accounts: Account[];
   onImport: (transactions: Omit<Transaction, 'id'>[]) => void;
   onUpdateMerchantMappings: (mappings: MerchantMapping[]) => void;
   onClose: () => void;
@@ -20,6 +21,7 @@ export default function CSVImport({
   transactions,
   categories,
   merchantMappings,
+  accounts,
   onImport,
   onUpdateMerchantMappings,
   onClose,
@@ -36,6 +38,9 @@ export default function CSVImport({
   const [transactionGroups, setTransactionGroups] = useState<Map<string, { transactions: ImportedTransaction[], categoryId?: string }>>(new Map());
   const [aiSuggestions, setAiSuggestions] = useState<Map<string, CategorySuggestion[]>>(new Map());
   const [isLoadingAI, setIsLoadingAI] = useState(false);
+  const [selectedAccountForImport, setSelectedAccountForImport] = useState<string>(
+    accounts.find(a => a.isDefault)?.id || accounts[0]?.id || ''
+  );
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -446,6 +451,7 @@ export default function CSVImport({
         amount: imported.amount,
         categoryId: categoryId,
         typeId: typeId,
+        accountId: selectedAccountForImport || undefined,
         merchant: imported.merchant,
         isRecurring: isRecurring
       });
@@ -516,6 +522,31 @@ export default function CSVImport({
             >
               <X className="w-6 h-6" />
             </button>
+          </div>
+
+          {/* Account Selection - Appears on all steps */}
+          <div className="mb-6 bg-gradient-to-r from-indigo-50 to-blue-50 border-2 border-indigo-200 rounded-xl p-4">
+            <div className="flex items-center gap-4">
+              <div className="flex-1">
+                <label className="block text-sm font-bold text-indigo-900 mb-2">
+                  Import to Account
+                </label>
+                <select
+                  value={selectedAccountForImport}
+                  onChange={(e) => setSelectedAccountForImport(e.target.value)}
+                  className="w-full px-4 py-2 border-2 border-indigo-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white text-sm font-bold"
+                >
+                  {accounts.map(acc => (
+                    <option key={acc.id} value={acc.id}>
+                      {acc.icon} {acc.name} {acc.isDefault ? '(Default)' : ''}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs text-indigo-600 mt-1">
+                  All imported transactions will be assigned to this account
+                </p>
+              </div>
+            </div>
           </div>
 
           {/* Step 1: Upload */}

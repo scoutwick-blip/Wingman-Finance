@@ -1,10 +1,11 @@
 import React, { useState, useMemo } from 'react';
-import { Subscription, SubscriptionStatus, Category, RecurringFrequency, NotificationType } from '../types';
+import { Subscription, SubscriptionStatus, Category, RecurringFrequency, NotificationType, Account } from '../types';
 import { Calendar, DollarSign, AlertTriangle, TrendingUp, Zap, Trash2, Edit2, ExternalLink } from 'lucide-react';
 
 interface SubscriptionsProps {
   subscriptions: Subscription[];
   categories: Category[];
+  accounts: Account[];
   currency: string;
   onAddSubscription: (subscription: Subscription) => void;
   onEditSubscription: (subscription: Subscription) => void;
@@ -15,6 +16,7 @@ interface SubscriptionsProps {
 export default function Subscriptions({
   subscriptions,
   categories,
+  accounts,
   currency,
   onAddSubscription,
   onEditSubscription,
@@ -28,6 +30,7 @@ export default function Subscriptions({
     cost: '',
     billingCycle: RecurringFrequency.MONTHLY,
     categoryId: categories[0]?.id || '',
+    accountId: accounts.find(a => a.isDefault)?.id || accounts[0]?.id || '',
     startDate: new Date().toISOString().split('T')[0],
     status: SubscriptionStatus.ACTIVE,
     trialEndDate: '',
@@ -122,6 +125,7 @@ export default function Subscriptions({
       cost: parseFloat(formData.cost),
       billingCycle: formData.billingCycle,
       categoryId: formData.categoryId,
+      accountId: formData.accountId || undefined,
       startDate: formData.startDate,
       nextBillingDate,
       status: formData.status,
@@ -147,6 +151,7 @@ export default function Subscriptions({
       cost: '',
       billingCycle: RecurringFrequency.MONTHLY,
       categoryId: categories[0]?.id || '',
+      accountId: accounts.find(a => a.isDefault)?.id || accounts[0]?.id || '',
       startDate: new Date().toISOString().split('T')[0],
       status: SubscriptionStatus.ACTIVE,
       trialEndDate: '',
@@ -164,6 +169,7 @@ export default function Subscriptions({
       cost: subscription.cost.toString(),
       billingCycle: subscription.billingCycle,
       categoryId: subscription.categoryId,
+      accountId: subscription.accountId || accounts.find(a => a.isDefault)?.id || accounts[0]?.id || '',
       startDate: subscription.startDate,
       status: subscription.status,
       trialEndDate: subscription.trialEndDate || '',
@@ -203,6 +209,7 @@ export default function Subscriptions({
 
   const renderSubscriptionCard = (sub: Subscription) => {
     const category = categories.find(c => c.id === sub.categoryId);
+    const account = accounts.find(a => a.id === sub.accountId);
     const daysUntilBilling = Math.ceil((new Date(sub.nextBillingDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
     const daysUntilTrialEnd = sub.trialEndDate
       ? Math.ceil((new Date(sub.trialEndDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
@@ -220,6 +227,12 @@ export default function Subscriptions({
               <h3 className="font-bold text-lg">{sub.name}</h3>
             </div>
             <p className="text-sm text-gray-600">{getCategoryName(sub.categoryId)}</p>
+            {account && (
+              <p className="text-xs text-gray-500 flex items-center gap-1 mt-1">
+                <span>{account.icon}</span>
+                <span>{account.name}</span>
+              </p>
+            )}
             {sub.status === SubscriptionStatus.TRIAL && daysUntilTrialEnd !== null && (
               <p className="text-xs text-blue-600 font-medium mt-1">
                 Trial ends in {daysUntilTrialEnd} days
@@ -385,6 +398,20 @@ export default function Subscriptions({
                   {categories.map(cat => (
                     <option key={cat.id} value={cat.id}>
                       {cat.icon} {cat.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Account</label>
+                <select
+                  value={formData.accountId}
+                  onChange={(e) => setFormData({ ...formData, accountId: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  {accounts.map(acc => (
+                    <option key={acc.id} value={acc.id}>
+                      {acc.icon} {acc.name}
                     </option>
                   ))}
                 </select>

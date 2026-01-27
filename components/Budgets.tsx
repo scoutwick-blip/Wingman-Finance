@@ -1,11 +1,12 @@
 
 import React, { useState } from 'react';
-import { Category, Transaction, UserPreferences, CategoryType, BudgetSuggestion } from '../types';
+import { Category, Transaction, UserPreferences, CategoryType, BudgetSuggestion, Account } from '../types';
 import { getBudgetSuggestions } from '../services/geminiService';
 
 interface BudgetsProps {
   categories: Category[];
   transactions: Transaction[];
+  accounts: Account[];
   onUpdateCategory: (id: string, updates: Partial<Category>) => void;
   onAddCategory: (cat: Omit<Category, 'id'>) => void;
   onDeleteCategory: (id: string) => void;
@@ -20,6 +21,7 @@ const ICONS = [
 export const Budgets: React.FC<BudgetsProps> = ({
   categories,
   transactions,
+  accounts,
   onUpdateCategory,
   onAddCategory,
   onDeleteCategory,
@@ -41,6 +43,7 @@ export const Budgets: React.FC<BudgetsProps> = ({
   // Filter and Search State
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<CategoryType | 'ALL'>('ALL');
+  const [accountFilter, setAccountFilter] = useState<string>('all');
 
   // AI Suggestion State
   const [suggestions, setSuggestions] = useState<BudgetSuggestion[]>([]);
@@ -96,7 +99,13 @@ export const Budgets: React.FC<BudgetsProps> = ({
   };
 
   const getCategoryProgress = (cat: Category) => {
-    const relevantTransactions = transactions.filter(t => t.categoryId === cat.id);
+    let relevantTransactions = transactions.filter(t => t.categoryId === cat.id);
+
+    // Filter by account if not 'all'
+    if (accountFilter !== 'all') {
+      relevantTransactions = relevantTransactions.filter(t => t.accountId === accountFilter);
+    }
+
     const amount = relevantTransactions.reduce((sum, t) => sum + t.amount, 0);
 
     switch (cat.type) {
@@ -479,6 +488,22 @@ export const Budgets: React.FC<BudgetsProps> = ({
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-900 outline-none focus:border-indigo-400 focus:bg-white transition-all"
             />
+          </div>
+
+          {/* Account Filter */}
+          <div>
+            <select
+              value={accountFilter}
+              onChange={(e) => setAccountFilter(e.target.value)}
+              className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-900 outline-none focus:border-indigo-400 focus:bg-white transition-all"
+            >
+              <option value="all">All Accounts</option>
+              {accounts.map(acc => (
+                <option key={acc.id} value={acc.id}>
+                  {acc.icon} {acc.name}
+                </option>
+              ))}
+            </select>
           </div>
 
           {/* Category Type Filter */}
