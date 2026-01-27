@@ -264,19 +264,33 @@ export function reconcileTransactions(
     }
 
     // No match - new transaction
-    const suggestion = suggestCategoryFromDescription(
-      importedTx.description,
-      importedTx.merchant,
-      categories,
-      existing
-    );
+    // IMPORTANT: Check if category was already set during grouping/categorization
+    // If so, use that instead of generating a new suggestion
+    let suggestedCategoryId: string | undefined;
+    let matchedKeywordGroup: string | undefined;
+
+    if (importedTx.category) {
+      // Category already set from user selection during import flow
+      suggestedCategoryId = importedTx.category;
+      matchedKeywordGroup = 'user_selected';
+    } else {
+      // No category set, generate suggestion from keywords
+      const suggestion = suggestCategoryFromDescription(
+        importedTx.description,
+        importedTx.merchant,
+        categories,
+        existing
+      );
+      suggestedCategoryId = suggestion.categoryId;
+      matchedKeywordGroup = suggestion.keywordGroup;
+    }
 
     matches.push({
       importedTransaction: importedTx,
       status: ReconciliationStatus.NEW,
       confidence: 0.0,
-      suggestedCategoryId: suggestion.categoryId,
-      matchedKeywordGroup: suggestion.keywordGroup
+      suggestedCategoryId,
+      matchedKeywordGroup
     });
   }
 
