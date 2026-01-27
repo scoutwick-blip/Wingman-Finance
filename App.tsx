@@ -35,6 +35,7 @@ import IncomeForecast from './components/IncomeForecast';
 import BudgetTemplates from './components/BudgetTemplates';
 import Subscriptions from './components/Subscriptions';
 import Goals from './components/Goals';
+import SavingsDebtDashboard from './components/SavingsDebtDashboard';
 import CSVImport from './components/CSVImport';
 
 const App: React.FC = () => {
@@ -1230,6 +1231,17 @@ const App: React.FC = () => {
             onDeleteGoal={deleteGoal}
             onUpdateGoalProgress={updateGoalProgress}
             onAddNotification={addNotification}
+          />
+        );
+      case 'savings-debt':
+        return (
+          <SavingsDebtDashboard
+            transactions={transactions}
+            categories={categories}
+            goals={goals}
+            preferences={preferences}
+            onNavigateToGoals={() => setActiveTab('goals')}
+            onNavigateToBudgets={() => setActiveTab('budgets')}
           />
         );
       case 'settings':
