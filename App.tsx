@@ -1163,7 +1163,6 @@ const App: React.FC = () => {
             onDelete={deleteTransaction}
             onBulkDelete={bulkDeleteTransactions}
             onBulkCategoryUpdate={bulkUpdateCategory}
-            onNavigateToCategory={(id) => setActiveTab('budgets')}
             preferences={preferences}
             initialConfig={transactionConfig}
             onClearConfig={() => setTransactionConfig(null)}

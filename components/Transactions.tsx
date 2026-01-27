@@ -13,7 +13,6 @@ interface TransactionsProps {
   onDelete: (id: string) => void;
   onBulkDelete: (ids: string[]) => void;
   onBulkCategoryUpdate: (ids: string[], categoryId: string) => void;
-  onNavigateToCategory: (categoryId: string) => void;
   preferences: UserPreferences;
   initialConfig?: { mode: 'add', behavior: TransactionBehavior } | null;
   onClearConfig: () => void;
@@ -29,7 +28,6 @@ export const Transactions: React.FC<TransactionsProps> = ({
   onDelete,
   onBulkDelete,
   onBulkCategoryUpdate,
-  onNavigateToCategory,
   preferences,
   initialConfig,
   onClearConfig,
@@ -46,6 +44,10 @@ export const Transactions: React.FC<TransactionsProps> = ({
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [showMoveModal, setShowMoveModal] = useState(false);
   const [targetCategory, setTargetCategory] = useState(categories[0]?.id || '');
+
+  // Quick category edit modal
+  const [showCategoryEditModal, setShowCategoryEditModal] = useState(false);
+  const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
 
   // Default to first transaction type behavior
   const initialType = preferences.transactionTypes[0];
@@ -281,6 +283,20 @@ export const Transactions: React.FC<TransactionsProps> = ({
     onBulkCategoryUpdate(Array.from(selectedIds), targetCategory);
     setSelectedIds(new Set());
     setShowMoveModal(false);
+  };
+
+  const handleCategoryClick = (transaction: Transaction) => {
+    setEditingTransaction(transaction);
+    setTargetCategory(transaction.categoryId);
+    setShowCategoryEditModal(true);
+  };
+
+  const handleCategoryUpdate = () => {
+    if (editingTransaction && targetCategory) {
+      onUpdate(editingTransaction.id, { categoryId: targetCategory });
+      setShowCategoryEditModal(false);
+      setEditingTransaction(null);
+    }
   };
 
   const resetFilters = () => {
@@ -647,10 +663,11 @@ export const Transactions: React.FC<TransactionsProps> = ({
                         </div>
                       </td>
                       <td className="px-4 py-4">
-                        <button 
-                          onClick={() => onNavigateToCategory(t.categoryId)}
+                        <button
+                          onClick={() => handleCategoryClick(t)}
                           className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-all hover:scale-110 active:scale-95 whitespace-nowrap"
                           style={{ backgroundColor: (cat?.color || '#94a3b8') + '15', color: cat?.color || '#94a3b8' }}
+                          title="Click to change category"
                         >
                           {cat?.icon || '📦'} {cat?.name || 'Uncategorized'}
                         </button>
@@ -766,6 +783,82 @@ export const Transactions: React.FC<TransactionsProps> = ({
                  </div>
              </div>
          </div>
+      )}
+
+      {/* QUICK CATEGORY EDIT MODAL */}
+      {showCategoryEditModal && editingTransaction && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[60] flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-white rounded-3xl p-6 w-full max-w-md shadow-2xl space-y-4">
+            <div className="text-center space-y-2">
+              <h4 className="text-lg font-black text-slate-900 uppercase tracking-tight">Change Category</h4>
+              <p className="text-xs text-slate-500 font-bold">
+                Update category for: <span className="text-slate-900">{editingTransaction.description}</span>
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2">Select Category</label>
+              <select
+                value={targetCategory}
+                onChange={e => setTargetCategory(e.target.value)}
+                className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold text-slate-900 outline-none"
+              >
+                {categories.map(c => {
+                  const isCurrent = c.id === editingTransaction.categoryId;
+                  return (
+                    <option key={c.id} value={c.id}>
+                      {c.icon} {c.name} {isCurrent ? '(current)' : ''}
+                    </option>
+                  );
+                })}
+              </select>
+            </div>
+
+            {/* Show selected category details */}
+            {(() => {
+              const selectedCat = categories.find(c => c.id === targetCategory);
+              if (!selectedCat) return null;
+
+              return (
+                <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-2xl">{selectedCat.icon}</span>
+                      <div>
+                        <p className="text-sm font-black text-slate-900">{selectedCat.name}</p>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                          {selectedCat.type}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xs font-bold text-slate-500">Budget</p>
+                      <p className="text-sm font-black text-slate-900">{preferences.currency}{selectedCat.budget}</p>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+
+            <div className="flex gap-3 pt-2">
+              <button
+                onClick={() => {
+                  setShowCategoryEditModal(false);
+                  setEditingTransaction(null);
+                }}
+                className="flex-1 py-3 text-slate-400 font-bold text-xs uppercase tracking-widest hover:text-slate-600"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleCategoryUpdate}
+                className="flex-1 bg-slate-900 text-white rounded-xl py-3 font-bold text-[10px] uppercase tracking-widest hover:bg-slate-800"
+              >
+                Update Category
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Receipt Scanner Modal */}
