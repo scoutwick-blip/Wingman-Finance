@@ -62,6 +62,22 @@ export function detectRecurringTransactions(
     // Sort by date
     const sorted = [...txs].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
+    // Get the category for this transaction group
+    const firstTxCategory = categories.find(c => c.id === sorted[0].categoryId);
+
+    // IMPORTANT: Only detect bills for SPENDING and DEBT categories
+    // Skip income, savings, and investment categories
+    if (!firstTxCategory ||
+        firstTxCategory.type === 'income' ||
+        firstTxCategory.type === 'savings') {
+      return;
+    }
+
+    // Skip if transactions are already marked as recurring (already set up as bills)
+    if (sorted.some(tx => tx.isRecurring)) {
+      return;
+    }
+
     // Check if amounts are consistent (within 5%)
     const amounts = sorted.map(tx => Math.abs(tx.amount));
     const avgAmount = amounts.reduce((sum, amt) => sum + amt, 0) / amounts.length;
@@ -141,6 +157,13 @@ export function detectRecurringTransactions(
         nextDueDate.setFullYear(nextDueDate.getFullYear() + 1);
         break;
     }
+
+    // Determine if this is more likely a subscription or a bill
+    // Subscriptions are typically entertainment/tech services, bills are utilities/housing
+    const categoryName = firstTxCategory?.name.toLowerCase() || '';
+    const isLikelySubscription = categoryName.includes('subscription') ||
+                                  categoryName.includes('entertainment') ||
+                                  categoryName.includes('streaming');
 
     // Create suggestion
     suggestions.push({
