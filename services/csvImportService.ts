@@ -105,8 +105,7 @@ export function parseDate(dateStr: string, format: string): string {
 
     const date = new Date(year, month - 1, day);
     return date.toISOString().split('T')[0];
-  } catch (error) {
-    console.error('Error parsing date:', error);
+  } catch {
     return new Date().toISOString().split('T')[0];
   }
 }
@@ -178,9 +177,6 @@ export function importCSVTransactions(
 
     const merchant = extractMerchant(description);
     const transactionType = detectTransactionType(description, merchant, amount, amountStr, typeStr);
-
-    // Debug logging
-    console.log(`[Transaction Type] "${description}" | Amount: "${amountStr}" | Type column: "${typeStr || 'N/A'}" | Detected: ${transactionType}`);
 
     imported.push({
       date,
@@ -431,8 +427,6 @@ function suggestCategoryFromDescription(
     );
 
     if (hasKeywordMatch) {
-      console.log(`[Category Suggestion] Transaction "${description}" matched keyword group: ${key}`);
-
       // Try to find a category that matches any of the category name patterns
       const category = categories.find(c => {
         const catName = c.name.toLowerCase();
@@ -440,17 +434,14 @@ function suggestCategoryFromDescription(
       });
 
       if (category) {
-        console.log(`[Category Suggestion] Found matching category: ${category.name}`);
         return { categoryId: category.id, keywordGroup: key };
       } else {
-        console.log(`[Category Suggestion] No matching category found for keyword group: ${key}`);
         // Return the keyword group even if no category was found, so user can see what matched
         return { categoryId: undefined, keywordGroup: key };
       }
     }
   }
 
-  console.log(`[Category Suggestion] No category match found for: "${description}"`);
   // Don't force a category if we can't find a good match
   return { categoryId: undefined, keywordGroup: undefined };
 }

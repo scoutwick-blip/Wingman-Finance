@@ -61,8 +61,8 @@ export const Budgets: React.FC<BudgetsProps> = ({
     try {
         const results = await getBudgetSuggestions(transactions, categories);
         setSuggestions(results);
-    } catch (e) {
-        console.error(e);
+    } catch {
+        // AI suggestion fetch failed
     } finally {
         setIsLoadingSuggestions(false);
     }

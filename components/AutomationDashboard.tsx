@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Zap, TrendingUp, Calendar, DollarSign, CheckCircle, X, Sparkles, EyeOff } from 'lucide-react';
-import { Transaction, Category, Bill, Subscription, MerchantMapping, Account } from '../types';
+import { Transaction, Category, Bill, BillStatus, Subscription, MerchantMapping, Account } from '../types';
 import {
   detectRecurringTransactions,
   suggestBudgetAdjustments,
@@ -58,8 +58,8 @@ export default function AutomationDashboard({
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY_HIDDEN_SUGGESTIONS, JSON.stringify(Array.from(hiddenTypes)));
-    } catch (error) {
-      console.error('Failed to save hidden suggestion types:', error);
+    } catch {
+      // Silently handle localStorage save failure
     }
   }, [hiddenTypes]);
 
@@ -113,7 +113,7 @@ export default function AutomationDashboard({
       accountId: mostCommonAccountId,
       isRecurring: true,
       frequency: suggestion.frequency,
-      status: 'UPCOMING' as any,
+      status: BillStatus.UPCOMING,
       notes: `Auto-detected from ${suggestion.transactions.length} transactions`
     };
 

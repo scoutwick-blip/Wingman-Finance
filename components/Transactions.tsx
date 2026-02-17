@@ -184,8 +184,8 @@ export const Transactions: React.FC<TransactionsProps> = ({
         if (suggestions.length > 0 && suggestions[0].confidence > 0.7) {
           setFormData(prev => ({ ...prev, categoryId: suggestions[0].categoryId }));
         }
-      } catch (error) {
-        console.error('Failed to get category suggestions:', error);
+      } catch {
+        // Category suggestion fetch failed
       } finally {
         setIsLoadingSuggestions(false);
       }
@@ -210,8 +210,8 @@ export const Transactions: React.FC<TransactionsProps> = ({
       if (suggestions.length > 0 && suggestions[0].confidence > 0.7) {
         setFormData(prev => ({ ...prev, categoryId: suggestions[0].categoryId }));
       }
-    } catch (error) {
-      console.error('Failed to get category suggestions:', error);
+    } catch {
+      // Category suggestion fetch failed
     } finally {
       setIsLoadingSuggestions(false);
     }

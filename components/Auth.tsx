@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { LogIn, UserPlus, Mail, Lock, AlertCircle, X } from 'lucide-react';
+import { LogIn, UserPlus, Mail, Lock, AlertCircle } from 'lucide-react';
 
 interface AuthProps {
   onSignIn: (email: string, password: string) => Promise<void>;
@@ -44,8 +44,8 @@ export default function Auth({ onSignIn, onSignUp, onOAuthSignIn, onSkip }: Auth
       } else {
         await onSignUp(email, password);
       }
-    } catch (err: any) {
-      setError(err.message || 'Authentication failed');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Authentication failed');
     } finally {
       setIsLoading(false);
     }
@@ -56,8 +56,8 @@ export default function Auth({ onSignIn, onSignUp, onOAuthSignIn, onSkip }: Auth
     setIsLoading(true);
     try {
       await onOAuthSignIn(provider);
-    } catch (err: any) {
-      setError(err.message || 'OAuth sign in failed');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'OAuth sign in failed');
       setIsLoading(false);
     }
   };

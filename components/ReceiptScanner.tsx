@@ -73,9 +73,8 @@ export default function ReceiptScanner({ onReceiptScanned, onCancel }: ReceiptSc
       const resizedImage = await resizeImage(file);
       setImage(resizedImage);
       setError(null);
-    } catch (err) {
+    } catch {
       setError('Failed to process image');
-      console.error(err);
     }
   };
 
@@ -92,9 +91,8 @@ export default function ReceiptScanner({ onReceiptScanned, onCancel }: ReceiptSc
         ...extractedData,
         receiptImage: image
       });
-    } catch (err) {
+    } catch {
       setError('Failed to scan receipt. Please try again or enter details manually.');
-      console.error('Receipt scanning error:', err);
       setIsProcessing(false);
     }
   };
