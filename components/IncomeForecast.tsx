@@ -141,7 +141,7 @@ export default function IncomeForecast({
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h2 className="text-2xl font-black text-slate-900 uppercase tracking-wide">INCOME FORECAST</h2>
+        <h2 className="text-2xl font-semibold text-slate-900 uppercase tracking-wide">INCOME FORECAST</h2>
         <p className="text-sm text-gray-600 mt-1">Project your financial future based on current trends</p>
       </div>
 
@@ -338,13 +338,13 @@ export default function IncomeForecast({
           <div className="bg-white bg-opacity-10 rounded-lg p-3">
             <p className="font-bold mb-1">In {forecastMonths} months:</p>
             <p className="text-lg">
-              You'll have <span className="font-black text-2xl">{currency}{finalBalance.balance.toFixed(2)}</span>
+              You'll have <span className="font-semibold text-2xl">{currency}{finalBalance.balance.toFixed(2)}</span>
             </p>
           </div>
           <div className="bg-white bg-opacity-10 rounded-lg p-3">
             <p className="font-bold mb-1">Net Change:</p>
             <p className="text-lg">
-              <span className={`font-black text-2xl ${finalBalance.balance >= currentBalance ? 'text-green-300' : 'text-red-300'}`}>
+              <span className={`font-semibold text-2xl ${finalBalance.balance >= currentBalance ? 'text-green-300' : 'text-red-300'}`}>
                 {finalBalance.balance >= currentBalance ? '+' : ''}{currency}{(finalBalance.balance - currentBalance).toFixed(2)}
               </span>
             </p>
@@ -352,7 +352,7 @@ export default function IncomeForecast({
           <div className="bg-white bg-opacity-10 rounded-lg p-3">
             <p className="font-bold mb-1">Monthly Net:</p>
             <p className="text-lg">
-              <span className="font-black text-2xl">
+              <span className="font-semibold text-2xl">
                 {currency}{((finalBalance.balance - currentBalance) / forecastMonths).toFixed(2)}/month
               </span>
             </p>

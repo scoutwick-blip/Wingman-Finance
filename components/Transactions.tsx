@@ -320,7 +320,7 @@ export const Transactions: React.FC<TransactionsProps> = ({
     <div className="space-y-6 pb-20 relative min-h-screen">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h3 className="text-2xl font-black text-slate-800 tracking-tight">Financial History</h3>
+          <h3 className="text-2xl font-semibold text-slate-800 tracking-tight">Financial History</h3>
           <p className="text-sm text-slate-500 font-medium">Tracking {transactions.length} records in {preferences.currency}.</p>
         </div>
         <div className="flex gap-3 flex-wrap">
@@ -364,11 +364,11 @@ export const Transactions: React.FC<TransactionsProps> = ({
       {isAdding && (
         <form onSubmit={handleSubmit} className="bg-white p-6 md:p-8 rounded-[2rem] border border-slate-200 shadow-xl animate-in fade-in slide-in-from-top-4 duration-300 space-y-6">
           <div className="flex justify-between items-center mb-2">
-             <h4 className="text-lg font-black uppercase text-slate-800 tracking-tight">
+             <h4 className="text-lg font-semibold uppercase text-slate-800 tracking-tight">
                {editingId ? 'Edit Transaction' : 'New Transaction'}
              </h4>
              {editingId && (
-               <button type="button" onClick={cancelEdit} className="text-[10px] font-bold uppercase text-rose-500 tracking-widest">
+               <button type="button" onClick={cancelEdit} className="text-xs font-bold uppercase text-rose-500 tracking-wide">
                  Cancel Edit
                </button>
              )}
@@ -381,7 +381,7 @@ export const Transactions: React.FC<TransactionsProps> = ({
                 key={type.id}
                 type="button"
                 onClick={() => setFormData({...formData, typeId: type.id})}
-                className={`flex-1 min-w-[110px] sm:min-w-[130px] px-3 py-2.5 rounded-xl text-[9px] sm:text-[10px] font-black uppercase tracking-widest transition-all ${
+                className={`flex-1 min-w-[110px] sm:min-w-[130px] px-3 py-2.5 rounded-xl text-xs sm:text-xs font-semibold uppercase tracking-wide transition-all ${
                   formData.typeId === type.id 
                     ? 'bg-white text-slate-900 shadow-sm scale-[1.02]' 
                     : 'text-slate-400 hover:text-slate-600'
@@ -394,7 +394,7 @@ export const Transactions: React.FC<TransactionsProps> = ({
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <div className="flex flex-col gap-1">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2">Description</label>
+              <label className="text-xs font-bold text-slate-400 uppercase tracking-wide px-2">Description</label>
               <input 
                 type="text" 
                 value={formData.description}
@@ -406,7 +406,7 @@ export const Transactions: React.FC<TransactionsProps> = ({
             </div>
             
             <div className="flex flex-col gap-1">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2">Amount ({preferences.currency})</label>
+              <label className="text-xs font-bold text-slate-400 uppercase tracking-wide px-2">Amount ({preferences.currency})</label>
               <input 
                 type="number" 
                 value={formData.amount}
@@ -418,7 +418,7 @@ export const Transactions: React.FC<TransactionsProps> = ({
             </div>
 
             <div className="flex flex-col gap-1">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2">Category</label>
+              <label className="text-xs font-bold text-slate-400 uppercase tracking-wide px-2">Category</label>
               <select
                 value={formData.categoryId}
                 onChange={e => setFormData({...formData, categoryId: e.target.value})}
@@ -434,7 +434,7 @@ export const Transactions: React.FC<TransactionsProps> = ({
             </div>
 
             <div className="flex flex-col gap-1">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2">Account</label>
+              <label className="text-xs font-bold text-slate-400 uppercase tracking-wide px-2">Account</label>
               <select
                 value={formData.accountId || ''}
                 onChange={e => setFormData({...formData, accountId: e.target.value || undefined})}
@@ -448,7 +448,7 @@ export const Transactions: React.FC<TransactionsProps> = ({
             </div>
 
             <div className="flex flex-col gap-1">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2">
+              <label className="text-xs font-bold text-slate-400 uppercase tracking-wide px-2">
                 {formData.isRecurring ? 'Start Date' : 'Date'}
               </label>
               <input
@@ -469,36 +469,36 @@ export const Transactions: React.FC<TransactionsProps> = ({
                   onChange={e => setFormData({...formData, isRecurring: e.target.checked})}
                   className="w-5 h-5 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500 transition-all"
                 />
-                <span className="text-sm font-black text-slate-700 uppercase tracking-tight">Set as Recurring</span>
+                <span className="text-sm font-semibold text-slate-700 uppercase tracking-tight">Set as Recurring</span>
               </label>
 
               {formData.isRecurring && (
                 <div className="flex flex-wrap items-center gap-4 animate-in slide-in-from-left-4 duration-500">
                   <div className="flex flex-col gap-1">
-                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] px-1">Frequency</label>
+                    <label className="text-xs font-semibold text-slate-400 uppercase tracking-wide px-1">Frequency</label>
                     <select 
                       value={formData.frequency}
                       onChange={e => setFormData({...formData, frequency: e.target.value as RecurringFrequency})}
-                      className="bg-slate-100 border-none rounded-xl px-4 py-2.5 text-[11px] font-black text-slate-900 uppercase tracking-widest outline-none focus:ring-2 ring-indigo-500/10"
+                      className="bg-slate-100 border-none rounded-xl px-4 py-2.5 text-xs font-semibold text-slate-900 uppercase tracking-wide outline-none focus:ring-2 ring-indigo-500/10"
                     >
                       {Object.values(RecurringFrequency).map(f => <option key={f} value={f}>{f}</option>)}
                     </select>
                   </div>
 
                   <div className="flex flex-col gap-1">
-                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] px-1">End Date (Optional)</label>
+                    <label className="text-xs font-semibold text-slate-400 uppercase tracking-wide px-1">End Date (Optional)</label>
                     <input 
                       type="date" 
                       value={formData.recurringEndDate}
                       onChange={e => setFormData({...formData, recurringEndDate: e.target.value})}
-                      className="bg-slate-100 border-none rounded-xl px-4 py-2.5 text-[11px] font-black text-slate-900 outline-none focus:ring-2 ring-indigo-500/10"
+                      className="bg-slate-100 border-none rounded-xl px-4 py-2.5 text-xs font-semibold text-slate-900 outline-none focus:ring-2 ring-indigo-500/10"
                     />
                   </div>
 
                   <div className="bg-indigo-50/50 border border-indigo-100 px-5 py-3 rounded-2xl flex flex-col justify-center">
-                    <p className="text-[9px] font-black text-indigo-400 uppercase tracking-[0.2em] leading-none mb-1">Schedule Outlook</p>
-                    <p className="text-[11px] font-bold text-indigo-700">
-                      Next payment: <span className="font-black underline underline-offset-2">{calculateNextDate(formData.date, formData.frequency)}</span>
+                    <p className="text-xs font-semibold text-indigo-400 uppercase tracking-wide leading-none mb-1">Schedule Outlook</p>
+                    <p className="text-xs font-bold text-indigo-700">
+                      Next payment: <span className="font-semibold underline underline-offset-2">{calculateNextDate(formData.date, formData.frequency)}</span>
                     </p>
                   </div>
                 </div>
@@ -507,11 +507,11 @@ export const Transactions: React.FC<TransactionsProps> = ({
             
             <div className="flex justify-end pt-2 gap-3">
               {editingId && (
-                <button type="button" onClick={cancelEdit} className="px-8 py-4 rounded-[1.5rem] font-black text-[11px] uppercase tracking-[0.2em] text-slate-500 hover:text-slate-800 transition-all">
+                <button type="button" onClick={cancelEdit} className="px-8 py-4 rounded-[1.5rem] font-semibold text-xs uppercase tracking-wide text-slate-500 hover:text-slate-800 transition-all">
                     Cancel
                 </button>
               )}
-              <button type="submit" className="w-full sm:w-auto bg-slate-900 text-white px-12 py-4 rounded-[1.5rem] font-black text-[11px] uppercase tracking-[0.2em] hover:bg-slate-800 transition-all shadow-xl active:scale-95">
+              <button type="submit" className="w-full sm:w-auto bg-slate-900 text-white px-12 py-4 rounded-[1.5rem] font-semibold text-xs uppercase tracking-wide hover:bg-slate-800 transition-all shadow-xl active:scale-95">
                 {editingId 
                   ? 'Update Transaction' 
                   : formData.isRecurring
@@ -550,11 +550,11 @@ export const Transactions: React.FC<TransactionsProps> = ({
           <div className="flex items-center gap-3 animate-in fade-in slide-in-from-left-2">
             <button 
               onClick={resetFilters}
-              className="flex items-center gap-2 px-4 py-2 bg-rose-50 border border-rose-100 rounded-xl text-[10px] font-black uppercase text-rose-600 hover:bg-rose-100 transition-all tracking-widest"
+              className="flex items-center gap-2 px-4 py-2 bg-rose-50 border border-rose-100 rounded-xl text-xs font-semibold uppercase text-rose-600 hover:bg-rose-100 transition-all tracking-wide"
             >
               <span>✕</span> Clear All Filters
             </button>
-            <span className="text-[10px] font-bold text-slate-400 italic">Showing filtered results</span>
+            <span className="text-xs font-bold text-slate-400 italic">Showing filtered results</span>
           </div>
         )}
       </div>
@@ -563,7 +563,7 @@ export const Transactions: React.FC<TransactionsProps> = ({
       <div className={`space-y-4 animate-in fade-in duration-300 ${showFilters ? 'block' : 'hidden'}`}>
         <div className="flex flex-wrap items-center gap-4 bg-white/50 border border-slate-200 p-4 rounded-[2rem] shadow-sm">
           <div className="flex flex-col gap-1 min-w-[140px]">
-            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-2">From</label>
+            <label className="text-xs font-semibold text-slate-400 uppercase tracking-wide px-2">From</label>
             <input 
               type="date" 
               value={filters.startDate}
@@ -572,7 +572,7 @@ export const Transactions: React.FC<TransactionsProps> = ({
             />
           </div>
           <div className="flex flex-col gap-1 min-w-[140px]">
-            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-2">To</label>
+            <label className="text-xs font-semibold text-slate-400 uppercase tracking-wide px-2">To</label>
             <input 
               type="date" 
               value={filters.endDate}
@@ -581,7 +581,7 @@ export const Transactions: React.FC<TransactionsProps> = ({
             />
           </div>
           <div className="flex flex-col gap-1 min-w-[140px]">
-            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-2">Category</label>
+            <label className="text-xs font-semibold text-slate-400 uppercase tracking-wide px-2">Category</label>
             <select 
               value={filters.categoryId}
               onChange={e => setFilters({...filters, categoryId: e.target.value})}
@@ -592,7 +592,7 @@ export const Transactions: React.FC<TransactionsProps> = ({
             </select>
           </div>
           <div className="flex flex-col gap-1 min-w-[100px]">
-            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-2">Type</label>
+            <label className="text-xs font-semibold text-slate-400 uppercase tracking-wide px-2">Type</label>
             <select
               value={filters.typeId}
               onChange={e => setFilters({...filters, typeId: e.target.value})}
@@ -605,7 +605,7 @@ export const Transactions: React.FC<TransactionsProps> = ({
             </select>
           </div>
           <div className="flex flex-col gap-1 min-w-[140px]">
-            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-2">Account</label>
+            <label className="text-xs font-semibold text-slate-400 uppercase tracking-wide px-2">Account</label>
             <select
               value={filters.accountId}
               onChange={e => setFilters({...filters, accountId: e.target.value})}
@@ -633,12 +633,12 @@ export const Transactions: React.FC<TransactionsProps> = ({
                       className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 accent-indigo-600 cursor-pointer"
                     />
                 </th>
-                <th className="px-4 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Date</th>
-                <th className="px-4 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Description</th>
-                <th className="px-4 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Account</th>
-                <th className="px-4 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Category</th>
-                <th className="px-4 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Type</th>
-                <th className="px-4 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Amount</th>
+                <th className="px-4 py-5 text-xs font-semibold text-slate-400 uppercase tracking-wide">Date</th>
+                <th className="px-4 py-5 text-xs font-semibold text-slate-400 uppercase tracking-wide">Description</th>
+                <th className="px-4 py-5 text-xs font-semibold text-slate-400 uppercase tracking-wide">Account</th>
+                <th className="px-4 py-5 text-xs font-semibold text-slate-400 uppercase tracking-wide">Category</th>
+                <th className="px-4 py-5 text-xs font-semibold text-slate-400 uppercase tracking-wide">Type</th>
+                <th className="px-4 py-5 text-xs font-semibold text-slate-400 uppercase tracking-wide">Amount</th>
                 <th className="px-4 py-5 text-right"></th>
               </tr>
             </thead>
@@ -674,7 +674,7 @@ export const Transactions: React.FC<TransactionsProps> = ({
                           <span className="text-sm font-bold text-slate-800">{t.description}</span>
                           {t.isRecurring && (
                             <div className="flex items-center gap-1.5 bg-indigo-50 text-indigo-600 px-2.5 py-1 rounded-full border border-indigo-100 shadow-sm">
-                              <span className="text-[8px] font-black uppercase tracking-widest">Recurring</span>
+                              <span className="text-[8px] font-semibold uppercase tracking-wide">Recurring</span>
                               <span className="text-[8px] font-bold opacity-60">({t.frequency})</span>
                             </div>
                           )}
@@ -693,7 +693,7 @@ export const Transactions: React.FC<TransactionsProps> = ({
                       <td className="px-4 py-4">
                         <button
                           onClick={() => handleCategoryClick(t)}
-                          className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-all hover:scale-110 active:scale-95 whitespace-nowrap"
+                          className="px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wide flex items-center gap-2 transition-all hover:scale-110 active:scale-95 whitespace-nowrap"
                           style={{ backgroundColor: (cat?.color || '#94a3b8') + '15', color: cat?.color || '#94a3b8' }}
                           title="Click to change category"
                         >
@@ -701,11 +701,11 @@ export const Transactions: React.FC<TransactionsProps> = ({
                         </button>
                       </td>
                       <td className="px-4 py-4">
-                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest bg-slate-100 px-2 py-1 rounded-lg whitespace-nowrap">
+                        <span className="text-xs font-semibold text-slate-400 uppercase tracking-wide bg-slate-100 px-2 py-1 rounded-lg whitespace-nowrap">
                           {typeDef?.label || 'Unknown'}
                         </span>
                       </td>
-                      <td className={`px-4 py-4 text-sm font-black ${behaviorColor} ${preferences.privacyMode ? 'blur-sm hover:blur-none' : ''}`}>
+                      <td className={`px-4 py-4 text-sm font-semibold ${behaviorColor} ${preferences.privacyMode ? 'blur-sm hover:blur-none' : ''}`}>
                         {behaviorIcon}{preferences.currency}{t.amount.toFixed(2)}
                       </td>
                       <td className="px-4 py-4 text-right">
@@ -743,7 +743,7 @@ export const Transactions: React.FC<TransactionsProps> = ({
       
       {/* Result Count Badge */}
       <div className="flex justify-end pr-4">
-        <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">
+        <span className="text-xs font-semibold text-slate-300 uppercase tracking-wide">
           Results: {filteredTransactions.length}
         </span>
       </div>
@@ -753,20 +753,20 @@ export const Transactions: React.FC<TransactionsProps> = ({
          <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-bottom-6">
             <div className="bg-slate-900 text-white rounded-2xl shadow-2xl p-2 pl-6 flex items-center gap-4 border border-slate-700">
                <div className="flex flex-col">
-                  <span className="text-[10px] font-black uppercase tracking-widest text-indigo-400">Selection</span>
+                  <span className="text-xs font-semibold uppercase tracking-wide text-indigo-400">Selection</span>
                   <span className="text-sm font-bold">{selectedIds.size} Records</span>
                </div>
                <div className="h-8 w-px bg-slate-700"></div>
                <div className="flex gap-2">
                   <button 
                      onClick={() => setShowMoveModal(true)}
-                     className="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all active:scale-95"
+                     className="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2.5 rounded-xl font-semibold text-xs uppercase tracking-wide transition-all active:scale-95"
                   >
                      Move Category
                   </button>
                   <button 
                      onClick={executeBulkDelete}
-                     className="bg-rose-600 hover:bg-rose-500 text-white px-4 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all active:scale-95"
+                     className="bg-rose-600 hover:bg-rose-500 text-white px-4 py-2.5 rounded-xl font-semibold text-xs uppercase tracking-wide transition-all active:scale-95"
                   >
                      Delete
                   </button>
@@ -780,12 +780,12 @@ export const Transactions: React.FC<TransactionsProps> = ({
          <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[60] flex items-center justify-center p-4 animate-in fade-in">
              <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl space-y-4">
                  <div className="text-center space-y-2">
-                    <h4 className="text-lg font-black text-slate-900 uppercase tracking-tight">Reassign Category</h4>
+                    <h4 className="text-lg font-semibold text-slate-900 uppercase tracking-tight">Reassign Category</h4>
                     <p className="text-xs text-slate-500 font-bold">Move {selectedIds.size} transactions to a new group.</p>
                  </div>
                  
                  <div className="space-y-2">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2">Target Category</label>
+                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wide px-2">Target Category</label>
                     <select 
                         value={targetCategory}
                         onChange={e => setTargetCategory(e.target.value)}
@@ -798,13 +798,13 @@ export const Transactions: React.FC<TransactionsProps> = ({
                  <div className="flex gap-3 pt-2">
                     <button 
                        onClick={() => setShowMoveModal(false)}
-                       className="flex-1 py-3 text-slate-400 font-bold text-xs uppercase tracking-widest hover:text-slate-600"
+                       className="flex-1 py-3 text-slate-400 font-bold text-xs uppercase tracking-wide hover:text-slate-600"
                     >
                        Cancel
                     </button>
                     <button 
                        onClick={executeBulkMove}
-                       className="flex-1 bg-slate-900 text-white rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-slate-800"
+                       className="flex-1 bg-slate-900 text-white rounded-xl font-bold text-xs uppercase tracking-wide hover:bg-slate-800"
                     >
                        Confirm Move
                     </button>
@@ -818,14 +818,14 @@ export const Transactions: React.FC<TransactionsProps> = ({
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[60] flex items-center justify-center p-4 animate-in fade-in">
           <div className="bg-white rounded-3xl p-6 w-full max-w-md shadow-2xl space-y-4">
             <div className="text-center space-y-2">
-              <h4 className="text-lg font-black text-slate-900 uppercase tracking-tight">Change Category</h4>
+              <h4 className="text-lg font-semibold text-slate-900 uppercase tracking-tight">Change Category</h4>
               <p className="text-xs text-slate-500 font-bold">
                 Update category for: <span className="text-slate-900">{editingTransaction.description}</span>
               </p>
             </div>
 
             <div className="space-y-2">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2">Select Category</label>
+              <label className="text-xs font-bold text-slate-400 uppercase tracking-wide px-2">Select Category</label>
               <select
                 value={targetCategory}
                 onChange={e => setTargetCategory(e.target.value)}
@@ -853,15 +853,15 @@ export const Transactions: React.FC<TransactionsProps> = ({
                     <div className="flex items-center gap-2">
                       <span className="text-2xl">{selectedCat.icon}</span>
                       <div>
-                        <p className="text-sm font-black text-slate-900">{selectedCat.name}</p>
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                        <p className="text-sm font-semibold text-slate-900">{selectedCat.name}</p>
+                        <p className="text-xs font-bold text-slate-400 uppercase tracking-wide">
                           {selectedCat.type}
                         </p>
                       </div>
                     </div>
                     <div className="text-right">
                       <p className="text-xs font-bold text-slate-500">Budget</p>
-                      <p className="text-sm font-black text-slate-900">{preferences.currency}{selectedCat.budget}</p>
+                      <p className="text-sm font-semibold text-slate-900">{preferences.currency}{selectedCat.budget}</p>
                     </div>
                   </div>
                 </div>
@@ -874,13 +874,13 @@ export const Transactions: React.FC<TransactionsProps> = ({
                   setShowCategoryEditModal(false);
                   setEditingTransaction(null);
                 }}
-                className="flex-1 py-3 text-slate-400 font-bold text-xs uppercase tracking-widest hover:text-slate-600"
+                className="flex-1 py-3 text-slate-400 font-bold text-xs uppercase tracking-wide hover:text-slate-600"
               >
                 Cancel
               </button>
               <button
                 onClick={handleCategoryUpdate}
-                className="flex-1 bg-slate-900 text-white rounded-xl py-3 font-bold text-[10px] uppercase tracking-widest hover:bg-slate-800"
+                className="flex-1 bg-slate-900 text-white rounded-xl py-3 font-bold text-xs uppercase tracking-wide hover:bg-slate-800"
               >
                 Update Category
               </button>

@@ -6,7 +6,7 @@ export const INITIAL_CATEGORIES: Category[] = [
   { id: '1', name: 'Income', color: '#10b981', icon: '💰', budget: 0, type: CategoryType.INCOME },
 
   // Housing & Utilities
-  { id: '2', name: 'Housing', color: '#003087', icon: '🏠', budget: 1800, type: CategoryType.SPENDING },
+  { id: '2', name: 'Housing', color: '#3b82f6', icon: '🏠', budget: 1800, type: CategoryType.SPENDING },
   { id: '3', name: 'Utilities', color: '#1e40af', icon: '💡', budget: 150, type: CategoryType.SPENDING },
   { id: '4', name: 'Internet/Cable', color: '#0891b2', icon: '📡', budget: 80, type: CategoryType.SPENDING },
   { id: '5', name: 'Phone', color: '#0e7490', icon: '📞', budget: 60, type: CategoryType.SPENDING },
@@ -58,7 +58,7 @@ export const DEFAULT_PREFERENCES: UserPreferences = {
   name: '',
   currency: '$',
   privacyMode: false,
-  accentColor: '#003087',
+  accentColor: '#4f46e5',
   setupComplete: false,
   transactionTypes: DEFAULT_TRANSACTION_TYPES,
   profileImage: undefined,
@@ -73,7 +73,8 @@ export const DEFAULT_PREFERENCES: UserPreferences = {
     daysBeforeDue: [3, 1],
     overduReminders: true
   },
-  smartCategorizationEnabled: true
+  smartCategorizationEnabled: true,
+  theme: 'system'
 };
 
 export const STORAGE_KEY_TRANSACTIONS = 'wingman_transactions';
@@ -110,7 +111,7 @@ export const BUDGET_TEMPLATES: BudgetTemplate[] = [
     name: '50/30/20 Rule',
     description: 'Classic balanced budget: 50% needs, 30% wants, 20% savings',
     categories: [
-      { name: 'Housing', icon: '🏠', color: '#003087', percentage: 30, type: CategoryType.SPENDING },
+      { name: 'Housing', icon: '🏠', color: '#3b82f6', percentage: 30, type: CategoryType.SPENDING },
       { name: 'Groceries', icon: '🍽️', color: '#1d4e89', percentage: 10, type: CategoryType.SPENDING },
       { name: 'Transport', icon: '🚗', color: '#475569', percentage: 10, type: CategoryType.SPENDING },
       { name: 'Entertainment', icon: '🎮', color: '#8b5cf6', percentage: 15, type: CategoryType.SPENDING },
@@ -128,7 +129,7 @@ export const BUDGET_TEMPLATES: BudgetTemplate[] = [
       { name: 'Base Pay', icon: '💰', color: '#10b981', percentage: 100, type: CategoryType.INCOME },
       { name: 'BAH', icon: '🏠', color: '#059669', percentage: 0, type: CategoryType.INCOME },
       { name: 'BAS', icon: '🍽️', color: '#047857', percentage: 0, type: CategoryType.INCOME },
-      { name: 'Housing', icon: '🏠', color: '#003087', percentage: 30, type: CategoryType.SPENDING },
+      { name: 'Housing', icon: '🏠', color: '#3b82f6', percentage: 30, type: CategoryType.SPENDING },
       { name: 'Groceries', icon: '🍽️', color: '#1d4e89', percentage: 8, type: CategoryType.SPENDING },
       { name: 'Vehicle', icon: '🚗', color: '#475569', percentage: 12, type: CategoryType.SPENDING },
       { name: 'Insurance', icon: '🛡️', color: '#64748b', percentage: 5, type: CategoryType.SPENDING },
@@ -143,7 +144,7 @@ export const BUDGET_TEMPLATES: BudgetTemplate[] = [
     name: 'Zero-Based Budget',
     description: 'Every dollar has a purpose. Allocate 100% of income to categories',
     categories: [
-      { name: 'Housing', icon: '🏠', color: '#003087', percentage: 28, type: CategoryType.SPENDING },
+      { name: 'Housing', icon: '🏠', color: '#3b82f6', percentage: 28, type: CategoryType.SPENDING },
       { name: 'Utilities', icon: '💡', color: '#1e40af', percentage: 5, type: CategoryType.SPENDING },
       { name: 'Groceries', icon: '🍽️', color: '#1d4e89', percentage: 12, type: CategoryType.SPENDING },
       { name: 'Transport', icon: '🚗', color: '#475569', percentage: 10, type: CategoryType.SPENDING },
@@ -161,7 +162,7 @@ export const BUDGET_TEMPLATES: BudgetTemplate[] = [
     name: 'Aggressive Saver',
     description: 'Maximum savings: 40% to savings/investments, minimalist lifestyle',
     categories: [
-      { name: 'Housing', icon: '🏠', color: '#003087', percentage: 25, type: CategoryType.SPENDING },
+      { name: 'Housing', icon: '🏠', color: '#3b82f6', percentage: 25, type: CategoryType.SPENDING },
       { name: 'Groceries', icon: '🍽️', color: '#1d4e89', percentage: 10, type: CategoryType.SPENDING },
       { name: 'Transport', icon: '🚗', color: '#475569', percentage: 8, type: CategoryType.SPENDING },
       { name: 'Utilities', icon: '💡', color: '#1e40af', percentage: 5, type: CategoryType.SPENDING },
@@ -178,7 +179,7 @@ export const BUDGET_TEMPLATES: BudgetTemplate[] = [
     name: 'Debt Crusher',
     description: 'Aggressive debt payoff: 40% to debt elimination',
     categories: [
-      { name: 'Housing', icon: '🏠', color: '#003087', percentage: 25, type: CategoryType.SPENDING },
+      { name: 'Housing', icon: '🏠', color: '#3b82f6', percentage: 25, type: CategoryType.SPENDING },
       { name: 'Groceries', icon: '🍽️', color: '#1d4e89', percentage: 10, type: CategoryType.SPENDING },
       { name: 'Transport', icon: '🚗', color: '#475569', percentage: 8, type: CategoryType.SPENDING },
       { name: 'Utilities', icon: '💡', color: '#1e40af', percentage: 5, type: CategoryType.SPENDING },

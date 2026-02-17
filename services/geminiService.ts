@@ -16,8 +16,8 @@ export const getFinancialAdvice = async (
   }));
 
   const prompt = `
-    Act as a professional financial advisor for a member of the Air Force. Analyze the transaction data and provide clear, actionable budgeting advice.
-    The tone should be professional, precise, and supportive—like a reliable wingman. Avoid over-the-top military slang, but understand military-specific pay structures (BAH, BAS, etc.).
+    Act as a professional financial advisor. Analyze the transaction data and provide clear, actionable budgeting advice.
+    The tone should be professional, precise, and supportive. If the user has military-specific pay categories (BAH, BAS, etc.), factor those in accordingly.
     
     Categories and their budgets:
     ${categories.map(c => `${c.name}: $${c.budget}`).join('\n')}

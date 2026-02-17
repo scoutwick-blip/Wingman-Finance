@@ -75,7 +75,7 @@ export default function BudgetTemplates({
           {/* Header */}
           <div className="mb-6 flex items-start justify-between">
             <div>
-              <h2 className="text-2xl font-black text-slate-900 uppercase tracking-wide mb-2">BUDGET TEMPLATES</h2>
+              <h2 className="text-2xl font-semibold text-slate-900 uppercase tracking-wide mb-2">BUDGET TEMPLATES</h2>
               <p className="text-gray-600">Choose a proven budget framework and customize it to your income</p>
             </div>
             <button

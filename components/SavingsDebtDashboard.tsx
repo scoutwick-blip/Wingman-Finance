@@ -264,8 +264,8 @@ export default function SavingsDebtDashboard({
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <h3 className="text-3xl font-black text-slate-900 tracking-tighter uppercase">Financial Health</h3>
-          <p className="text-slate-500 font-bold uppercase text-[10px] tracking-[0.2em]">Savings & Debt Overview</p>
+          <h3 className="text-3xl font-semibold text-slate-900 tracking-tighter uppercase">Financial Health</h3>
+          <p className="text-slate-500 font-bold uppercase text-xs tracking-wide">Savings & Debt Overview</p>
         </div>
       </div>
 
@@ -278,26 +278,26 @@ export default function SavingsDebtDashboard({
             </div>
             <div>
               <p className="text-sm font-bold text-white/80">Net Worth</p>
-              <p className="text-3xl font-black">
+              <p className="text-3xl font-semibold">
                 <SensitiveValue value={metrics.netWorth} />
               </p>
             </div>
           </div>
           <div className="text-right">
             <p className="text-sm font-bold text-white/80">Savings Rate</p>
-            <p className="text-2xl font-black">{metrics.savingsRate.toFixed(1)}%</p>
+            <p className="text-2xl font-semibold">{metrics.savingsRate.toFixed(1)}%</p>
           </div>
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div className="bg-white/10 rounded-xl p-3">
             <p className="text-xs font-bold text-white/70">Total Savings</p>
-            <p className="text-xl font-black">
+            <p className="text-xl font-semibold">
               <SensitiveValue value={metrics.totalSavings} />
             </p>
           </div>
           <div className="bg-white/10 rounded-xl p-3">
             <p className="text-xs font-bold text-white/70">Total Debt</p>
-            <p className="text-xl font-black">
+            <p className="text-xl font-semibold">
               <SensitiveValue value={metrics.totalDebt} />
             </p>
           </div>
@@ -312,7 +312,7 @@ export default function SavingsDebtDashboard({
               <PiggyBank className="w-6 h-6 text-amber-600" />
             </div>
             <div>
-              <h4 className="text-lg font-black text-slate-900">Emergency Fund</h4>
+              <h4 className="text-lg font-semibold text-slate-900">Emergency Fund</h4>
               <p className="text-sm text-slate-600">
                 Target: {emergencyFundMonths} months of expenses
               </p>
@@ -392,7 +392,7 @@ export default function SavingsDebtDashboard({
               <Calculator className="w-6 h-6 text-red-600" />
             </div>
             <div>
-              <h4 className="text-lg font-black text-slate-900">Debt Payoff Plan</h4>
+              <h4 className="text-lg font-semibold text-slate-900">Debt Payoff Plan</h4>
               <p className="text-sm text-slate-600">Optimize your debt elimination strategy</p>
             </div>
           </div>
@@ -410,7 +410,7 @@ export default function SavingsDebtDashboard({
                 }`}
               >
                 <div className="flex items-center justify-between mb-2">
-                  <span className="font-black text-sm">Avalanche</span>
+                  <span className="font-semibold text-sm">Avalanche</span>
                   <Zap className="w-4 h-4 text-red-600" />
                 </div>
                 <p className="text-xs text-slate-600">Highest interest first (saves most money)</p>
@@ -425,7 +425,7 @@ export default function SavingsDebtDashboard({
                 }`}
               >
                 <div className="flex items-center justify-between mb-2">
-                  <span className="font-black text-sm">Snowball</span>
+                  <span className="font-semibold text-sm">Snowball</span>
                   <Target className="w-4 h-4 text-blue-600" />
                 </div>
                 <p className="text-xs text-slate-600">Smallest balance first (quick wins)</p>
@@ -440,7 +440,7 @@ export default function SavingsDebtDashboard({
                 }`}
               >
                 <div className="flex items-center justify-between mb-2">
-                  <span className="font-black text-sm">Custom</span>
+                  <span className="font-semibold text-sm">Custom</span>
                   <DollarSign className="w-4 h-4 text-purple-600" />
                 </div>
                 <p className="text-xs text-slate-600">Your own priority order</p>
@@ -476,7 +476,7 @@ export default function SavingsDebtDashboard({
                 <Calendar className="w-4 h-4 text-slate-600" />
                 <p className="text-xs font-bold text-slate-600">Debt-Free Date</p>
               </div>
-              <p className="text-xl font-black text-slate-900">
+              <p className="text-xl font-semibold text-slate-900">
                 {debtPayoffPlan.debtFreeDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
               </p>
               <p className="text-xs text-slate-500 mt-1">
@@ -489,7 +489,7 @@ export default function SavingsDebtDashboard({
                 <Award className="w-4 h-4 text-green-600" />
                 <p className="text-xs font-bold text-green-600">Interest Saved</p>
               </div>
-              <p className="text-xl font-black text-green-900">
+              <p className="text-xl font-semibold text-green-900">
                 <SensitiveValue value={debtPayoffPlan.interestSaved} />
               </p>
               <p className="text-xs text-green-600 mt-1">
@@ -502,7 +502,7 @@ export default function SavingsDebtDashboard({
                 <TrendingDown className="w-4 h-4 text-red-600" />
                 <p className="text-xs font-bold text-red-600">Total Interest</p>
               </div>
-              <p className="text-xl font-black text-red-900">
+              <p className="text-xl font-semibold text-red-900">
                 <SensitiveValue value={debtPayoffPlan.totalInterestPaid} />
               </p>
               <p className="text-xs text-red-600 mt-1">
@@ -513,7 +513,7 @@ export default function SavingsDebtDashboard({
 
           {/* Current Debts */}
           <div>
-            <h5 className="text-sm font-black text-slate-700 mb-3">Current Debts</h5>
+            <h5 className="text-sm font-semibold text-slate-700 mb-3">Current Debts</h5>
             <div className="space-y-2">
               {metrics.debtAccounts.map((account, idx) => (
                 <div key={account.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-200">
@@ -527,7 +527,7 @@ export default function SavingsDebtDashboard({
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="font-black text-slate-900">
+                    <p className="font-semibold text-slate-900">
                       <SensitiveValue value={account.balance} />
                     </p>
                     {payoffStrategy !== 'custom' && idx === 0 && (
@@ -549,9 +549,9 @@ export default function SavingsDebtDashboard({
         >
           <div className="flex items-center justify-between mb-2">
             <Target className="w-8 h-8 group-hover:scale-110 transition-transform" />
-            <span className="text-3xl font-black">{goals.filter(g => g.status === GoalStatus.IN_PROGRESS).length}</span>
+            <span className="text-3xl font-semibold">{goals.filter(g => g.status === GoalStatus.IN_PROGRESS).length}</span>
           </div>
-          <p className="font-black text-sm uppercase tracking-wide">Manage Savings Goals</p>
+          <p className="font-semibold text-sm uppercase tracking-wide">Manage Savings Goals</p>
           <p className="text-xs text-green-100 mt-1">Set targets and track progress</p>
         </button>
 
@@ -561,9 +561,9 @@ export default function SavingsDebtDashboard({
         >
           <div className="flex items-center justify-between mb-2">
             <DollarSign className="w-8 h-8 group-hover:scale-110 transition-transform" />
-            <span className="text-3xl font-black">{categories.filter(c => c.type === CategoryType.DEBT || c.type === CategoryType.SAVINGS).length}</span>
+            <span className="text-3xl font-semibold">{categories.filter(c => c.type === CategoryType.DEBT || c.type === CategoryType.SAVINGS).length}</span>
           </div>
-          <p className="font-black text-sm uppercase tracking-wide">Adjust Categories</p>
+          <p className="font-semibold text-sm uppercase tracking-wide">Adjust Categories</p>
           <p className="text-xs text-blue-100 mt-1">Update savings & debt budgets</p>
         </button>
       </div>
@@ -574,7 +574,7 @@ export default function SavingsDebtDashboard({
           <div className="inline-flex items-center justify-center w-16 h-16 bg-green-500 rounded-full mb-4">
             <CheckCircle className="w-8 h-8 text-white" />
           </div>
-          <h4 className="text-2xl font-black text-green-900 mb-2">Debt Free! 🎉</h4>
+          <h4 className="text-2xl font-semibold text-green-900 mb-2">Debt Free! 🎉</h4>
           <p className="text-slate-600 max-w-md mx-auto">
             You have no debt! Focus on building your savings and reaching your financial goals.
           </p>

@@ -7,7 +7,7 @@
   
   <!-- PWA Settings -->
   <title>Wingman Finance</title>
-  <meta name="theme-color" content="#003087">
+  <meta name="theme-color" content="#4f46e5">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Wingman">
@@ -17,16 +17,93 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
   <style>
+    /* Design Tokens */
+    :root {
+      --color-bg-primary: #f8fafc;
+      --color-bg-secondary: #ffffff;
+      --color-bg-tertiary: #f1f5f9;
+      --color-bg-sidebar: #0f172a;
+      --color-bg-sidebar-hover: #1e293b;
+      --color-bg-sidebar-active: #4f46e5;
+      --color-bg-header: #ffffff;
+      --color-bg-card: #ffffff;
+      --color-bg-card-hover: #f8fafc;
+      --color-bg-notification: #f0f4ff;
+
+      --color-text-primary: #0f172a;
+      --color-text-secondary: #475569;
+      --color-text-tertiary: #94a3b8;
+      --color-text-inverse: #ffffff;
+      --color-text-sidebar: #94a3b8;
+      --color-text-sidebar-active: #ffffff;
+
+      --color-border-primary: #e2e8f0;
+      --color-border-secondary: #f1f5f9;
+      --color-border-card: #e2e8f0;
+
+      --color-accent: #4f46e5;
+      --color-accent-hover: #4338ca;
+      --color-accent-light: #eef2ff;
+
+      --color-success: #10b981;
+      --color-warning: #f59e0b;
+      --color-danger: #ef4444;
+      --color-info: #3b82f6;
+
+      --radius-sm: 0.5rem;
+      --radius-md: 0.75rem;
+      --radius-lg: 1rem;
+      --radius-xl: 1.25rem;
+
+      --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+      --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.07), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+      --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.08), 0 4px 6px -4px rgb(0 0 0 / 0.04);
+
+      --font-tabular: 'Inter', sans-serif;
+    }
+
+    /* Dark Mode */
+    .dark {
+      --color-bg-primary: #0f172a;
+      --color-bg-secondary: #1e293b;
+      --color-bg-tertiary: #0f172a;
+      --color-bg-sidebar: #020617;
+      --color-bg-sidebar-hover: #1e293b;
+      --color-bg-sidebar-active: #4f46e5;
+      --color-bg-header: #1e293b;
+      --color-bg-card: #1e293b;
+      --color-bg-card-hover: #334155;
+      --color-bg-notification: #1e293b;
+
+      --color-text-primary: #f1f5f9;
+      --color-text-secondary: #94a3b8;
+      --color-text-tertiary: #64748b;
+      --color-text-inverse: #0f172a;
+      --color-text-sidebar: #64748b;
+      --color-text-sidebar-active: #ffffff;
+
+      --color-border-primary: #334155;
+      --color-border-secondary: #1e293b;
+      --color-border-card: #334155;
+
+      --color-accent: #6366f1;
+      --color-accent-hover: #4f46e5;
+      --color-accent-light: #1e1b4b;
+    }
+
     body {
       font-family: 'Inter', sans-serif;
-      background-color: #f1f5f9;
-      /* Prevent pull-to-refresh on mobile to feel more like an app */
+      background-color: var(--color-bg-primary);
+      color: var(--color-text-primary);
       overscroll-behavior-y: none;
+      transition: background-color 0.2s ease, color 0.2s ease;
     }
-    .af-blue { background-color: #003087; }
-    .text-af-blue { color: #003087; }
-    .border-af-blue { border-color: #003087; }
-    
+
+    /* Tabular numerals for financial data */
+    .tabular-nums {
+      font-variant-numeric: tabular-nums;
+    }
+
     /* Hide scrollbar for PWA feel but allow scrolling */
     .scrollbar-hide::-webkit-scrollbar {
         display: none;
@@ -34,6 +111,12 @@
     .scrollbar-hide {
         -ms-overflow-style: none;
         scrollbar-width: none;
+    }
+
+    /* Smooth theme transitions */
+    .theme-transition,
+    .theme-transition * {
+      transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
     }
   </style>
 <script type="importmap">

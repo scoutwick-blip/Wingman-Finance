@@ -369,6 +369,28 @@ const App: React.FC = () => {
     }
   }, [preferences.name, preferences.profileImage, preferences.pin, activeProfileId, isLoading]);
 
+  // Apply theme (dark mode)
+  useEffect(() => {
+    const applyTheme = (theme: string) => {
+      if (theme === 'dark') {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    };
+
+    const themePref = preferences.theme || 'system';
+    if (themePref === 'system') {
+      const mq = window.matchMedia('(prefers-color-scheme: dark)');
+      applyTheme(mq.matches ? 'dark' : 'light');
+      const handler = (e: MediaQueryListEvent) => applyTheme(e.matches ? 'dark' : 'light');
+      mq.addEventListener('change', handler);
+      return () => mq.removeEventListener('change', handler);
+    } else {
+      applyTheme(themePref);
+    }
+  }, [preferences.theme]);
+
   // Auto-sync to cloud when authenticated (debounced)
   useEffect(() => {
     if (!user || !activeProfileId || isLoading || isCheckingAuth) {

@@ -172,7 +172,7 @@ export default function AutomationDashboard({
       <div className="bg-gradient-to-r from-purple-600 to-blue-600 rounded-2xl p-6 text-white shadow-lg">
         <div className="flex items-center gap-3 mb-2">
           <Sparkles className="w-8 h-8 animate-pulse" />
-          <h2 className="text-2xl font-black uppercase tracking-wide">Smart Suggestions</h2>
+          <h2 className="text-2xl font-semibold uppercase tracking-wide">Smart Suggestions</h2>
         </div>
         <p className="text-purple-100">
           {totalSuggestions} automation {totalSuggestions === 1 ? 'suggestion' : 'suggestions'} to save you time and optimize your budget

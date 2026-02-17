@@ -109,7 +109,7 @@ export default function ReceiptScanner({ onReceiptScanned, onCancel }: ReceiptSc
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h2 className="text-2xl font-black text-slate-900 uppercase tracking-wide">SCAN RECEIPT</h2>
+              <h2 className="text-2xl font-semibold text-slate-900 uppercase tracking-wide">SCAN RECEIPT</h2>
               <p className="text-sm text-gray-600 mt-1">Capture or upload a receipt to extract details</p>
             </div>
             <button

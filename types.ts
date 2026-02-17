@@ -140,6 +140,7 @@ export interface UserPreferences {
     lastSynced?: string;
   };
   authMode?: 'local' | 'cloud'; // 'local' = no cloud sync, 'cloud' = use authentication
+  theme?: 'light' | 'dark' | 'system';
 }
 
 export interface UserProfile {
