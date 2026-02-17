@@ -539,62 +539,140 @@ const App: React.FC = () => {
 
   // Notification Engine
   const checkFinancialHealth = useCallback(() => {
-    if (!preferences.notificationSettings?.budgetWarnings) return;
-
     const newNotifications: Notification[] = [];
     const timestamp = new Date().toISOString();
-    const warningThreshold = (preferences.notificationSettings?.budgetWarningThreshold ?? 80) / 100;
+    const today = new Date();
+    const todayStr = today.toDateString();
 
-    categories.forEach(cat => {
-      if (cat.name === 'Income') return;
+    // Helper to check if notification already exists today
+    const alreadyNotified = (title: string) =>
+      notifications.some(n => n.title === title && new Date(n.timestamp).toDateString() === todayStr);
 
-      const spent = transactions
-        .filter(t => t.categoryId === cat.id)
-        .filter(t => preferences.transactionTypes.find(type => type.id === t.typeId)?.behavior === TransactionBehavior.OUTFLOW)
-        .reduce((sum, t) => sum + t.amount, 0);
+    // 1. Budget warnings
+    if (preferences.notificationSettings?.budgetWarnings) {
+      const warningThreshold = (preferences.notificationSettings?.budgetWarningThreshold ?? 80) / 100;
 
-      const budget = cat.budget;
-      if (budget <= 0) return;
+      categories.forEach(cat => {
+        if (cat.name === 'Income') return;
 
-      const ratio = spent / budget;
+        const spent = transactions
+          .filter(t => t.categoryId === cat.id)
+          .filter(t => preferences.transactionTypes.find(type => type.id === t.typeId)?.behavior === TransactionBehavior.OUTFLOW)
+          .reduce((sum, t) => sum + t.amount, 0);
 
-      if (ratio >= 1.0) {
-        const title = `Over Budget: ${cat.name}`;
-        if (!notifications.some(n => n.title === title && new Date(n.timestamp).toDateString() === new Date().toDateString())) {
-          newNotifications.push({
-            id: Math.random().toString(36).substring(2, 9),
-            type: NotificationType.DANGER,
-            title,
-            message: `You've exceeded your ${preferences.currency}${budget.toFixed(2)} budget for ${cat.name}. Currently at ${preferences.currency}${spent.toFixed(2)}.`,
-            timestamp,
-            isRead: false
-          });
+        const budget = cat.budget;
+        if (budget <= 0) return;
+
+        const ratio = spent / budget;
+
+        if (ratio >= 1.0) {
+          const title = `Over Budget: ${cat.name}`;
+          if (!alreadyNotified(title)) {
+            newNotifications.push({
+              id: Math.random().toString(36).substring(2, 9),
+              type: NotificationType.DANGER,
+              title,
+              message: `You've exceeded your ${preferences.currency}${budget.toFixed(2)} budget for ${cat.name}. Currently at ${preferences.currency}${spent.toFixed(2)}.`,
+              timestamp,
+              isRead: false
+            });
+          }
+        } else if (ratio >= warningThreshold) {
+          const title = `Budget Warning: ${cat.name}`;
+          if (!alreadyNotified(title)) {
+            newNotifications.push({
+              id: Math.random().toString(36).substring(2, 9),
+              type: NotificationType.WARNING,
+              title,
+              message: `You've used ${Math.round(ratio * 100)}% of your ${cat.name} budget. Time to slow down!`,
+              timestamp,
+              isRead: false
+            });
+          }
         }
-      } else if (ratio >= warningThreshold) {
-        const title = `Budget Warning: ${cat.name}`;
-        if (!notifications.some(n => n.title === title && new Date(n.timestamp).toDateString() === new Date().toDateString())) {
-          newNotifications.push({
-            id: Math.random().toString(36).substring(2, 9),
-            type: NotificationType.WARNING,
-            title,
-            message: `You've used ${Math.round(ratio * 100)}% of your ${cat.name} budget. Time to slow down!`,
-            timestamp,
-            isRead: false
-          });
+      });
+    }
+
+    // 2. Bill reminders — notify for bills due within 3 days
+    if (preferences.billReminderSettings?.enabled !== false) {
+      const reminderDays = preferences.billReminderSettings?.daysBeforeDue || [3, 1];
+      const maxDays = Math.max(...reminderDays);
+
+      bills.forEach(bill => {
+        if (bill.status === BillStatus.PAID) return;
+        const dueDate = new Date(bill.dueDate);
+        dueDate.setHours(0, 0, 0, 0);
+        const daysUntil = Math.ceil((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+
+        if (daysUntil < 0 && (preferences.billReminderSettings?.overduReminders !== false)) {
+          const title = `Overdue Bill: ${bill.name}`;
+          if (!alreadyNotified(title)) {
+            newNotifications.push({
+              id: Math.random().toString(36).substring(2, 9),
+              type: NotificationType.DANGER,
+              title,
+              message: `${bill.name} was due ${Math.abs(daysUntil)} days ago (${preferences.currency}${bill.amount.toFixed(2)}).`,
+              timestamp,
+              isRead: false
+            });
+          }
+        } else if (daysUntil >= 0 && daysUntil <= maxDays) {
+          const title = `Bill Due${daysUntil === 0 ? ' Today' : ' Soon'}: ${bill.name}`;
+          if (!alreadyNotified(title)) {
+            newNotifications.push({
+              id: Math.random().toString(36).substring(2, 9),
+              type: daysUntil === 0 ? NotificationType.WARNING : NotificationType.INFO,
+              title,
+              message: `${bill.name} (${preferences.currency}${bill.amount.toFixed(2)}) is due ${daysUntil === 0 ? 'today' : `in ${daysUntil} day${daysUntil > 1 ? 's' : ''}`}.`,
+              timestamp,
+              isRead: false
+            });
+          }
         }
-      }
+      });
+    }
+
+    // 3. Goal milestone celebrations
+    goals.forEach(goal => {
+      if (goal.status !== GoalStatus.IN_PROGRESS || goal.targetAmount <= 0) return;
+      const progress = goal.currentAmount / goal.targetAmount;
+
+      goal.milestones.forEach(milestone => {
+        if (milestone.achieved) return;
+        const threshold = milestone.percentage / 100;
+        if (progress >= threshold) {
+          const title = `Goal Milestone: ${goal.name}`;
+          const milestoneTitle = `${milestone.label} — ${goal.name}`;
+          if (!alreadyNotified(milestoneTitle)) {
+            newNotifications.push({
+              id: Math.random().toString(36).substring(2, 9),
+              type: milestone.percentage === 100 ? NotificationType.SUCCESS : NotificationType.INFO,
+              title: milestoneTitle,
+              message: milestone.percentage === 100
+                ? `Congratulations! You've reached your ${goal.name} goal of ${preferences.currency}${goal.targetAmount.toFixed(2)}!`
+                : `${milestone.label} for ${goal.name}! You've saved ${preferences.currency}${goal.currentAmount.toFixed(2)} of ${preferences.currency}${goal.targetAmount.toFixed(2)}.`,
+              timestamp,
+              isRead: false
+            });
+
+            // Mark milestone as achieved
+            milestone.achieved = true;
+            milestone.achievedDate = timestamp;
+          }
+        }
+      });
     });
 
     if (newNotifications.length > 0) {
       setNotifications(prev => [...newNotifications, ...prev].slice(0, 50));
     }
-  }, [transactions, categories, preferences, notifications]);
+  }, [transactions, categories, preferences, notifications, bills, goals]);
 
   useEffect(() => {
-    if (!isLoading && activeProfileId && transactions.length > 0) {
+    if (!isLoading && activeProfileId) {
       checkFinancialHealth();
     }
-  }, [transactions, categories, isLoading, activeProfileId]);
+  }, [transactions, categories, bills, goals, isLoading, activeProfileId]);
 
   const addTransaction = (newT: Omit<Transaction, 'id'>) => {
     const transaction: Transaction = {
@@ -1308,6 +1386,7 @@ const App: React.FC = () => {
                 categories={categories}
                 preferences={preferences}
                 bills={bills}
+                goals={goals}
                 onNavigateToTab={setActiveTab}
                 onAddTransaction={handleNavigateToTransactionEntry}
             />
@@ -1438,6 +1517,7 @@ const App: React.FC = () => {
                 categories={categories}
                 preferences={preferences}
                 bills={bills}
+                goals={goals}
                 onNavigateToTab={setActiveTab}
                 onAddTransaction={handleNavigateToTransactionEntry}
             />

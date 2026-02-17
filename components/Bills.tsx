@@ -80,6 +80,19 @@ export default function Bills({
     return grouped;
   }, [bills]);
 
+  // Payment streak — count consecutive paid bills with no overdue in between
+  const paymentStreak = useMemo(() => {
+    const paidBills = bills
+      .filter(b => b.status === BillStatus.PAID && b.lastPaidDate)
+      .sort((a, b) => new Date(b.lastPaidDate!).getTime() - new Date(a.lastPaidDate!).getTime());
+
+    let streak = paidBills.length;
+    // If any bills are currently overdue, streak is broken
+    if (billsByStatus.overdue.length > 0) streak = 0;
+
+    return streak;
+  }, [bills, billsByStatus.overdue.length]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -284,7 +297,7 @@ export default function Bills({
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <div className="bg-red-50 border-2 border-red-200 rounded-xl p-4">
           <div className="flex items-center justify-between">
             <div>
@@ -319,6 +332,15 @@ export default function Bills({
               <p className="text-2xl font-bold text-green-700">{billsByStatus.paid.length}</p>
             </div>
             <Check className="w-8 h-8 text-green-500" />
+          </div>
+        </div>
+        <div className={`rounded-xl p-4 border-2 col-span-2 md:col-span-1 ${paymentStreak > 0 ? 'bg-purple-50 border-purple-200' : 'bg-gray-50 border-gray-200'}`}>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className={`text-sm font-medium uppercase ${paymentStreak > 0 ? 'text-purple-600' : 'text-gray-500'}`}>Streak</p>
+              <p className={`text-2xl font-bold ${paymentStreak > 0 ? 'text-purple-700' : 'text-gray-400'}`}>{paymentStreak}</p>
+            </div>
+            <span className="text-2xl">{paymentStreak >= 10 ? '🔥' : paymentStreak > 0 ? '⚡' : '💤'}</span>
           </div>
         </div>
       </div>
