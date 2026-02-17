@@ -1,6 +1,16 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
-import { Transaction, Category, AIAdvice, BudgetSuggestion, CategorySuggestion } from "../types";
+import { Transaction, Category, AIAdvice, BudgetSuggestion, CategorySuggestion, Bill, Goal, Subscription, Account, CategoryType, GoalStatus, BillStatus, SubscriptionStatus, AccountType } from "../types";
+
+export interface FinancialContext {
+  transactions: Transaction[];
+  categories: Category[];
+  bills: Bill[];
+  goals: Goal[];
+  subscriptions: Subscription[];
+  accounts: Account[];
+  currency: string;
+}
 
 export const getFinancialAdvice = async (
   transactions: Transaction[],
@@ -337,5 +347,183 @@ export const suggestCategoriesBatch = async (
     return suggestionsMap;
   } catch {
     return new Map();
+  }
+};
+
+// Build comprehensive financial context for AI chat
+const buildFinancialSystemPrompt = (context: FinancialContext): string => {
+  const now = new Date();
+  const currentMonth = now.getMonth();
+  const currentYear = now.getFullYear();
+  const currency = context.currency || '$';
+
+  // Filter this month's transactions
+  const monthlyTxns = context.transactions.filter(t => {
+    const d = new Date(t.date);
+    return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+  });
+
+  // Calculate income/expenses from category types
+  const monthlyIncome = monthlyTxns
+    .filter(t => {
+      const cat = context.categories.find(c => c.id === t.categoryId);
+      return cat?.type === CategoryType.INCOME;
+    })
+    .reduce((sum, t) => sum + t.amount, 0);
+
+  const monthlyExpenses = monthlyTxns
+    .filter(t => {
+      const cat = context.categories.find(c => c.id === t.categoryId);
+      return cat?.type === CategoryType.SPENDING || cat?.type === CategoryType.DEBT;
+    })
+    .reduce((sum, t) => sum + t.amount, 0);
+
+  // Budget utilization
+  const budgetLines = context.categories
+    .filter(c => c.type === CategoryType.SPENDING && c.budget > 0)
+    .map(c => {
+      const spent = monthlyTxns
+        .filter(t => t.categoryId === c.id)
+        .reduce((sum, t) => sum + t.amount, 0);
+      const pct = c.budget > 0 ? Math.round((spent / c.budget) * 100) : 0;
+      return `  - ${c.name}: ${currency}${spent.toFixed(0)} / ${currency}${c.budget.toFixed(0)} (${pct}%)`;
+    }).join('\n');
+
+  // Active goals
+  const goalLines = context.goals
+    .filter(g => g.status === GoalStatus.IN_PROGRESS)
+    .map(g => {
+      const pct = g.targetAmount > 0 ? Math.round((g.currentAmount / g.targetAmount) * 100) : 0;
+      return `  - ${g.name}: ${currency}${g.currentAmount.toFixed(0)} / ${currency}${g.targetAmount.toFixed(0)} (${pct}%)${g.deadline ? ` deadline: ${g.deadline}` : ''}`;
+    }).join('\n');
+
+  // Upcoming bills
+  const upcomingBills = context.bills
+    .filter(b => b.status !== BillStatus.PAID)
+    .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
+    .slice(0, 10)
+    .map(b => {
+      const daysUntil = Math.ceil((new Date(b.dueDate).getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+      return `  - ${b.name}: ${currency}${b.amount.toFixed(2)} due ${daysUntil < 0 ? `${Math.abs(daysUntil)} days OVERDUE` : daysUntil === 0 ? 'TODAY' : `in ${daysUntil} days`}`;
+    }).join('\n');
+
+  // Subscriptions
+  const activeSubs = context.subscriptions
+    .filter(s => s.status === SubscriptionStatus.ACTIVE || s.status === SubscriptionStatus.TRIAL);
+  const subsLines = activeSubs
+    .map(s => `  - ${s.name}: ${currency}${s.cost.toFixed(2)}/${s.billingCycle}`)
+    .join('\n');
+
+  const monthlySubCost = activeSubs.reduce((sum, s) => {
+    switch (s.billingCycle) {
+      case 'Weekly': return sum + s.cost * 4.33;
+      case 'Bi-Weekly': return sum + s.cost * 2.17;
+      case 'Monthly': return sum + s.cost;
+      case 'Yearly': return sum + s.cost / 12;
+      default: return sum + s.cost;
+    }
+  }, 0);
+
+  // Account balances
+  const accountLines = context.accounts
+    .filter(a => !a.isHidden)
+    .map(a => `  - ${a.name} (${a.type}): ${currency}${a.balance.toFixed(2)}`)
+    .join('\n');
+
+  const totalAssets = context.accounts
+    .filter(a => !a.isHidden && a.type !== AccountType.CREDIT_CARD && a.type !== AccountType.LOAN)
+    .reduce((sum, a) => sum + a.balance, 0);
+
+  const totalLiabilities = context.accounts
+    .filter(a => !a.isHidden && (a.type === AccountType.CREDIT_CARD || a.type === AccountType.LOAN))
+    .reduce((sum, a) => sum + Math.abs(a.balance), 0);
+
+  // Recent transactions (last 20)
+  const recentTxns = context.transactions
+    .slice(0, 20)
+    .map(t => {
+      const cat = context.categories.find(c => c.id === t.categoryId);
+      return `  - ${t.date}: ${t.description}${t.merchant ? ` (${t.merchant})` : ''} - ${currency}${t.amount.toFixed(2)} [${cat?.name || 'Unknown'}]`;
+    }).join('\n');
+
+  return `You are Wingman AI, a smart and friendly financial advisor built into a personal finance app called Wingman Finance. You have complete access to the user's financial data below. Be conversational, specific, and reference actual numbers from their data. Give concrete, actionable advice. Keep responses concise but thorough. Use the currency symbol ${currency}.
+
+TODAY'S DATE: ${now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+
+=== THIS MONTH'S OVERVIEW ===
+Monthly Income: ${currency}${monthlyIncome.toFixed(2)}
+Monthly Expenses: ${currency}${monthlyExpenses.toFixed(2)}
+Net: ${currency}${(monthlyIncome - monthlyExpenses).toFixed(2)}
+Transactions this month: ${monthlyTxns.length}
+Total transactions all-time: ${context.transactions.length}
+
+=== BUDGET STATUS (This Month) ===
+${budgetLines || '  No budgets set'}
+
+=== ACTIVE GOALS ===
+${goalLines || '  No active goals'}
+
+=== UPCOMING BILLS ===
+${upcomingBills || '  No upcoming bills'}
+
+=== ACTIVE SUBSCRIPTIONS (${currency}${monthlySubCost.toFixed(2)}/month total) ===
+${subsLines || '  No active subscriptions'}
+
+=== ACCOUNTS ===
+${accountLines || '  No accounts'}
+Total Assets: ${currency}${totalAssets.toFixed(2)}
+Total Liabilities: ${currency}${totalLiabilities.toFixed(2)}
+Net Worth: ${currency}${(totalAssets - totalLiabilities).toFixed(2)}
+
+=== RECENT TRANSACTIONS ===
+${recentTxns || '  No recent transactions'}
+
+=== ALL CATEGORIES ===
+${context.categories.map(c => `  - ${c.name} (${c.type}, budget: ${currency}${c.budget})`).join('\n')}
+
+INSTRUCTIONS:
+- Be conversational and use the user's actual data in your responses
+- When asked about spending, reference specific categories and dollar amounts
+- Provide specific dollar amounts, percentages, and comparisons where relevant
+- If something looks concerning (overspending, missed bills, overdue), proactively mention it
+- Keep responses focused and readable — use bullet points for lists
+- If the user asks something you can't determine from the data, say so honestly
+- Never fabricate data — only reference what's actually provided above
+- Format with markdown: use **bold** for emphasis, bullet points for lists, and clear sections`;
+};
+
+// Conversational AI chat with full financial context
+export const chatWithFinancialAdvisor = async (
+  message: string,
+  conversationHistory: Array<{ role: 'user' | 'model'; text: string }>,
+  context: FinancialContext
+): Promise<string> => {
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+
+  const systemPrompt = buildFinancialSystemPrompt(context);
+
+  // Keep conversation history manageable (last 10 exchanges)
+  const recentHistory = conversationHistory.slice(-20);
+
+  const contents = [
+    ...recentHistory.map(msg => ({
+      role: msg.role as 'user' | 'model',
+      parts: [{ text: msg.text }]
+    })),
+    { role: 'user' as const, parts: [{ text: message }] }
+  ];
+
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-flash-preview',
+      contents,
+      config: {
+        systemInstruction: systemPrompt,
+      }
+    });
+
+    return response.text || "I couldn't generate a response. Please try again.";
+  } catch {
+    return "I'm having trouble connecting to the advisor service right now. Please check your network connection and API key, then try again.";
   }
 };

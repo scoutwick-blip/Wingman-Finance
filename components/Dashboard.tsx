@@ -352,6 +352,103 @@ export const Dashboard: React.FC<DashboardProps> = ({ transactions, categories, 
     return { score: total, grade, savingsRate: parseFloat((savingsRate * 100).toFixed(1)) };
   }, [transactions, categories, goals, preferences.transactionTypes]);
 
+  // AI Contextual Insights — locally computed, no API call
+  const aiInsights = React.useMemo(() => {
+    const insights: Array<{ icon: string; text: string; type: 'positive' | 'negative' | 'neutral' }> = [];
+    const now = new Date();
+    const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
+
+    // This month vs last month total spending
+    let thisMonthSpending = 0;
+    let lastMonthSpending = 0;
+    transactions.forEach(t => {
+      const d = new Date(t.date);
+      const typeDef = preferences.transactionTypes.find(type => type.id === t.typeId);
+      if (typeDef?.behavior !== TransactionBehavior.OUTFLOW) return;
+      if (d >= thisMonthStart && d <= now) thisMonthSpending += t.amount;
+      else if (d >= lastMonthStart && d <= lastMonthEnd) lastMonthSpending += t.amount;
+    });
+
+    if (lastMonthSpending > 0) {
+      const change = ((thisMonthSpending - lastMonthSpending) / lastMonthSpending) * 100;
+      if (Math.abs(change) >= 5) {
+        insights.push({
+          icon: change > 0 ? '📈' : '📉',
+          text: `Spending is ${Math.abs(Math.round(change))}% ${change > 0 ? 'higher' : 'lower'} than last month`,
+          type: change > 10 ? 'negative' : change < -5 ? 'positive' : 'neutral'
+        });
+      }
+    }
+
+    // Bills due this week
+    const weekFromNow = new Date(now);
+    weekFromNow.setDate(weekFromNow.getDate() + 7);
+    const billsDueThisWeek = bills.filter(b => {
+      const d = new Date(b.dueDate);
+      return d >= now && d <= weekFromNow && b.status !== BillStatus.PAID;
+    });
+    if (billsDueThisWeek.length > 0) {
+      const total = billsDueThisWeek.reduce((sum, b) => sum + b.amount, 0);
+      insights.push({
+        icon: '📋',
+        text: `${billsDueThisWeek.length} bill${billsDueThisWeek.length > 1 ? 's' : ''} due this week (${preferences.currency}${total.toFixed(0)})`,
+        type: 'neutral'
+      });
+    }
+
+    // Overdue bills
+    const overdueBills = bills.filter(b => b.status !== BillStatus.PAID && new Date(b.dueDate) < now);
+    if (overdueBills.length > 0) {
+      insights.push({
+        icon: '🚨',
+        text: `${overdueBills.length} overdue bill${overdueBills.length > 1 ? 's' : ''} need attention`,
+        type: 'negative'
+      });
+    }
+
+    // Goal closest to completion
+    const activeGoals = goals.filter(g => g.status === GoalStatus.IN_PROGRESS && g.targetAmount > 0);
+    if (activeGoals.length > 0) {
+      const closest = [...activeGoals].sort((a, b) => (b.currentAmount / b.targetAmount) - (a.currentAmount / a.targetAmount))[0];
+      const pct = Math.round((closest.currentAmount / closest.targetAmount) * 100);
+      if (pct > 0) {
+        insights.push({
+          icon: '🎯',
+          text: `${pct}% toward your "${closest.name}" goal`,
+          type: pct >= 75 ? 'positive' : 'neutral'
+        });
+      }
+    }
+
+    // Most over-budget category
+    const overBudget = categories
+      .filter(c => c.type === CategoryType.SPENDING && c.budget > 0)
+      .map(c => {
+        const spent = transactions
+          .filter(t => {
+            const d = new Date(t.date);
+            return t.categoryId === c.id && d >= thisMonthStart && d <= now;
+          })
+          .reduce((sum, t) => sum + t.amount, 0);
+        return { name: c.name, ratio: spent / c.budget };
+      })
+      .filter(c => c.ratio > 0.9)
+      .sort((a, b) => b.ratio - a.ratio);
+
+    if (overBudget.length > 0) {
+      const worst = overBudget[0];
+      insights.push({
+        icon: worst.ratio >= 1 ? '⚠️' : '💡',
+        text: `${worst.name} is at ${Math.round(worst.ratio * 100)}% of budget`,
+        type: worst.ratio >= 1 ? 'negative' : 'neutral'
+      });
+    }
+
+    return insights.slice(0, 4);
+  }, [transactions, categories, bills, goals, preferences.transactionTypes, preferences.currency]);
+
   const SensitiveValue = ({ value, prefix = '' }: { value: number, prefix?: string }) => (
     <span className={`tabular-nums transition-all duration-300 ${preferences.privacyMode ? 'blur-md hover:blur-none cursor-help' : ''}`}>
       {prefix}{preferences.currency}{Math.abs(value).toFixed(2)}
@@ -512,6 +609,31 @@ export const Dashboard: React.FC<DashboardProps> = ({ transactions, categories, 
           )}
         </div>
       </div>
+
+      {/* AI Insights */}
+      {aiInsights.length > 0 && (
+        <div className="p-5 rounded-xl" style={{ backgroundColor: 'var(--color-bg-card)', border: '1px solid var(--color-border-card)' }}>
+          <div className="flex items-center gap-2 mb-3">
+            <span className="w-2 h-2 rounded-full" style={{ backgroundColor: 'var(--color-accent)' }}></span>
+            <h4 className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>Insights</h4>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {aiInsights.map((insight, i) => (
+              <div key={i} className="flex items-center gap-2.5 p-2.5 rounded-lg"
+                style={{ backgroundColor: 'var(--color-bg-tertiary)' }}>
+                <span className="text-base shrink-0">{insight.icon}</span>
+                <span className={`text-xs font-semibold ${
+                  insight.type === 'positive' ? 'text-emerald-600' :
+                  insight.type === 'negative' ? 'text-rose-500' :
+                  ''
+                }`} style={insight.type === 'neutral' ? { color: 'var(--color-text-secondary)' } : {}}>
+                  {insight.text}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Upcoming Bills */}
       {upcomingBills.length > 0 && (
