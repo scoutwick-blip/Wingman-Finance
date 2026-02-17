@@ -1,17 +1,18 @@
 
 import React from 'react';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
-import { Transaction, Category, UserPreferences, TransactionBehavior, CategoryType, RecurringFrequency } from '../types';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, CartesianGrid } from 'recharts';
+import { Transaction, Category, UserPreferences, TransactionBehavior, CategoryType, RecurringFrequency, Bill, BillStatus } from '../types';
 
 interface DashboardProps {
   transactions: Transaction[];
   categories: Category[];
   preferences: UserPreferences;
+  bills?: Bill[];
   onNavigateToTab: (tab: string) => void;
   onAddTransaction: (behavior: TransactionBehavior) => void;
 }
 
-export const Dashboard: React.FC<DashboardProps> = ({ transactions, categories, preferences, onNavigateToTab, onAddTransaction }) => {
+export const Dashboard: React.FC<DashboardProps> = ({ transactions, categories, preferences, bills = [], onNavigateToTab, onAddTransaction }) => {
 
   // Logic to calculate Upcoming Bills
   const upcomingBills = React.useMemo(() => {
@@ -117,6 +118,110 @@ export const Dashboard: React.FC<DashboardProps> = ({ transactions, categories, 
     };
   }, [transactions, categories, preferences.transactionTypes]);
 
+  // Safe-to-Spend calculation
+  const safeToSpend = React.useMemo(() => {
+    const today = new Date();
+    const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+    const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+
+    let monthIncome = 0;
+    let monthExpense = 0;
+
+    transactions.forEach(t => {
+      const d = new Date(t.date);
+      if (d >= monthStart && d <= monthEnd) {
+        const typeDef = preferences.transactionTypes.find(type => type.id === t.typeId);
+        if (!typeDef) return;
+        if (typeDef.behavior === TransactionBehavior.INFLOW) monthIncome += t.amount;
+        else if (typeDef.behavior === TransactionBehavior.OUTFLOW) monthExpense += t.amount;
+      }
+    });
+
+    // Calculate remaining unpaid bills this month
+    let upcomingBillsTotal = 0;
+    bills.forEach(bill => {
+      if (bill.status === BillStatus.PAID) return;
+      const dueDate = new Date(bill.dueDate);
+      if (dueDate >= today && dueDate <= monthEnd) {
+        upcomingBillsTotal += bill.amount;
+      }
+    });
+
+    const remaining = monthIncome - monthExpense - upcomingBillsTotal;
+    const daysLeft = monthEnd.getDate() - today.getDate() + 1;
+    const dailyBudget = daysLeft > 0 ? remaining / daysLeft : 0;
+
+    return {
+      amount: parseFloat(remaining.toFixed(2)),
+      dailyBudget: parseFloat(dailyBudget.toFixed(2)),
+      monthIncome: parseFloat(monthIncome.toFixed(2)),
+      monthExpense: parseFloat(monthExpense.toFixed(2)),
+      upcomingBills: parseFloat(upcomingBillsTotal.toFixed(2)),
+      daysLeft
+    };
+  }, [transactions, bills, preferences.transactionTypes]);
+
+  // Weekly Recap calculation
+  const weeklyRecap = React.useMemo(() => {
+    const today = new Date();
+    const dayOfWeek = today.getDay();
+    const weekStart = new Date(today);
+    weekStart.setDate(today.getDate() - dayOfWeek);
+    weekStart.setHours(0, 0, 0, 0);
+
+    const lastWeekStart = new Date(weekStart);
+    lastWeekStart.setDate(lastWeekStart.getDate() - 7);
+    const lastWeekEnd = new Date(weekStart);
+    lastWeekEnd.setMilliseconds(-1);
+
+    let thisWeekSpent = 0;
+    let thisWeekIncome = 0;
+    let thisWeekCount = 0;
+    let lastWeekSpent = 0;
+    const thisWeekCategories: Record<string, number> = {};
+
+    transactions.forEach(t => {
+      const d = new Date(t.date);
+      const typeDef = preferences.transactionTypes.find(type => type.id === t.typeId);
+      if (!typeDef) return;
+
+      if (d >= weekStart && d <= today) {
+        thisWeekCount++;
+        if (typeDef.behavior === TransactionBehavior.OUTFLOW) {
+          thisWeekSpent += t.amount;
+          thisWeekCategories[t.categoryId] = (thisWeekCategories[t.categoryId] || 0) + t.amount;
+        }
+        if (typeDef.behavior === TransactionBehavior.INFLOW) thisWeekIncome += t.amount;
+      } else if (d >= lastWeekStart && d <= lastWeekEnd) {
+        if (typeDef.behavior === TransactionBehavior.OUTFLOW) lastWeekSpent += t.amount;
+      }
+    });
+
+    // Top category this week
+    let topCategoryId = '';
+    let topCategoryAmount = 0;
+    Object.entries(thisWeekCategories).forEach(([id, amount]) => {
+      if (amount > topCategoryAmount) {
+        topCategoryId = id;
+        topCategoryAmount = amount;
+      }
+    });
+    const topCategory = categories.find(c => c.id === topCategoryId);
+
+    const changePercent = lastWeekSpent > 0
+      ? ((thisWeekSpent - lastWeekSpent) / lastWeekSpent) * 100
+      : 0;
+
+    return {
+      spent: parseFloat(thisWeekSpent.toFixed(2)),
+      income: parseFloat(thisWeekIncome.toFixed(2)),
+      count: thisWeekCount,
+      lastWeekSpent: parseFloat(lastWeekSpent.toFixed(2)),
+      changePercent: parseFloat(changePercent.toFixed(1)),
+      topCategory: topCategory ? { name: topCategory.name, icon: topCategory.icon, amount: parseFloat(topCategoryAmount.toFixed(2)) } : null
+    };
+  }, [transactions, categories, preferences.transactionTypes]);
+
   const SensitiveValue = ({ value, prefix = '' }: { value: number, prefix?: string }) => (
     <span className={`tabular-nums transition-all duration-300 ${preferences.privacyMode ? 'blur-md hover:blur-none cursor-help' : ''}`}>
       {prefix}{preferences.currency}{Math.abs(value).toFixed(2)}
@@ -175,6 +280,106 @@ export const Dashboard: React.FC<DashboardProps> = ({ transactions, categories, 
           <h3 className="text-lg font-bold">
             <SensitiveValue value={stats.netWorth} />
           </h3>
+        </div>
+      </div>
+
+      {/* Safe-to-Spend + Weekly Recap */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Safe-to-Spend */}
+        <div className="p-5 rounded-xl" style={{ backgroundColor: 'var(--color-bg-card)', border: '1px solid var(--color-border-card)' }}>
+          <div className="flex items-center justify-between mb-4">
+            <h4 className="text-sm font-semibold flex items-center gap-2" style={{ color: 'var(--color-text-primary)' }}>
+              <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+              Safe to Spend
+            </h4>
+            <span className="text-xs px-2 py-1 rounded-md" style={{ backgroundColor: 'var(--color-bg-tertiary)', color: 'var(--color-text-tertiary)' }}>
+              This Month
+            </span>
+          </div>
+          <div className="mb-4">
+            <h3 className={`text-2xl font-bold ${safeToSpend.amount < 0 ? 'text-rose-500' : ''}`}
+              style={safeToSpend.amount >= 0 ? { color: 'var(--color-text-primary)' } : {}}>
+              <SensitiveValue value={safeToSpend.amount} />
+            </h3>
+            {safeToSpend.daysLeft > 0 && safeToSpend.amount > 0 && (
+              <p className="text-xs mt-1" style={{ color: 'var(--color-text-tertiary)' }}>
+                ~<SensitiveValue value={safeToSpend.dailyBudget} />/day for {safeToSpend.daysLeft} days
+              </p>
+            )}
+          </div>
+          <div className="space-y-2">
+            <div className="flex justify-between text-xs">
+              <span style={{ color: 'var(--color-text-tertiary)' }}>Income</span>
+              <span className="font-medium text-emerald-600">+<SensitiveValue value={safeToSpend.monthIncome} /></span>
+            </div>
+            <div className="flex justify-between text-xs">
+              <span style={{ color: 'var(--color-text-tertiary)' }}>Spent</span>
+              <span className="font-medium" style={{ color: 'var(--color-text-primary)' }}>-<SensitiveValue value={safeToSpend.monthExpense} /></span>
+            </div>
+            {safeToSpend.upcomingBills > 0 && (
+              <div className="flex justify-between text-xs">
+                <span style={{ color: 'var(--color-text-tertiary)' }}>Upcoming Bills</span>
+                <span className="font-medium text-amber-600">-<SensitiveValue value={safeToSpend.upcomingBills} /></span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Weekly Recap */}
+        <div className="p-5 rounded-xl" style={{ backgroundColor: 'var(--color-bg-card)', border: '1px solid var(--color-border-card)' }}>
+          <div className="flex items-center justify-between mb-4">
+            <h4 className="text-sm font-semibold flex items-center gap-2" style={{ color: 'var(--color-text-primary)' }}>
+              <span className="w-2 h-2 rounded-full" style={{ backgroundColor: 'var(--color-accent)' }}></span>
+              Weekly Recap
+            </h4>
+            <span className="text-xs px-2 py-1 rounded-md" style={{ backgroundColor: 'var(--color-bg-tertiary)', color: 'var(--color-text-tertiary)' }}>
+              This Week
+            </span>
+          </div>
+
+          {weeklyRecap.count > 0 ? (
+            <>
+              <div className="grid grid-cols-2 gap-4 mb-4">
+                <div>
+                  <p className="text-xs mb-1" style={{ color: 'var(--color-text-tertiary)' }}>Spent</p>
+                  <p className="text-lg font-bold" style={{ color: 'var(--color-text-primary)' }}>
+                    <SensitiveValue value={weeklyRecap.spent} />
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs mb-1" style={{ color: 'var(--color-text-tertiary)' }}>Earned</p>
+                  <p className="text-lg font-bold text-emerald-600">
+                    <SensitiveValue value={weeklyRecap.income} />
+                  </p>
+                </div>
+              </div>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between text-xs">
+                  <span style={{ color: 'var(--color-text-tertiary)' }}>Transactions</span>
+                  <span className="font-semibold" style={{ color: 'var(--color-text-primary)' }}>{weeklyRecap.count}</span>
+                </div>
+                {weeklyRecap.lastWeekSpent > 0 && (
+                  <div className="flex items-center justify-between text-xs">
+                    <span style={{ color: 'var(--color-text-tertiary)' }}>vs Last Week</span>
+                    <span className={`font-semibold ${weeklyRecap.changePercent > 0 ? 'text-rose-500' : weeklyRecap.changePercent < 0 ? 'text-emerald-600' : ''}`}
+                      style={weeklyRecap.changePercent === 0 ? { color: 'var(--color-text-tertiary)' } : {}}>
+                      {weeklyRecap.changePercent > 0 ? '+' : ''}{weeklyRecap.changePercent}%
+                    </span>
+                  </div>
+                )}
+                {weeklyRecap.topCategory && (
+                  <div className="flex items-center justify-between text-xs">
+                    <span style={{ color: 'var(--color-text-tertiary)' }}>Top Category</span>
+                    <span className="font-medium flex items-center gap-1" style={{ color: 'var(--color-text-primary)' }}>
+                      {weeklyRecap.topCategory.icon} {weeklyRecap.topCategory.name}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </>
+          ) : (
+            <p className="text-sm py-6 text-center" style={{ color: 'var(--color-text-tertiary)' }}>No transactions this week yet.</p>
+          )}
         </div>
       </div>
 
