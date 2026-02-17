@@ -748,7 +748,7 @@ export const Transactions: React.FC<TransactionsProps> = ({
         </span>
       </div>
 
-      {/* TACTICAL BULK ACTION BAR */}
+      {/* Bulk Action Bar */}
       {selectedIds.size > 0 && (
          <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-bottom-6">
             <div className="bg-slate-900 text-white rounded-2xl shadow-2xl p-2 pl-6 flex items-center gap-4 border border-slate-700">

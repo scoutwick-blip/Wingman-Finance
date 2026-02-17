@@ -10,6 +10,7 @@ interface BudgetsProps {
   onUpdateCategory: (id: string, updates: Partial<Category>) => void;
   onAddCategory: (cat: Omit<Category, 'id'>) => void;
   onDeleteCategory: (id: string) => void;
+  onUpdatePreferences: (updates: Partial<UserPreferences>) => void;
   preferences: UserPreferences;
 }
 
@@ -25,6 +26,7 @@ export const Budgets: React.FC<BudgetsProps> = ({
   onUpdateCategory,
   onAddCategory,
   onDeleteCategory,
+  onUpdatePreferences,
   preferences
 }) => {
   const [isAdding, setIsAdding] = useState(false);
@@ -106,30 +108,62 @@ export const Budgets: React.FC<BudgetsProps> = ({
       relevantTransactions = relevantTransactions.filter(t => t.accountId === accountFilter);
     }
 
+    // For spending categories, scope to current month and compute rollover
+    if (cat.type === CategoryType.SPENDING) {
+      const now = new Date();
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+      const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+
+      const currentMonthAmount = relevantTransactions
+        .filter(t => { const d = new Date(t.date); return d >= monthStart && d <= monthEnd; })
+        .reduce((sum, t) => sum + t.amount, 0);
+
+      let effectiveBudget = cat.budget;
+      let rolloverAmount = 0;
+
+      if (preferences.budgetRollover && cat.budget > 0) {
+        // Calculate last month's unused budget
+        const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
+        const lastMonthSpent = relevantTransactions
+          .filter(t => { const d = new Date(t.date); return d >= lastMonthStart && d <= lastMonthEnd; })
+          .reduce((sum, t) => sum + t.amount, 0);
+        rolloverAmount = Math.max(0, cat.budget - lastMonthSpent);
+        effectiveBudget = cat.budget + rolloverAmount;
+      }
+
+      const spendPerc = effectiveBudget > 0 ? (currentMonthAmount / effectiveBudget) * 100 : 0;
+      return {
+        current: currentMonthAmount,
+        target: effectiveBudget,
+        percentage: spendPerc,
+        label: 'Spent',
+        isOver: spendPerc > 100,
+        rollover: rolloverAmount
+      };
+    }
+
     const amount = relevantTransactions.reduce((sum, t) => sum + t.amount, 0);
 
     switch (cat.type) {
       case CategoryType.DEBT:
         const remaining = Math.max(0, (cat.initialBalance || 0) - amount);
         const debtPaid = (cat.initialBalance || 0) - remaining;
-        const debtPerc = cat.initialBalance && cat.initialBalance > 0 
-          ? (debtPaid / cat.initialBalance) * 100 
+        const debtPerc = cat.initialBalance && cat.initialBalance > 0
+          ? (debtPaid / cat.initialBalance) * 100
           : 100;
-        return { current: debtPaid, target: cat.initialBalance, percentage: debtPerc, label: 'Paid Off', isOver: false };
-      
-      case CategoryType.SAVINGS:
-        // Allow percentage to exceed 100 for display
-        const savePerc = cat.budget > 0 ? (amount / cat.budget) * 100 : 0;
-        return { current: amount, target: cat.budget, percentage: savePerc, label: 'Saved', isOver: false };
-      
-      case CategoryType.INCOME:
-        // Allow percentage to exceed 100 for display
-        const incPerc = cat.budget > 0 ? (amount / cat.budget) * 100 : 0;
-        return { current: amount, target: cat.budget, percentage: incPerc, label: 'Earned', isOver: false };
+        return { current: debtPaid, target: cat.initialBalance, percentage: debtPerc, label: 'Paid Off', isOver: false, rollover: 0 };
 
-      default: // Spending
-        const spendPerc = cat.budget > 0 ? (amount / cat.budget) * 100 : 0;
-        return { current: amount, target: cat.budget, percentage: spendPerc, label: 'Spent', isOver: spendPerc > 100 };
+      case CategoryType.SAVINGS:
+        const savePerc = cat.budget > 0 ? (amount / cat.budget) * 100 : 0;
+        return { current: amount, target: cat.budget, percentage: savePerc, label: 'Saved', isOver: false, rollover: 0 };
+
+      case CategoryType.INCOME:
+        const incPerc = cat.budget > 0 ? (amount / cat.budget) * 100 : 0;
+        return { current: amount, target: cat.budget, percentage: incPerc, label: 'Earned', isOver: false, rollover: 0 };
+
+      default:
+        return { current: amount, target: cat.budget, percentage: 0, label: 'Spent', isOver: false, rollover: 0 };
     }
   };
 
@@ -182,6 +216,9 @@ export const Budgets: React.FC<BudgetsProps> = ({
               <h4 className="font-bold text-slate-800 truncate text-base">{cat.name}</h4>
               <p className="text-xs text-slate-400 font-bold uppercase tracking-wide">
                 {getTargetLabel(cat.type)}: <span className="text-slate-900">{preferences.currency}{(cat.type === CategoryType.DEBT ? cat.initialBalance : cat.budget)?.toFixed(2)}</span>
+                {progress.rollover > 0 && (
+                  <span className="text-emerald-600 ml-1">(+{preferences.currency}{progress.rollover.toFixed(0)} rollover)</span>
+                )}
               </p>
             </div>
           </div>
@@ -315,6 +352,27 @@ export const Budgets: React.FC<BudgetsProps> = ({
             >
                 {isAdding ? '✕ Close' : '+ New Category'}
             </button>
+          </div>
+        </div>
+
+        {/* Budget Rollover Toggle */}
+        <div className="mt-4 flex items-center justify-between p-3 bg-slate-50 rounded-xl">
+          <div className="flex items-center gap-2">
+            <span className="text-sm">🔄</span>
+            <div>
+              <p className="text-xs font-semibold text-slate-700">Budget Rollover</p>
+              <p className="text-[11px] text-slate-400">Carry unspent budget into the next month</p>
+            </div>
+          </div>
+          <div
+            className={`w-10 h-5.5 rounded-full cursor-pointer transition-colors relative ${preferences.budgetRollover ? 'bg-indigo-600' : 'bg-slate-300'}`}
+            style={{ width: 40, height: 22 }}
+            onClick={() => onUpdatePreferences({ budgetRollover: !preferences.budgetRollover })}
+          >
+            <div
+              className="absolute top-[3px] w-4 h-4 rounded-full bg-white shadow-sm transition-all duration-200"
+              style={{ left: preferences.budgetRollover ? 21 : 3 }}
+            />
           </div>
         </div>
 

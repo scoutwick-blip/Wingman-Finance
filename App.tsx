@@ -164,7 +164,7 @@ const App: React.FC = () => {
           const legacyId = 'user-' + Date.now();
           const legacyProfile: UserProfile = {
             id: legacyId,
-            name: parsedPrefs.name || 'Pilot',
+            name: parsedPrefs.name || 'User',
             avatar: parsedPrefs.profileImage,
             lastActive: new Date().toISOString()
           };
@@ -1307,6 +1307,7 @@ const App: React.FC = () => {
                 transactions={transactions}
                 categories={categories}
                 preferences={preferences}
+                bills={bills}
                 onNavigateToTab={setActiveTab}
                 onAddTransaction={handleNavigateToTransactionEntry}
             />
@@ -1338,6 +1339,7 @@ const App: React.FC = () => {
             onUpdateCategory={updateCategory}
             onAddCategory={addCategory}
             onDeleteCategory={deleteCategory}
+            onUpdatePreferences={(updates) => setPreferences(prev => ({...prev, ...updates}))}
             preferences={preferences}
           />
         );
@@ -1431,10 +1433,11 @@ const App: React.FC = () => {
         );
       default:
         return (
-            <Dashboard 
-                transactions={transactions} 
-                categories={categories} 
-                preferences={preferences} 
+            <Dashboard
+                transactions={transactions}
+                categories={categories}
+                preferences={preferences}
+                bills={bills}
                 onNavigateToTab={setActiveTab}
                 onAddTransaction={handleNavigateToTransactionEntry}
             />

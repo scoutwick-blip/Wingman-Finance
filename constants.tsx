@@ -74,7 +74,8 @@ export const DEFAULT_PREFERENCES: UserPreferences = {
     overduReminders: true
   },
   smartCategorizationEnabled: true,
-  theme: 'system'
+  theme: 'system',
+  persona: 'standard'
 };
 
 export const STORAGE_KEY_TRANSACTIONS = 'wingman_transactions';

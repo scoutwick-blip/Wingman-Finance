@@ -9,15 +9,16 @@ interface ProfileSelectorProps {
   onDeleteProfile: (id: string) => void;
 }
 
-export const ProfileSelector: React.FC<ProfileSelectorProps> = ({ 
-  profiles, 
-  onSelectProfile, 
+export const ProfileSelector: React.FC<ProfileSelectorProps> = ({
+  profiles,
+  onSelectProfile,
   onCreateProfile,
   onDeleteProfile
 }) => {
   const [lockedProfileId, setLockedProfileId] = useState<string | null>(null);
   const [pinInput, setPinInput] = useState('');
   const [error, setError] = useState(false);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   const handleProfileClick = (profile: UserProfile) => {
     if (profile.pin && profile.pin.length === 4) {
@@ -32,24 +33,22 @@ export const ProfileSelector: React.FC<ProfileSelectorProps> = ({
   const handlePinEntry = (num: string) => {
     setError(false);
     let newVal = pinInput;
-    
+
     if (num === 'back') {
       newVal = pinInput.slice(0, -1);
     } else if (pinInput.length < 4) {
       newVal = pinInput + num;
     }
-    
+
     setPinInput(newVal);
 
     if (newVal.length === 4) {
       const profile = profiles.find(p => p.id === lockedProfileId);
       if (profile && profile.pin === newVal) {
-        // Success
         setTimeout(() => {
             onSelectProfile(profile.id);
         }, 100);
       } else {
-        // Error
         setTimeout(() => {
             setError(true);
             setPinInput('');
@@ -61,128 +60,167 @@ export const ProfileSelector: React.FC<ProfileSelectorProps> = ({
   return (
     <div className="fixed inset-0 bg-slate-900 z-[100] flex items-center justify-center p-6">
       <div className="max-w-4xl w-full">
-        <div className="text-center mb-12 space-y-4">
-          <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-indigo-600 text-white text-3xl font-semibold shadow-2xl shadow-indigo-900/50 mb-4">
+        <div className="text-center mb-12 space-y-3">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-indigo-600 text-white text-2xl font-semibold shadow-2xl shadow-indigo-900/50 mb-2">
             W
           </div>
-          <h1 className="text-4xl font-semibold text-white tracking-tighter uppercase">Wingman Finance</h1>
-          <p className="text-sm font-bold text-slate-400 uppercase tracking-[0.3em]">Select Account to Login</p>
+          <h1 className="text-3xl font-semibold text-white tracking-tight">Wingman Finance</h1>
+          <p className="text-sm text-slate-400">Who's using Wingman?</p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-          {profiles.map(profile => (
-            <div 
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5 max-w-3xl mx-auto">
+          {profiles.map((profile, i) => (
+            <div
               key={profile.id}
-              className="group relative bg-slate-800 rounded-3xl p-1 transition-all hover:-translate-y-1 hover:shadow-2xl hover:shadow-indigo-500/20"
+              className="group relative bg-slate-800/80 rounded-2xl transition-all hover:-translate-y-1 hover:shadow-2xl hover:shadow-indigo-500/10"
+              style={{ animationDelay: `${i * 60}ms` }}
             >
-              <button 
+              <button
                 onClick={() => handleProfileClick(profile)}
-                className="w-full h-full bg-slate-800 rounded-[1.3rem] p-6 flex flex-col items-center gap-4 border border-slate-700 group-hover:border-indigo-500/50 transition-colors"
+                className="w-full h-full bg-slate-800 rounded-2xl p-6 flex flex-col items-center gap-3 border border-slate-700/80 group-hover:border-indigo-500/40 transition-colors"
               >
-                <div className="w-20 h-20 rounded-full bg-slate-700 overflow-hidden flex items-center justify-center text-2xl border-4 border-slate-600 group-hover:border-indigo-500 transition-colors relative">
+                <div className="w-16 h-16 rounded-full bg-slate-700 overflow-hidden flex items-center justify-center text-xl border-2 border-slate-600 group-hover:border-indigo-500 transition-colors relative">
                   {profile.avatar ? (
                     <img src={profile.avatar} alt={profile.name} className="w-full h-full object-cover" />
                   ) : (
-                    <span className="font-semibold text-slate-400 group-hover:text-white">
-                      {profile.name[0]?.toUpperCase() || 'P'}
+                    <span className="font-semibold text-slate-400 group-hover:text-white transition-colors">
+                      {profile.name[0]?.toUpperCase() || 'U'}
                     </span>
                   )}
                   {profile.pin && (
-                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                        <span className="text-xl">🔒</span>
+                    <div className="absolute bottom-0 right-0 w-5 h-5 bg-slate-600 rounded-full flex items-center justify-center border-2 border-slate-800">
+                      <span className="text-[10px]">🔒</span>
                     </div>
                   )}
                 </div>
                 <div className="text-center">
-                  <h3 className="text-lg font-semibold text-white uppercase tracking-tight group-hover:text-indigo-400 transition-colors">
+                  <h3 className="text-base font-semibold text-white tracking-tight group-hover:text-indigo-400 transition-colors">
                     {profile.name}
                   </h3>
-                  <p className="text-xs font-bold text-slate-500 uppercase tracking-wide mt-1">
-                    Last Active: {new Date(profile.lastActive).toLocaleDateString()}
+                  <p className="text-xs text-slate-500 mt-1">
+                    {new Date(profile.lastActive).toLocaleDateString()}
                   </p>
                 </div>
               </button>
-              
+
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  if(confirm('Delete this account and all its data? This cannot be undone.')) onDeleteProfile(profile.id);
+                  setConfirmDeleteId(profile.id);
                 }}
-                className="absolute top-4 right-4 text-slate-600 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-opacity p-2"
-                title="Delete Account"
+                className="absolute top-3 right-3 text-slate-600 hover:text-rose-400 opacity-0 group-hover:opacity-100 transition-all p-1.5 rounded-lg hover:bg-slate-700/50"
+                title="Delete Profile"
               >
-                ✕
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
               </button>
             </div>
           ))}
 
-          {/* Add Profile Button */}
-          <button 
+          {/* Add Profile */}
+          <button
             onClick={onCreateProfile}
-            className="flex flex-col items-center justify-center gap-4 bg-slate-800/50 rounded-3xl p-6 border-2 border-dashed border-slate-700 hover:border-indigo-500/50 hover:bg-slate-800 transition-all group"
+            className="flex flex-col items-center justify-center gap-3 bg-slate-800/30 rounded-2xl p-6 border-2 border-dashed border-slate-700/60 hover:border-indigo-500/40 hover:bg-slate-800/60 transition-all group"
           >
-            <div className="w-16 h-16 rounded-full bg-slate-700/50 flex items-center justify-center text-slate-500 group-hover:text-indigo-400 group-hover:bg-indigo-950/30 transition-colors">
-              <span className="text-3xl font-light">+</span>
+            <div className="w-14 h-14 rounded-full bg-slate-700/30 flex items-center justify-center text-slate-500 group-hover:text-indigo-400 group-hover:bg-indigo-950/30 transition-colors">
+              <span className="text-2xl font-light">+</span>
             </div>
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide group-hover:text-indigo-300">Create Account</span>
+            <span className="text-xs font-medium text-slate-500 group-hover:text-indigo-300 transition-colors">New Profile</span>
           </button>
         </div>
       </div>
 
-      {/* PIN ENTRY MODAL */}
+      {/* Delete Confirmation Modal */}
+      {confirmDeleteId && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[110] flex items-center justify-center p-4">
+          <div className="bg-slate-800 rounded-2xl p-6 max-w-sm w-full border border-slate-700 shadow-2xl">
+            <div className="text-center mb-5">
+              <div className="w-12 h-12 bg-rose-500/10 rounded-full flex items-center justify-center text-xl mx-auto mb-3">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#f43f5e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="3,6 5,6 21,6" /><path d="M19,6v14a2,2,0,0,1-2,2H7a2,2,0,0,1-2-2V6m3,0V4a2,2,0,0,1,2-2h4a2,2,0,0,1,2,2v2" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-semibold text-white">Delete Profile?</h3>
+              <p className="text-sm text-slate-400 mt-1">This will remove the profile and all its data permanently.</p>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setConfirmDeleteId(null)}
+                className="flex-1 py-3 rounded-xl bg-slate-700 text-slate-300 text-sm font-medium hover:bg-slate-600 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  onDeleteProfile(confirmDeleteId);
+                  setConfirmDeleteId(null);
+                }}
+                className="flex-1 py-3 rounded-xl bg-rose-600 text-white text-sm font-medium hover:bg-rose-500 transition-colors"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* PIN Entry Modal */}
       {lockedProfileId && (
-        <div className="fixed inset-0 bg-slate-900/90 backdrop-blur-sm z-[110] flex items-center justify-center p-4 animate-in fade-in">
-          <div className={`bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl ${error ? 'animate-shake' : ''}`}>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[110] flex items-center justify-center p-4">
+          <div className={`bg-slate-800 rounded-2xl p-8 max-w-sm w-full border border-slate-700 shadow-2xl ${error ? 'animate-shake' : ''}`}>
              <div className="text-center mb-6">
-                <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center text-3xl mb-4 mx-auto">
+                <div className="w-14 h-14 bg-indigo-500/10 rounded-full flex items-center justify-center text-2xl mb-3 mx-auto">
                     🔒
                 </div>
-                <h3 className="text-xl font-semibold text-slate-900 uppercase tracking-tight">Security Check</h3>
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-wide mt-1">Enter access PIN</p>
+                <h3 className="text-lg font-semibold text-white">Enter PIN</h3>
+                <p className="text-sm text-slate-400 mt-1">
+                  {profiles.find(p => p.id === lockedProfileId)?.name}
+                </p>
              </div>
 
-             <div className="flex gap-4 justify-center mb-8">
+             <div className="flex gap-3 justify-center mb-6">
                 {[0, 1, 2, 3].map(i => (
-                <div key={i} className={`w-4 h-4 rounded-full border-2 transition-all ${pinInput.length > i ? 'bg-indigo-600 border-indigo-600 scale-110' : 'border-slate-300'}`} />
+                <div key={i} className={`w-3.5 h-3.5 rounded-full border-2 transition-all duration-200 ${pinInput.length > i ? 'bg-indigo-500 border-indigo-500 scale-110' : 'border-slate-500'}`} />
                 ))}
              </div>
 
              {error && (
-                 <p className="text-center text-rose-500 text-xs font-semibold uppercase tracking-wide mb-4">Access Denied</p>
+                 <p className="text-center text-rose-400 text-sm font-medium mb-4">Incorrect PIN, try again</p>
              )}
 
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-3 gap-2.5">
                 {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => (
-                    <button 
-                    key={num} 
+                    <button
+                    key={num}
                     onClick={() => handlePinEntry(num.toString())}
-                    className="h-14 rounded-2xl bg-slate-50 text-slate-800 font-semibold text-xl hover:bg-slate-100 active:scale-95 transition-all shadow-sm"
+                    className="h-14 rounded-xl bg-slate-700/80 text-white font-medium text-lg hover:bg-slate-600 active:scale-95 transition-all"
                     >
                     {num}
                     </button>
                 ))}
                 <div />
-                <button 
+                <button
                     onClick={() => handlePinEntry('0')}
-                    className="h-14 rounded-2xl bg-slate-50 text-slate-800 font-semibold text-xl hover:bg-slate-100 active:scale-95 transition-all shadow-sm"
+                    className="h-14 rounded-xl bg-slate-700/80 text-white font-medium text-lg hover:bg-slate-600 active:scale-95 transition-all"
                 >
                     0
                 </button>
-                <button 
+                <button
                     onClick={() => handlePinEntry('back')}
-                    className="h-14 rounded-2xl bg-rose-50 text-rose-500 font-semibold text-xl hover:bg-rose-100 active:scale-95 transition-all shadow-sm flex items-center justify-center"
+                    className="h-14 rounded-xl bg-slate-700/40 text-slate-400 font-medium text-lg hover:bg-slate-600 hover:text-white active:scale-95 transition-all flex items-center justify-center"
                 >
                     ⌫
                 </button>
             </div>
-            
-            <button 
+
+            <button
                 onClick={() => {
                     setLockedProfileId(null);
                     setPinInput('');
                     setError(false);
                 }}
-                className="w-full mt-6 py-3 text-slate-400 hover:text-slate-600 text-xs font-bold uppercase tracking-wide"
+                className="w-full mt-5 py-2.5 text-slate-400 hover:text-white text-sm font-medium transition-colors"
             >
                 Cancel
             </button>
