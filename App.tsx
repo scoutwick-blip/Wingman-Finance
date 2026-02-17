@@ -164,7 +164,7 @@ const App: React.FC = () => {
           const legacyId = 'user-' + Date.now();
           const legacyProfile: UserProfile = {
             id: legacyId,
-            name: parsedPrefs.name || 'Pilot',
+            name: parsedPrefs.name || 'User',
             avatar: parsedPrefs.profileImage,
             lastActive: new Date().toISOString()
           };

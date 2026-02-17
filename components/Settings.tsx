@@ -1242,7 +1242,7 @@ Platform: ${navigator.userAgent}
                 type="text" 
                 value={preferences.name || ''}
                 onChange={e => onUpdatePreferences({ name: e.target.value })}
-                placeholder="RANK / NAME" 
+                placeholder={preferences.persona === 'military' ? 'RANK / NAME' : 'Your Name'}
                 className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold text-slate-900 outline-none focus:ring-2 ring-indigo-500/10"
               />
             </div>
@@ -1259,7 +1259,7 @@ Platform: ${navigator.userAgent}
 
         <div className="space-y-6">
           <div className="flex flex-col gap-3">
-            <label className="text-xs font-bold text-slate-400 uppercase tracking-wide px-1">Operational Currency</label>
+            <label className="text-xs font-bold text-slate-400 uppercase tracking-wide px-1">{preferences.persona === 'military' ? 'Operational Currency' : 'Currency'}</label>
             <div className="flex flex-wrap gap-2">
               {currencies.map(c => (
                 <button
@@ -1440,6 +1440,30 @@ Platform: ${navigator.userAgent}
                 onClick={() => onUpdatePreferences({ theme: opt.value })}
                 className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-medium transition-all border ${
                   (preferences.theme || 'system') === opt.value
+                    ? 'bg-indigo-600 text-white border-indigo-600'
+                    : 'bg-slate-50 text-slate-700 border-slate-200 hover:border-slate-300'
+                }`}
+              >
+                <span>{opt.icon}</span>
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <p className="font-semibold text-slate-800 text-sm">Persona</p>
+          <p className="text-xs text-slate-500">Changes the app's tone and labels</p>
+          <div className="grid grid-cols-2 gap-2">
+            {([
+              { value: 'standard', label: 'Standard', icon: '💼' },
+              { value: 'military', label: 'Military', icon: '🎖️' }
+            ] as const).map(opt => (
+              <button
+                key={opt.value}
+                onClick={() => onUpdatePreferences({ persona: opt.value })}
+                className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-medium transition-all border ${
+                  (preferences.persona || 'standard') === opt.value
                     ? 'bg-indigo-600 text-white border-indigo-600'
                     : 'bg-slate-50 text-slate-700 border-slate-200 hover:border-slate-300'
                 }`}

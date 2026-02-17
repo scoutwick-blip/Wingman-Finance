@@ -141,6 +141,7 @@ export interface UserPreferences {
   };
   authMode?: 'local' | 'cloud'; // 'local' = no cloud sync, 'cloud' = use authentication
   theme?: 'light' | 'dark' | 'system';
+  persona?: 'standard' | 'military'; // 'military' restores aviation/military themed language
 }
 
 export interface UserProfile {

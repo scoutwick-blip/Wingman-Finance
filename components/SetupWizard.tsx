@@ -60,7 +60,7 @@ export const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete, onCancel, 
             {step === 2 && "Currency"}
             {step === 3 && "Privacy"}
             {step === 4 && "Secure Access"}
-            {step === 5 && "Ready for Takeoff"}
+            {step === 5 && "You're All Set"}
           </h2>
           <p className="text-xs font-bold text-slate-400 uppercase tracking-wide">
             {step === 1 && "Let's set up your profile"}
@@ -77,7 +77,7 @@ export const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete, onCancel, 
               <input 
                 type="text" autoFocus value={name}
                 onChange={e => setName(e.target.value)}
-                placeholder="RANK / NAME"
+                placeholder="Your Name"
                 className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl px-6 py-4 text-sm font-bold text-slate-900 outline-none focus:border-indigo-600 transition-all uppercase"
               />
             </div>
@@ -160,7 +160,7 @@ export const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete, onCancel, 
                 <div className="text-2xl">🤖</div>
                 <div>
                   <h4 className="font-semibold text-xs text-slate-900 uppercase tracking-wide">AI Advisor</h4>
-                  <p className="text-xs text-slate-500 mt-1 font-medium">Get tactical insights and budget alerts powered by Google Gemini.</p>
+                  <p className="text-xs text-slate-500 mt-1 font-medium">Get smart insights and budget alerts powered by Google Gemini.</p>
                 </div>
               </div>
               <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 flex gap-4 items-start">
@@ -185,7 +185,7 @@ export const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete, onCancel, 
             onClick={handleNext}
             className="flex-[2] bg-slate-900 text-white py-4 rounded-xl font-semibold uppercase text-xs tracking-wide shadow-xl hover:bg-slate-800 transition-all disabled:opacity-50"
           >
-            {step === totalSteps ? "Launch Wingman" : "Continue"}
+            {step === totalSteps ? "Get Started" : "Continue"}
           </button>
         </div>
       </div>
