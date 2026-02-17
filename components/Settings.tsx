@@ -1298,7 +1298,7 @@ Platform: ${navigator.userAgent}
               </div>
               <div className="shrink-0">
                 <div className={`w-11 h-6 rounded-full transition-colors relative ${budgetWarnings ? 'bg-indigo-600' : 'bg-slate-300'}`}>
-                  <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all duration-300 shadow-sm ${budgetWarnings ? 'left-6' : 'left-1'}`} />
+                  <div className={`absolute top-1 w-4 h-4 rounded-full transition-all duration-300 shadow-sm ${budgetWarnings ? 'left-6' : 'left-1'}`} style={{ backgroundColor: '#fff' }} />
                 </div>
               </div>
             </div>
@@ -1339,7 +1339,7 @@ Platform: ${navigator.userAgent}
               </div>
               <div className="shrink-0">
                 <div className={`w-11 h-6 rounded-full transition-colors relative ${largeTransactions ? 'bg-indigo-600' : 'bg-slate-300'}`}>
-                  <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all duration-300 shadow-sm ${largeTransactions ? 'left-6' : 'left-1'}`} />
+                  <div className={`absolute top-1 w-4 h-4 rounded-full transition-all duration-300 shadow-sm ${largeTransactions ? 'left-6' : 'left-1'}`} style={{ backgroundColor: '#fff' }} />
                 </div>
               </div>
             </div>
@@ -1464,7 +1464,7 @@ Platform: ${navigator.userAgent}
           </div>
           <div className="shrink-0 ml-4">
             <div className={`w-11 h-6 rounded-full transition-colors relative ${preferences.privacyMode ? 'bg-indigo-600' : 'bg-slate-300'}`}>
-              <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all duration-300 shadow-sm ${preferences.privacyMode ? 'left-6' : 'left-1'}`} />
+              <div className={`absolute top-1 w-4 h-4 rounded-full transition-all duration-300 shadow-sm ${preferences.privacyMode ? 'left-6' : 'left-1'}`} style={{ backgroundColor: '#fff' }} />
             </div>
           </div>
         </div>
