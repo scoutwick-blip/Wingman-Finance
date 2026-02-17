@@ -83,7 +83,6 @@ export default function CSVImport({
       setImportedTransactions(imported);
       setStep('preview');
     } catch (error) {
-      console.error('Error parsing OFX:', error);
       setError(`Failed to parse OFX file: ${error instanceof Error ? error.message : 'Unknown error'}. Please ensure the file is a valid OFX/QFX/QBO file.`);
     }
   };
@@ -107,7 +106,6 @@ export default function CSVImport({
       setImportedTransactions(imported);
       setStep('preview');
     } catch (error) {
-      console.error('Error parsing CSV:', error);
       setError(`Failed to parse CSV: ${error instanceof Error ? error.message : 'Unknown error'}. Please check the file format and try a different bank preset.`);
     }
   };
@@ -312,9 +310,8 @@ export default function CSVImport({
           transactions
         );
         setAiSuggestions(suggestions);
-      } catch (error) {
-        console.error('Error getting AI suggestions:', error);
-        // Don't show error to user, just silently fall back to fuzzy matching
+      } catch {
+        // Silently fall back to fuzzy matching if AI suggestions fail
       } finally {
         setIsLoadingAI(false);
       }

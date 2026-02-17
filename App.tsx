@@ -11,7 +11,7 @@ import AutomationDashboard from './components/AutomationDashboard';
 import { SetupWizard } from './components/SetupWizard';
 import { ProfileSelector } from './components/ProfileSelector';
 import Auth from './components/Auth';
-import { Transaction, Category, UserPreferences, Notification, NotificationType, TransactionBehavior, UserProfile, Bill, BillStatus, MerchantMapping, Subscription, Goal, GoalStatus, SplitTransaction, Account, AccountType, SubscriptionStatus, RecurringFrequency } from './types';
+import { Transaction, Category, CategoryType, UserPreferences, Notification, NotificationType, TransactionBehavior, UserProfile, Bill, BillStatus, MerchantMapping, Subscription, Goal, GoalStatus, SplitTransaction, Account, AccountType, SubscriptionStatus, RecurringFrequency } from './types';
 import { initSupabase, signIn, signUp, signInWithOAuth, signOut, getCurrentUser, onAuthStateChange, uploadAuthData, downloadAuthData, deleteAuthData, fetchUserProfiles } from './services/supabaseService';
 import { User } from '@supabase/supabase-js';
 import {
@@ -72,7 +72,7 @@ const App: React.FC = () => {
 
   // Initialize Supabase and Check Auth (runs first)
   useEffect(() => {
-    let subscription: any = null;
+    let subscription: { unsubscribe: () => void } | null = null;
 
     const initAuth = async () => {
       try {
@@ -94,10 +94,7 @@ const App: React.FC = () => {
               const currentUser = await getCurrentUser();
               if (currentUser) {
                 await signOut();
-                console.log('Signed out previous session - explicit sign-in required');
               }
-            } else {
-              console.log('OAuth callback detected - preserving session');
             }
 
             // Check if user has chosen local-only mode before
@@ -124,12 +121,12 @@ const App: React.FC = () => {
             });
             subscription = data.subscription;
 
-          } catch (error) {
-            console.error('Failed to initialize Supabase:', error);
+          } catch {
+            // Supabase initialization failed - continue without cloud sync
           }
         }
-      } catch (error) {
-        console.error('Auth initialization error:', error);
+      } catch {
+        // Auth initialization failed
       } finally {
         setIsCheckingAuth(false);
       }
@@ -218,14 +215,12 @@ const App: React.FC = () => {
                   window.history.replaceState({}, document.title, window.location.pathname);
 
                   alert('Import successful! Please select the new profile.');
-               } catch (e) {
-                  console.error("Storage limit reached during import", e);
+               } catch {
                   alert("Cannot import data: Not enough storage space available.");
                }
             }
           }
-        } catch (e) {
-          console.error("Import failed", e);
+        } catch {
           alert("Failed to read QR code data.");
         }
       }
@@ -233,9 +228,7 @@ const App: React.FC = () => {
       // Check cloud for existing profiles if user is authenticated and no local profiles
       if (user && loadedProfiles.length === 0) {
         try {
-          console.log('No local profiles found, checking cloud for user:', user.email);
           const cloudProfiles = await fetchUserProfiles();
-          console.log('Cloud profiles found:', cloudProfiles.length);
 
           if (cloudProfiles.length > 0) {
             // Load ALL cloud profiles for this user
@@ -244,8 +237,6 @@ const App: React.FC = () => {
             for (const cloudProfile of cloudProfiles) {
               const profileId = cloudProfile.id; // Use the actual profile ID from cloud
               const cloudData = cloudProfile.data;
-
-              console.log('Loading cloud profile:', profileId);
 
               // Create local profile from cloud data
               const newProfile: UserProfile = {
@@ -293,11 +284,9 @@ const App: React.FC = () => {
             loadedProfiles = restoredProfiles;
             setProfiles(loadedProfiles);
             localStorage.setItem(STORAGE_KEY_PROFILES, JSON.stringify(loadedProfiles));
-
-            console.log(`✅ Loaded ${restoredProfiles.length} cloud profile(s)`);
           }
-        } catch (error) {
-          console.error('Failed to check cloud profiles:', error);
+        } catch {
+          // Cloud profile check failed - continue with local data
         }
       }
 
@@ -321,14 +310,11 @@ const App: React.FC = () => {
     const loadProfileData = async () => {
       try {
         setIsLoading(true);
-        console.log('Loading profile data from cloud:', activeProfileId);
         const cloudData = await downloadAuthData(activeProfileId);
 
         if (cloudData && cloudData.content) {
-          console.log('Cloud data found, loading...');
           restoreFullState(cloudData.content, false);
         } else {
-          console.log('No cloud data found, using defaults');
           // Initialize with defaults for new profile
           setTransactions([]);
           setCategories(INITIAL_CATEGORIES);
@@ -341,8 +327,7 @@ const App: React.FC = () => {
           setAccounts(DEFAULT_ACCOUNTS);
           setPreferences(DEFAULT_PREFERENCES);
         }
-      } catch (error) {
-        console.error('Failed to load profile data:', error);
+      } catch {
         // Fall back to defaults on error
         setTransactions([]);
         setCategories(INITIAL_CATEGORIES);
@@ -387,25 +372,21 @@ const App: React.FC = () => {
   // Auto-sync to cloud when authenticated (debounced)
   useEffect(() => {
     if (!user || !activeProfileId || isLoading || isCheckingAuth) {
-      console.log('Auto-sync skipped:', { user: !!user, activeProfileId, isLoading, isCheckingAuth });
       return;
     }
 
     // Debounce: only sync if 5 seconds have passed since last sync
     const now = Date.now();
     if (now - lastSyncTime < 5000) {
-      console.log('Auto-sync debounced (too soon since last sync)');
       return;
     }
 
     if (isSyncing) {
-      console.log('Auto-sync skipped (already syncing)');
       return;
     }
 
     const syncToCloud = async () => {
       try {
-        console.log('Starting auto-sync to cloud...');
         setIsSyncing(true);
         const backupData = {
           version: '1.0',
@@ -423,9 +404,8 @@ const App: React.FC = () => {
 
         await uploadAuthData(activeProfileId, backupData);
         setLastSyncTime(now);
-        console.log('✅ Auto-synced to cloud successfully');
-      } catch (error) {
-        console.error('❌ Auto-sync failed:', error);
+      } catch {
+        // Auto-sync failed silently - will retry on next data change
       } finally {
         setIsSyncing(false);
       }
@@ -504,10 +484,8 @@ const App: React.FC = () => {
           splitTransactions: [],
           accounts: DEFAULT_ACCOUNTS
         });
-        console.log('✅ New profile created and synced to cloud');
       }
-    } catch (e) {
-      console.error('Failed to create profile:', e);
+    } catch {
       alert("Failed to create profile. Please try again.");
     }
   };
@@ -521,9 +499,8 @@ const App: React.FC = () => {
     if (user) {
       try {
         await deleteAuthData(id);
-        console.log('✅ Profile deleted from cloud');
-      } catch (error) {
-        console.error('Failed to delete profile from cloud:', error);
+      } catch {
+        // Cloud deletion failed - local deletion still succeeded
       }
     }
 
@@ -615,18 +592,9 @@ const App: React.FC = () => {
     // Auto-create subscription or bill if transaction is recurring
     const category = categories.find(c => c.id === transaction.categoryId);
 
-    console.log('🔍 Transaction auto-create check:', {
-      description: transaction.description,
-      isRecurring: transaction.isRecurring,
-      frequency: transaction.frequency,
-      categoryName: category?.name,
-      categoryType: category?.type
-    });
-
     if (transaction.isRecurring && transaction.frequency && category) {
       // Auto-create SUBSCRIPTION if categorized as Subscriptions
       if (category.name === 'Subscriptions' || transaction.categoryId === '14') {
-        console.log('✅ Creating subscription for:', transaction.description);
         const existingSubscription = subscriptions.find(s =>
           s.name === transaction.description &&
           s.cost === transaction.amount &&
@@ -666,12 +634,10 @@ const App: React.FC = () => {
 
           setSubscriptions(prev => [...prev, newSubscription]);
           transaction.linkedSubscriptionId = newSubscription.id;
-          console.log('✅ Auto-created subscription:', newSubscription.name);
         }
       }
       // Auto-create BILL for any recurring spending/debt transaction
       else if (category.type === CategoryType.SPENDING || category.type === CategoryType.DEBT) {
-        console.log('✅ Creating bill for:', transaction.description);
         const existingBill = bills.find(b =>
           b.name === transaction.description &&
           b.amount === transaction.amount &&
@@ -711,7 +677,6 @@ const App: React.FC = () => {
           };
 
           setBills(prev => [...prev, newBill]);
-          console.log('✅ Auto-created bill:', newBill.name);
         }
       }
     }
@@ -861,11 +826,9 @@ const App: React.FC = () => {
     setTransactions(prev => [...transactionsWithIds, ...prev]);
     if (newBills.length > 0) {
       setBills(prev => [...newBills, ...prev]);
-      console.log(`✅ Auto-created ${newBills.length} bill(s) from import`);
     }
     if (newSubscriptions.length > 0) {
       setSubscriptions(prev => [...newSubscriptions, ...prev]);
-      console.log(`✅ Auto-created ${newSubscriptions.length} subscription(s) from import`);
     }
 
     const note: Notification = {
@@ -920,7 +883,17 @@ const App: React.FC = () => {
     handleDeleteProfile(activeProfileId);
   };
   
-  const restoreFullState = (data: any, showNotification: boolean = true) => {
+  const restoreFullState = (data: Partial<{
+    preferences: UserPreferences;
+    categories: Category[];
+    transactions: Transaction[];
+    bills: Bill[];
+    merchantMappings: MerchantMapping[];
+    subscriptions: Subscription[];
+    goals: Goal[];
+    splitTransactions: SplitTransaction[];
+    accounts: Account[];
+  }>, showNotification: boolean = true) => {
     // Restore all data fields from cloud backup
     if (data.preferences) {
       setPreferences({
@@ -930,10 +903,9 @@ const App: React.FC = () => {
           ...DEFAULT_PREFERENCES.notificationSettings,
           ...(data.preferences.notificationSettings || {})
         },
-        billReminderSettings: {
-          ...DEFAULT_PREFERENCES.billReminderSettings,
-          ...(data.preferences.billReminderSettings || {})
-        }
+        billReminderSettings: data.preferences.billReminderSettings
+          ? { ...DEFAULT_PREFERENCES.billReminderSettings, ...data.preferences.billReminderSettings }
+          : DEFAULT_PREFERENCES.billReminderSettings
       });
     }
     if (data.categories) setCategories(data.categories);
@@ -1165,16 +1137,14 @@ const App: React.FC = () => {
       // Set auth mode to cloud
       setPreferences(prev => ({ ...prev, authMode: 'cloud' }));
       // User state will be updated by onAuthStateChange listener
-    } catch (error: any) {
-      throw new Error(error.message || 'Failed to sign in');
+    } catch (error: unknown) {
+      throw new Error(error instanceof Error ? error.message : 'Failed to sign in');
     }
   };
 
   const handleSignUp = async (email: string, password: string) => {
     try {
-      console.log('Attempting sign up for:', email);
       const result = await signUp(email, password);
-      console.log('Sign up result:', result);
 
       // Set auth mode to cloud
       setPreferences(prev => ({ ...prev, authMode: 'cloud' }));
@@ -1194,17 +1164,14 @@ const App: React.FC = () => {
           'Your account has been created successfully.'
         );
       }
-    } catch (error: any) {
-      console.error('Sign up error:', error);
-      throw new Error(error.message || 'Failed to create account');
+    } catch (error: unknown) {
+      throw new Error(error instanceof Error ? error.message : 'Failed to create account');
     }
   };
 
   const handleOAuthSignIn = async (provider: 'google' | 'github') => {
     try {
-      console.log('Attempting OAuth sign in with:', provider);
       const result = await signInWithOAuth(provider);
-      console.log('OAuth result:', result);
 
       // Redirect to OAuth provider's auth page
       if (result.url) {
@@ -1213,9 +1180,8 @@ const App: React.FC = () => {
 
       // Set auth mode to cloud
       setPreferences(prev => ({ ...prev, authMode: 'cloud' }));
-    } catch (error: any) {
-      console.error('OAuth error:', error);
-      throw new Error(error.message || 'Failed to sign in with OAuth');
+    } catch (error: unknown) {
+      throw new Error(error instanceof Error ? error.message : 'Failed to sign in with OAuth');
     }
   };
 
@@ -1230,8 +1196,8 @@ const App: React.FC = () => {
         'Signed Out',
         'You have been signed out successfully. Please sign in again to access cloud-synced profiles.'
       );
-    } catch (error: any) {
-      console.error('Sign out failed:', error);
+    } catch {
+      // Sign out failed
     }
   };
 

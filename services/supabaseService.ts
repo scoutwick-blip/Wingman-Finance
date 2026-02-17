@@ -27,7 +27,7 @@ export const getSupabase = (): SupabaseClient | null => {
   return supabaseInstance;
 };
 
-export const uploadToCloud = async (url: string, key: string, profileId: string, data: any) => {
+export const uploadToCloud = async (url: string, key: string, profileId: string, data: Record<string, unknown>) => {
   const supabase = createClient(url, key);
   
   // Upsert the data (Insert or Update if exists)
@@ -62,25 +62,15 @@ export const downloadFromCloud = async (url: string, key: string, profileId: str
 };
 
 export const testConnection = async (url: string, key: string) => {
-  try {
-    const supabase = createClient(url, key);
-    // Just try to select something invalid to check auth,
-    // or just checking if createClient throws isn't enough as it's lazy.
-    // We'll try to fetch a non-existent row.
-    const { error } = await supabase.from('wingman_backups').select('id').limit(1);
-    // If error is 401 or invalid URL, it will show up.
-    // If table doesn't exist, it throws error 404 or 400.
-    if (error && error.code !== 'PGRST116') { // PGRST116 is 'row not found' which is fine
-       // If table missing, that's a specific error to handle
-       if (error.message.includes('relation "wingman_backups" does not exist')) {
-         throw new Error('Table "wingman_backups" missing. Run SQL script.');
-       }
-       if (error.code) throw error;
-    }
-    return true;
-  } catch (e: any) {
-    throw e;
+  const supabase = createClient(url, key);
+  const { error } = await supabase.from('wingman_backups').select('id').limit(1);
+  if (error && error.code !== 'PGRST116') { // PGRST116 is 'row not found' which is fine
+     if (error.message.includes('relation "wingman_backups" does not exist')) {
+       throw new Error('Table "wingman_backups" missing. Run SQL script.');
+     }
+     if (error.code) throw error;
   }
+  return true;
 }
 
 // ===== AUTHENTICATION FUNCTIONS =====
@@ -156,7 +146,7 @@ export const onAuthStateChange = (callback: (session: Session | null, user: User
 };
 
 // Upload data with authenticated user
-export const uploadAuthData = async (profileId: string, data: any) => {
+export const uploadAuthData = async (profileId: string, data: Record<string, unknown>) => {
   if (!supabaseInstance) throw new Error('Supabase not initialized');
 
   const user = await getCurrentUser();

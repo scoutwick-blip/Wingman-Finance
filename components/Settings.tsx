@@ -251,9 +251,8 @@ export const Settings: React.FC<SettingsProps> = ({
         supabaseConfig: { url: supabaseUrl, key: supabaseKey, lastSynced: new Date().toISOString() }
       });
       setSyncStatus('Success: Data saved to cloud');
-    } catch (e: any) {
-      console.error(e);
-      setSyncStatus(`Error: ${e.message || 'Connection failed'}`);
+    } catch (e: unknown) {
+      setSyncStatus(`Error: ${e instanceof Error ? e.message : 'Connection failed'}`);
     } finally {
       setIsSyncing(false);
     }
@@ -276,9 +275,8 @@ export const Settings: React.FC<SettingsProps> = ({
       } else {
         setSyncStatus('Info: No cloud data found for this profile');
       }
-    } catch (e: any) {
-      console.error(e);
-      setSyncStatus(`Error: ${e.message || 'Download failed'}`);
+    } catch (e: unknown) {
+      setSyncStatus(`Error: ${e instanceof Error ? e.message : 'Download failed'}`);
     } finally {
       setIsSyncing(false);
     }
@@ -325,9 +323,8 @@ export const Settings: React.FC<SettingsProps> = ({
             setImportStatus('Success: System Restored from Backup.');
         }
 
-      } catch (err) {
+      } catch {
         setImportStatus('Error: Corrupt JSON file.');
-        console.error(err);
       }
     };
     reader.readAsText(file);
@@ -432,9 +429,8 @@ export const Settings: React.FC<SettingsProps> = ({
           setImportStatus('Error: No valid transactions found.');
         }
 
-      } catch (err) {
+      } catch {
         setImportStatus('Error parsing file. Ensure it is a valid CSV.');
-        console.error(err);
       }
     };
     reader.readAsText(file);
@@ -442,7 +438,7 @@ export const Settings: React.FC<SettingsProps> = ({
 
   const handleExportCSV = () => {
     if (transactions.length === 0) {
-      alert('No transactions to export.');
+      setImportStatus('Error: No transactions to export.');
       return;
     }
 

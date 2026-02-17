@@ -41,19 +41,14 @@ const cleanOFXData = (data: string): string => {
     containerTags.add(match[1]);
   }
 
-  console.log('Detected container tags:', Array.from(containerTags).slice(0, 10), '...');
-
   // Check if conversion is needed
   const testPattern = /<([A-Z0-9_]+)>([^<\n]+)/;
   const testMatch = data.match(testPattern);
   const needsConversion = testMatch && !containerTags.has(testMatch[1]);
 
   if (!needsConversion) {
-    console.log('OFX file appears to be proper XML, no conversion needed');
     return data;
   }
-
-  console.log('Converting OFX SGML to XML...');
 
   // Second pass: process line by line and add closing tags to non-containers
   const lines = data.split(/\r?\n/);
@@ -98,7 +93,6 @@ const cleanOFXData = (data: string): string => {
   }
 
   const converted = result.join('\n');
-  console.log('SGML to XML conversion complete');
   return converted;
 };
 
@@ -142,12 +136,8 @@ const getElementText = (parent: Element, tagName: string): string | null => {
  */
 export const parseOFXFile = (content: string): ImportedTransaction[] => {
   try {
-    // Log first 500 chars for debugging
-    console.log('OFX File Preview:', content.substring(0, 500));
-
     // Clean and prepare the data
     const cleanedData = cleanOFXData(content);
-    console.log('Cleaned OFX Preview:', cleanedData.substring(0, 500));
 
     // Parse XML
     const parser = new DOMParser();
@@ -157,31 +147,22 @@ export const parseOFXFile = (content: string): ImportedTransaction[] => {
     const parserError = xmlDoc.getElementsByTagName('parsererror')[0];
     if (parserError) {
       const errorText = parserError.textContent || 'Unknown XML parsing error';
-      console.error('XML Parser Error:', errorText);
-      console.error('Cleaned data that failed:', cleanedData.substring(0, 1000));
       throw new Error(`XML parsing failed: ${errorText}`);
     }
 
     // Find all transaction elements (STMTTRN)
     let transactions = xmlDoc.getElementsByTagName('STMTTRN');
-    console.log('Found STMTTRN elements:', transactions.length);
 
     if (transactions.length === 0) {
       // Try alternative tag names
       transactions = xmlDoc.getElementsByTagName('TRANSACTION');
-      console.log('Found TRANSACTION elements:', transactions.length);
 
       if (transactions.length === 0) {
-        // Log the structure to help debug
-        console.log('Root element:', xmlDoc.documentElement?.tagName);
-        console.log('All tags in document:', Array.from(xmlDoc.getElementsByTagName('*')).map(el => el.tagName).slice(0, 20));
         throw new Error('No transaction elements found. The file may not contain transaction data in the expected format.');
       }
     }
 
     const importedTransactions: ImportedTransaction[] = [];
-
-    console.log(`Processing ${transactions.length} transactions...`);
 
     // Process each transaction
     for (let i = 0; i < transactions.length; i++) {
@@ -198,11 +179,6 @@ export const parseOFXFile = (content: string): ImportedTransaction[] => {
 
       // Skip if missing required fields
       if (!dtPosted || !trnAmt || !fitId) {
-        console.warn('Skipping transaction with missing required fields', {
-          dtPosted,
-          trnAmt,
-          fitId
-        });
         continue;
       }
 
@@ -242,10 +218,8 @@ export const parseOFXFile = (content: string): ImportedTransaction[] => {
       });
     }
 
-    console.log(`✅ Successfully parsed ${importedTransactions.length} transactions`);
     return importedTransactions;
   } catch (error) {
-    console.error('OFX parsing error:', error);
     throw new Error(`Failed to parse OFX file: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 };

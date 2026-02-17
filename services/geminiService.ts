@@ -54,8 +54,7 @@ export const getFinancialAdvice = async (
 
     const result = JSON.parse(response.text || '{}');
     return result as AIAdvice;
-  } catch (error) {
-    console.error("Error getting AI advice:", error);
+  } catch {
     return {
       summary: "Connection to the advisor service is temporarily unavailable. Please check your network and try again.",
       tips: [],
@@ -114,8 +113,7 @@ export const getBudgetSuggestions = async (
 
     const result = JSON.parse(response.text || '[]');
     return result as BudgetSuggestion[];
-  } catch (error) {
-    console.error("Error getting budget suggestions:", error);
+  } catch {
     return [];
   }
 };
@@ -167,8 +165,7 @@ export const extractReceiptData = async (
 
     const result = JSON.parse(response.text || '{}');
     return result;
-  } catch (error) {
-    console.error("Error extracting receipt data:", error);
+  } catch {
     throw new Error("Failed to extract receipt data");
   }
 };
@@ -240,8 +237,7 @@ export const suggestCategory = async (
 
     const result = JSON.parse(response.text || '[]');
     return result as CategorySuggestion[];
-  } catch (error) {
-    console.error("Error suggesting category:", error);
+  } catch {
     return [];
   }
 };
@@ -334,13 +330,12 @@ export const suggestCategoriesBatch = async (
 
     // Convert to Map for easy lookup
     const suggestionsMap = new Map<string, CategorySuggestion[]>();
-    result.forEach((item: any) => {
+    result.forEach((item: { transactionKey: string; suggestions: CategorySuggestion[] }) => {
       suggestionsMap.set(item.transactionKey, item.suggestions);
     });
 
     return suggestionsMap;
-  } catch (error) {
-    console.error("Error suggesting categories (batch):", error);
+  } catch {
     return new Map();
   }
 };
