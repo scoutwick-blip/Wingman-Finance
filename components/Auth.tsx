@@ -70,8 +70,8 @@ export default function Auth({ onSignIn, onSignUp, onOAuthSignIn, onSkip }: Auth
           <div className="inline-block bg-white/10 backdrop-blur-lg rounded-3xl p-6 mb-4">
             <span className="text-6xl">💰</span>
           </div>
-          <h1 className="text-4xl font-black text-white mb-2">Wingman Finance</h1>
-          <p className="text-indigo-200 text-sm">Your military budget companion</p>
+          <h1 className="text-4xl font-bold text-white mb-2">Wingman Finance</h1>
+          <p className="text-indigo-200 text-sm">Smart budgeting, simplified</p>
         </div>
 
         {/* Auth Card */}

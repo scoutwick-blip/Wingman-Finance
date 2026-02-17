@@ -531,14 +531,14 @@ Platform: ${navigator.userAgent}
   return (
     <div className="max-w-2xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20 px-4 sm:px-0">
       <div className="space-y-2 text-center md:text-left">
-        <h3 className="text-2xl font-black text-slate-900 tracking-tighter uppercase">Settings</h3>
-        <p className="text-slate-500 text-xs font-bold uppercase tracking-widest">Manage your profile and display preferences.</p>
+        <h3 className="text-2xl font-semibold text-slate-900 tracking-tighter uppercase">Settings</h3>
+        <p className="text-slate-500 text-xs font-bold uppercase tracking-wide">Manage your profile and display preferences.</p>
       </div>
 
       {/* Cloud Account Section */}
       {(user || onShowAuth) && (
         <section className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
-          <h4 className="font-bold text-slate-800 border-b border-slate-50 pb-4 text-[10px] uppercase tracking-[0.2em]">
+          <h4 className="font-bold text-slate-800 border-b border-slate-50 pb-4 text-xs uppercase tracking-wide">
             Cloud Account
           </h4>
 
@@ -614,7 +614,7 @@ Platform: ${navigator.userAgent}
       <section className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
         <div className="flex items-center justify-between border-b border-slate-50 pb-4">
           <div>
-            <h4 className="font-bold text-slate-800 text-[10px] uppercase tracking-[0.2em]">
+            <h4 className="font-bold text-slate-800 text-xs uppercase tracking-wide">
               Accounts
             </h4>
             <p className="text-xs text-slate-500 mt-1">Manage your checking, savings, credit cards, and more</p>
@@ -649,7 +649,7 @@ Platform: ${navigator.userAgent}
                   <div className="flex items-center gap-2">
                     <h5 className="font-bold text-slate-900">{account.name}</h5>
                     {account.isDefault && (
-                      <span className="px-2 py-0.5 bg-indigo-100 text-indigo-700 text-[9px] font-bold rounded-full uppercase">
+                      <span className="px-2 py-0.5 bg-indigo-100 text-indigo-700 text-xs font-bold rounded-full uppercase">
                         Default
                       </span>
                     )}
@@ -691,13 +691,13 @@ Platform: ${navigator.userAgent}
         {showAccountForm && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-3xl p-6 max-w-lg w-full space-y-6 animate-in fade-in zoom-in-95">
-              <h3 className="text-xl font-black text-slate-900">
+              <h3 className="text-xl font-semibold text-slate-900">
                 {editingAccountId ? 'Edit Account' : 'New Account'}
               </h3>
 
               <div className="space-y-4">
                 <div>
-                  <label className="text-xs font-bold text-slate-400 uppercase tracking-widest block mb-2">
+                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wide block mb-2">
                     Account Name
                   </label>
                   <input
@@ -711,7 +711,7 @@ Platform: ${navigator.userAgent}
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold text-slate-400 uppercase tracking-widest block mb-2">
+                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wide block mb-2">
                     Account Type
                   </label>
                   <select
@@ -738,7 +738,7 @@ Platform: ${navigator.userAgent}
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="text-xs font-bold text-slate-400 uppercase tracking-widest block mb-2">
+                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wide block mb-2">
                       Current Balance
                     </label>
                     <input
@@ -753,7 +753,7 @@ Platform: ${navigator.userAgent}
 
                   {accountForm.type === AccountType.CREDIT_CARD && (
                     <div>
-                      <label className="text-xs font-bold text-slate-400 uppercase tracking-widest block mb-2">
+                      <label className="text-xs font-bold text-slate-400 uppercase tracking-wide block mb-2">
                         Credit Limit
                       </label>
                       <input
@@ -810,7 +810,7 @@ Platform: ${navigator.userAgent}
         <div className="relative z-10 space-y-6">
           <div className="flex items-start justify-between">
             <div className="space-y-2">
-              <h4 className="font-black text-xl uppercase tracking-tighter">Sync to Mobile</h4>
+              <h4 className="font-semibold text-xl uppercase tracking-tighter">Sync to Mobile</h4>
               <p className="text-indigo-200 text-xs font-medium max-w-xs">
                 Move your data to another device instantly. No account required.
               </p>
@@ -824,13 +824,13 @@ Platform: ${navigator.userAgent}
             <div className="grid grid-cols-2 gap-4">
               <button 
                 onClick={generateQrCode}
-                className="bg-white text-indigo-900 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-indigo-50 transition-all shadow-lg"
+                className="bg-white text-indigo-900 py-3 rounded-xl font-semibold uppercase text-xs tracking-wide hover:bg-indigo-50 transition-all shadow-lg"
               >
                 Show QR Code
               </button>
               <button 
                 onClick={handleBackupJSON}
-                className="bg-indigo-900/50 border border-indigo-400/30 text-white py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-indigo-900/70 transition-all"
+                className="bg-indigo-900/50 border border-indigo-400/30 text-white py-3 rounded-xl font-semibold uppercase text-xs tracking-wide hover:bg-indigo-900/70 transition-all"
               >
                 Save File
               </button>
@@ -842,7 +842,7 @@ Platform: ${navigator.userAgent}
                   <div className="bg-white p-2 rounded-xl inline-block">
                     <QRCodeSVG value={qrData} size={180} />
                   </div>
-                  <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">
+                  <p className="text-slate-500 text-xs font-bold uppercase tracking-wide">
                     Scan with your phone camera to import data.
                   </p>
                 </>
@@ -865,12 +865,12 @@ Platform: ${navigator.userAgent}
 
       {/* Security Section (PIN) */}
       <section className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-6">
-        <h4 className="font-bold text-slate-800 border-b border-slate-50 pb-4 text-[10px] uppercase tracking-[0.2em]">Security</h4>
+        <h4 className="font-bold text-slate-800 border-b border-slate-50 pb-4 text-xs uppercase tracking-wide">Security</h4>
         
         <div className="flex items-center justify-between">
             <div className="space-y-1">
                 <p className="font-bold text-slate-800 text-sm">Access PIN</p>
-                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">
+                <p className="text-xs text-slate-500 font-bold uppercase tracking-wide">
                     {preferences.pin ? 'Profile is secured' : 'No PIN configured'}
                 </p>
             </div>
@@ -880,13 +880,13 @@ Platform: ${navigator.userAgent}
                         onClick={() => {
                             if(confirm("Remove security PIN?")) onUpdatePreferences({ pin: undefined });
                         }}
-                        className="bg-rose-50 text-rose-600 px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-rose-100 transition-all"
+                        className="bg-rose-50 text-rose-600 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wide hover:bg-rose-100 transition-all"
                     >
                         Remove
                     </button>
                     <button 
                         onClick={() => { setPinMode('set'); setPinInput(''); }}
-                        className="bg-slate-100 text-slate-600 px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-slate-200 transition-all"
+                        className="bg-slate-100 text-slate-600 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wide hover:bg-slate-200 transition-all"
                     >
                         Change
                     </button>
@@ -894,7 +894,7 @@ Platform: ${navigator.userAgent}
             ) : (
                 <button 
                     onClick={() => { setPinMode('set'); setPinInput(''); }}
-                    className="bg-indigo-600 text-white px-6 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-indigo-700 transition-all"
+                    className="bg-indigo-600 text-white px-6 py-2 rounded-xl text-xs font-bold uppercase tracking-wide hover:bg-indigo-700 transition-all"
                 >
                     Set PIN
                 </button>
@@ -903,7 +903,7 @@ Platform: ${navigator.userAgent}
 
         {pinMode === 'set' && (
             <div className="bg-slate-50 p-6 rounded-2xl animate-in fade-in slide-in-from-top-2">
-                <p className="text-center text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4">Enter 4-Digit PIN</p>
+                <p className="text-center text-xs font-bold text-slate-400 uppercase tracking-wide mb-4">Enter 4-Digit PIN</p>
                 <div className="flex justify-center gap-4 mb-6">
                     {[0, 1, 2, 3].map(i => (
                         <div key={i} className={`w-3 h-3 rounded-full border-2 ${pinInput.length > i ? 'bg-indigo-600 border-indigo-600' : 'border-slate-300'}`} />
@@ -940,7 +940,7 @@ Platform: ${navigator.userAgent}
                 <div className="flex gap-2 mt-6">
                     <button 
                         onClick={() => setPinMode('none')}
-                        className="flex-1 py-3 text-slate-400 font-bold text-xs uppercase tracking-widest hover:text-slate-600"
+                        className="flex-1 py-3 text-slate-400 font-bold text-xs uppercase tracking-wide hover:text-slate-600"
                     >
                         Cancel
                     </button>
@@ -952,7 +952,7 @@ Platform: ${navigator.userAgent}
                             }
                         }}
                         disabled={pinInput.length !== 4}
-                        className="flex-1 bg-slate-900 text-white rounded-xl font-bold text-[10px] uppercase tracking-widest disabled:opacity-50"
+                        className="flex-1 bg-slate-900 text-white rounded-xl font-bold text-xs uppercase tracking-wide disabled:opacity-50"
                     >
                         Save PIN
                     </button>
@@ -963,15 +963,15 @@ Platform: ${navigator.userAgent}
 
       {/* NEW: Support & Feedback Section */}
       <section className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-6">
-        <h4 className="font-bold text-slate-800 border-b border-slate-50 pb-4 text-[10px] uppercase tracking-[0.2em]">Support & Feedback</h4>
+        <h4 className="font-bold text-slate-800 border-b border-slate-50 pb-4 text-xs uppercase tracking-wide">Support & Feedback</h4>
         <div className="flex items-center justify-between">
            <div className="space-y-1">
              <p className="font-bold text-slate-800 text-sm">Submit Ticket</p>
-             <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Report bugs or request features</p>
+             <p className="text-xs text-slate-500 font-bold uppercase tracking-wide">Report bugs or request features</p>
            </div>
            <button 
              onClick={() => setShowSupport(true)}
-             className="bg-indigo-50 text-indigo-600 px-6 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-indigo-100 transition-all border border-indigo-100"
+             className="bg-indigo-50 text-indigo-600 px-6 py-2 rounded-xl text-xs font-bold uppercase tracking-wide hover:bg-indigo-100 transition-all border border-indigo-100"
            >
              Open Ticket
            </button>
@@ -984,7 +984,7 @@ Platform: ${navigator.userAgent}
           <div className="bg-white rounded-3xl p-6 w-full max-w-md shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-start justify-between">
               <div>
-                <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight">Support Ticket</h3>
+                <h3 className="text-xl font-semibold text-slate-900 uppercase tracking-tight">Support Ticket</h3>
                 <p className="text-xs text-slate-500 font-bold">Describe your issue or idea below.</p>
               </div>
               <button 
@@ -997,14 +997,14 @@ Platform: ${navigator.userAgent}
 
             <form onSubmit={handleSupportSubmit} className="space-y-4 pt-2">
               <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">Ticket Type</label>
+                <label className="text-xs font-bold text-slate-400 uppercase tracking-wide px-1">Ticket Type</label>
                 <div className="flex gap-2">
                   {['Bug Report', 'Feature Request', 'General'].map(type => (
                     <button
                       key={type}
                       type="button"
                       onClick={() => setTicketData({ ...ticketData, type })}
-                      className={`flex-1 py-2 rounded-xl text-[9px] font-bold uppercase tracking-widest border transition-all ${
+                      className={`flex-1 py-2 rounded-xl text-xs font-bold uppercase tracking-wide border transition-all ${
                         ticketData.type === type 
                           ? 'bg-indigo-600 text-white border-indigo-600' 
                           : 'bg-white text-slate-500 border-slate-200'
@@ -1017,7 +1017,7 @@ Platform: ${navigator.userAgent}
               </div>
 
               <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">Subject</label>
+                <label className="text-xs font-bold text-slate-400 uppercase tracking-wide px-1">Subject</label>
                 <input 
                   type="text" 
                   value={ticketData.subject}
@@ -1029,7 +1029,7 @@ Platform: ${navigator.userAgent}
               </div>
 
               <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">Description</label>
+                <label className="text-xs font-bold text-slate-400 uppercase tracking-wide px-1">Description</label>
                 <textarea 
                   value={ticketData.description}
                   onChange={e => setTicketData({ ...ticketData, description: e.target.value })}
@@ -1043,11 +1043,11 @@ Platform: ${navigator.userAgent}
               <div className="pt-2">
                 <button 
                   type="submit"
-                  className="w-full bg-slate-900 text-white py-4 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-slate-800 transition-all shadow-xl"
+                  className="w-full bg-slate-900 text-white py-4 rounded-xl font-semibold uppercase text-xs tracking-wide hover:bg-slate-800 transition-all shadow-xl"
                 >
                   Create & Send Email
                 </button>
-                <p className="text-[9px] text-center text-slate-400 font-bold uppercase tracking-wider mt-3">
+                <p className="text-xs text-center text-slate-400 font-bold uppercase tracking-wider mt-3">
                   This will open your default mail client with a pre-filled message.
                 </p>
               </div>
@@ -1058,7 +1058,7 @@ Platform: ${navigator.userAgent}
 
       {/* Data Management (Files) */}
       <section className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-6">
-        <h4 className="font-bold text-slate-800 border-b border-slate-50 pb-4 text-[10px] uppercase tracking-[0.2em]">Backup & Restore</h4>
+        <h4 className="font-bold text-slate-800 border-b border-slate-50 pb-4 text-xs uppercase tracking-wide">Backup & Restore</h4>
         
         {/* Full JSON Backup/Restore */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1069,7 +1069,7 @@ Platform: ${navigator.userAgent}
             <span className="text-2xl group-hover:scale-110 transition-transform">💾</span>
             <div className="text-left">
               <p className="font-bold text-emerald-900 text-xs uppercase tracking-wider">Backup Data</p>
-              <p className="text-[9px] text-emerald-600 font-medium">Save to device</p>
+              <p className="text-xs text-emerald-600 font-medium">Save to device</p>
             </div>
           </button>
 
@@ -1080,7 +1080,7 @@ Platform: ${navigator.userAgent}
             <span className="text-2xl group-hover:scale-110 transition-transform">📂</span>
             <div className="text-left">
               <p className="font-bold text-indigo-900 text-xs uppercase tracking-wider">Restore File</p>
-              <p className="text-[9px] text-indigo-600 font-medium">Load backup</p>
+              <p className="text-xs text-indigo-600 font-medium">Load backup</p>
             </div>
           </button>
            <input 
@@ -1095,18 +1095,18 @@ Platform: ${navigator.userAgent}
         {/* CSV Tools */}
         <div className="pt-4 border-t border-slate-50">
            <div className="flex items-center justify-between mb-3">
-             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">External Data</span>
+             <span className="text-xs font-bold text-slate-400 uppercase tracking-wide">External Data</span>
            </div>
            <div className="flex gap-3">
               <button 
                 onClick={() => csvInputRef.current?.click()}
-                className="flex-1 bg-slate-50 text-slate-600 py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-slate-100 transition-all border border-slate-100"
+                className="flex-1 bg-slate-50 text-slate-600 py-3 rounded-xl text-xs font-bold uppercase tracking-wide hover:bg-slate-100 transition-all border border-slate-100"
               >
                 Import CSV
               </button>
               <button 
                 onClick={handleExportCSV}
-                className="flex-1 bg-slate-50 text-slate-600 py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-slate-100 transition-all border border-slate-100"
+                className="flex-1 bg-slate-50 text-slate-600 py-3 rounded-xl text-xs font-bold uppercase tracking-wide hover:bg-slate-100 transition-all border border-slate-100"
               >
                 Export CSV
               </button>
@@ -1120,7 +1120,7 @@ Platform: ${navigator.userAgent}
            />
         </div>
         {importStatus && (
-          <div className={`text-[10px] font-bold uppercase tracking-widest px-3 py-2 rounded-lg text-center ${importStatus.includes('Error') ? 'bg-rose-100 text-rose-600' : 'bg-emerald-100 text-emerald-600'}`}>
+          <div className={`text-xs font-bold uppercase tracking-wide px-3 py-2 rounded-lg text-center ${importStatus.includes('Error') ? 'bg-rose-100 text-rose-600' : 'bg-emerald-100 text-emerald-600'}`}>
             {importStatus}
           </div>
         )}
@@ -1132,7 +1132,7 @@ Platform: ${navigator.userAgent}
           className="flex justify-between items-center cursor-pointer"
           onClick={() => setShowAdvancedSync(!showAdvancedSync)}
         >
-          <h4 className="font-bold text-slate-400 text-[10px] uppercase tracking-[0.2em] flex items-center gap-2">
+          <h4 className="font-bold text-slate-400 text-xs uppercase tracking-wide flex items-center gap-2">
             <span>☁️</span> Advanced Sync (Supabase)
           </h4>
           <span className="text-slate-300 text-xl">{showAdvancedSync ? '−' : '+'}</span>
@@ -1146,7 +1146,7 @@ Platform: ${navigator.userAgent}
             </p>
 
             {showSqlHelp && (
-              <div className="bg-slate-900 text-slate-300 p-4 rounded-xl text-[10px] font-mono space-y-2">
+              <div className="bg-slate-900 text-slate-300 p-4 rounded-xl text-xs font-mono space-y-2">
                 <p>1. Create a project at <a href="https://supabase.com" target="_blank" rel="noreferrer" className="text-white underline">supabase.com</a></p>
                 <p>2. Go to SQL Editor and run this query:</p>
                 <div className="bg-black/50 p-2 rounded text-emerald-400 select-all">
@@ -1162,7 +1162,7 @@ Platform: ${navigator.userAgent}
 
             <div className="grid grid-cols-1 gap-4">
               <div className="space-y-1">
-                <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest px-1">Project URL</label>
+                <label className="text-xs font-bold text-slate-400 uppercase tracking-wide px-1">Project URL</label>
                 <input 
                   type="text" 
                   value={supabaseUrl}
@@ -1172,7 +1172,7 @@ Platform: ${navigator.userAgent}
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest px-1">Anon Key</label>
+                <label className="text-xs font-bold text-slate-400 uppercase tracking-wide px-1">Anon Key</label>
                 <input 
                   type="password" 
                   value={supabaseKey}
@@ -1187,20 +1187,20 @@ Platform: ${navigator.userAgent}
               <button 
                 onClick={handleCloudSave}
                 disabled={isSyncing}
-                className="flex-1 bg-indigo-600 text-white py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-indigo-700 transition-all disabled:opacity-50 shadow-md"
+                className="flex-1 bg-indigo-600 text-white py-3 rounded-xl font-semibold uppercase text-xs tracking-wide hover:bg-indigo-700 transition-all disabled:opacity-50 shadow-md"
               >
                 {isSyncing ? 'Syncing...' : 'Save to DB'}
               </button>
               <button 
                 onClick={handleCloudLoad}
                 disabled={isSyncing}
-                className="flex-1 bg-white border border-indigo-200 text-indigo-700 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-indigo-50 transition-all disabled:opacity-50 shadow-sm"
+                className="flex-1 bg-white border border-indigo-200 text-indigo-700 py-3 rounded-xl font-semibold uppercase text-xs tracking-wide hover:bg-indigo-50 transition-all disabled:opacity-50 shadow-sm"
               >
                 {isSyncing ? 'Syncing...' : 'Load from DB'}
               </button>
             </div>
             {syncStatus && (
-               <div className={`text-[10px] font-bold uppercase tracking-widest px-3 py-2 rounded-lg text-center ${syncStatus.includes('Error') ? 'bg-rose-100 text-rose-600' : 'bg-emerald-100 text-emerald-600'}`}>
+               <div className={`text-xs font-bold uppercase tracking-wide px-3 py-2 rounded-lg text-center ${syncStatus.includes('Error') ? 'bg-rose-100 text-rose-600' : 'bg-emerald-100 text-emerald-600'}`}>
                  {syncStatus}
                </div>
              )}
@@ -1210,7 +1210,7 @@ Platform: ${navigator.userAgent}
 
       {/* Profile Section */}
       <section className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-6">
-        <h4 className="font-bold text-slate-800 border-b border-slate-50 pb-4 text-[10px] uppercase tracking-[0.2em]">Profile Configuration</h4>
+        <h4 className="font-bold text-slate-800 border-b border-slate-50 pb-4 text-xs uppercase tracking-wide">Profile Configuration</h4>
         
         <div className="flex flex-col sm:flex-row items-center gap-8 py-4">
           <div className="relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
@@ -1218,13 +1218,13 @@ Platform: ${navigator.userAgent}
               {preferences.profileImage ? (
                 <img src={preferences.profileImage} alt="Profile" className="w-full h-full object-cover" />
               ) : (
-                <span className="text-2xl font-black text-slate-300">
+                <span className="text-2xl font-semibold text-slate-300">
                   {preferences.name?.[0]?.toUpperCase() || 'W'}
                 </span>
               )}
             </div>
             <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 rounded-3xl flex items-center justify-center text-white transition-opacity">
-              <span className="text-[10px] font-black uppercase tracking-widest">Update</span>
+              <span className="text-xs font-semibold uppercase tracking-wide">Update</span>
             </div>
             <input 
               type="file" 
@@ -1237,7 +1237,7 @@ Platform: ${navigator.userAgent}
           
           <div className="flex-1 space-y-4 w-full">
             <div className="flex flex-col gap-1">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">Display Name</label>
+              <label className="text-xs font-bold text-slate-400 uppercase tracking-wide px-1">Display Name</label>
               <input 
                 type="text" 
                 value={preferences.name || ''}
@@ -1249,7 +1249,7 @@ Platform: ${navigator.userAgent}
             {preferences.profileImage && (
               <button 
                 onClick={() => onUpdatePreferences({ profileImage: undefined })}
-                className="text-[10px] font-black uppercase tracking-widest text-rose-500 hover:text-rose-600 pl-1"
+                className="text-xs font-semibold uppercase tracking-wide text-rose-500 hover:text-rose-600 pl-1"
               >
                 Remove Picture
               </button>
@@ -1259,7 +1259,7 @@ Platform: ${navigator.userAgent}
 
         <div className="space-y-6">
           <div className="flex flex-col gap-3">
-            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">Operational Currency</label>
+            <label className="text-xs font-bold text-slate-400 uppercase tracking-wide px-1">Operational Currency</label>
             <div className="flex flex-wrap gap-2">
               {currencies.map(c => (
                 <button
@@ -1281,7 +1281,7 @@ Platform: ${navigator.userAgent}
 
       {/* Notifications Section */}
       <section className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-6 overflow-hidden">
-        <h4 className="font-bold text-slate-800 border-b border-slate-50 pb-4 text-[10px] uppercase tracking-[0.2em]">Notification Preferences</h4>
+        <h4 className="font-bold text-slate-800 border-b border-slate-50 pb-4 text-xs uppercase tracking-wide">Notification Preferences</h4>
         
         <div className="space-y-3">
           {/* Budget Warnings */}
@@ -1292,7 +1292,7 @@ Platform: ${navigator.userAgent}
             >
               <div className="flex-1 min-w-0">
                 <p className="font-bold text-slate-800 text-sm">Budget Warnings</p>
-                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest leading-tight">
+                <p className="text-xs text-slate-500 font-bold uppercase tracking-wide leading-tight">
                   Alert when spending approaches limits
                 </p>
               </div>
@@ -1307,8 +1307,8 @@ Platform: ${navigator.userAgent}
               <div className="px-4 pb-4 pt-2 border-t border-slate-100 animate-in slide-in-from-top-2">
                 <div className="flex flex-col gap-2">
                   <div className="flex justify-between items-center">
-                    <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Warning Threshold</label>
-                    <span className="text-xs font-black text-indigo-600">{budgetWarningThreshold}%</span>
+                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wide">Warning Threshold</label>
+                    <span className="text-xs font-semibold text-indigo-600">{budgetWarningThreshold}%</span>
                   </div>
                   <input 
                     type="range" 
@@ -1319,7 +1319,7 @@ Platform: ${navigator.userAgent}
                     onChange={(e) => updateNotificationSetting({ budgetWarningThreshold: parseInt(e.target.value) })}
                     className="w-full accent-indigo-600 h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer"
                   />
-                  <p className="text-[9px] text-slate-400 italic">You will be notified when you reach {budgetWarningThreshold}% of any budget.</p>
+                  <p className="text-xs text-slate-400 italic">You will be notified when you reach {budgetWarningThreshold}% of any budget.</p>
                 </div>
               </div>
             )}
@@ -1333,7 +1333,7 @@ Platform: ${navigator.userAgent}
             >
               <div className="flex-1 min-w-0">
                 <p className="font-bold text-slate-800 text-sm">Large Transactions</p>
-                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest leading-tight">
+                <p className="text-xs text-slate-500 font-bold uppercase tracking-wide leading-tight">
                   Flag significant account activity
                 </p>
               </div>
@@ -1347,7 +1347,7 @@ Platform: ${navigator.userAgent}
             {largeTransactions && (
               <div className="px-4 pb-4 pt-2 border-t border-slate-100 animate-in slide-in-from-top-2">
                 <div className="flex flex-col gap-2">
-                  <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Transaction Threshold</label>
+                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wide">Transaction Threshold</label>
                   <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-3 py-2">
                     <span className="text-slate-500 font-bold text-sm">{preferences.currency}</span>
                     <input 
@@ -1357,7 +1357,7 @@ Platform: ${navigator.userAgent}
                       className="w-full bg-transparent text-sm font-bold text-slate-800 outline-none"
                     />
                   </div>
-                  <p className="text-[9px] text-slate-400 italic">Alerts trigger for transactions over {preferences.currency}{largeTransactionThreshold.toFixed(2)}.</p>
+                  <p className="text-xs text-slate-400 italic">Alerts trigger for transactions over {preferences.currency}{largeTransactionThreshold.toFixed(2)}.</p>
                 </div>
               </div>
             )}
@@ -1367,14 +1367,14 @@ Platform: ${navigator.userAgent}
 
       {/* Custom Transaction Types Section */}
       <section className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-6">
-        <h4 className="font-bold text-slate-800 border-b border-slate-50 pb-4 text-[10px] uppercase tracking-[0.2em]">Transaction Labels</h4>
+        <h4 className="font-bold text-slate-800 border-b border-slate-50 pb-4 text-xs uppercase tracking-wide">Transaction Labels</h4>
         
         <div className="space-y-2">
           {(preferences.transactionTypes || []).map(type => (
             <div key={type.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100 group">
               <div className="flex items-center gap-3">
                 <span className="font-bold text-slate-800 text-sm">{type.label}</span>
-                <span className={`text-[9px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full ${
+                <span className={`text-xs font-bold uppercase tracking-wide px-2.5 py-1 rounded-full ${
                   type.behavior === TransactionBehavior.INFLOW ? 'bg-emerald-100 text-emerald-700' :
                   type.behavior === TransactionBehavior.OUTFLOW ? 'bg-rose-100 text-rose-700' :
                   'bg-slate-200 text-slate-600'
@@ -1393,7 +1393,7 @@ Platform: ${navigator.userAgent}
         </div>
 
         <div className="flex flex-col gap-4 p-5 bg-slate-100/50 rounded-2xl border border-slate-200">
-          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">Add Custom Label</label>
+          <label className="text-xs font-bold text-slate-400 uppercase tracking-wide px-1">Add Custom Label</label>
           <div className="flex flex-col sm:flex-row gap-3">
             <input 
               type="text"
@@ -1406,7 +1406,7 @@ Platform: ${navigator.userAgent}
               <select 
                 value={newTypeBehavior}
                 onChange={e => setNewTypeBehavior(e.target.value as TransactionBehavior)}
-                className="flex-1 sm:flex-none bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-[10px] font-bold text-slate-900 outline-none cursor-pointer uppercase"
+                className="flex-1 sm:flex-none bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-bold text-slate-900 outline-none cursor-pointer uppercase"
               >
                 <option value={TransactionBehavior.INFLOW}>Inflow (+)</option>
                 <option value={TransactionBehavior.OUTFLOW}>Outflow (-)</option>
@@ -1414,7 +1414,7 @@ Platform: ${navigator.userAgent}
               </select>
               <button 
                 onClick={handleAddType}
-                className="bg-slate-900 text-white px-6 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest shadow-md"
+                className="bg-slate-900 text-white px-6 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wide shadow-md"
               >
                 Add
               </button>
@@ -1423,15 +1423,44 @@ Platform: ${navigator.userAgent}
         </div>
       </section>
 
-      {/* Security Section */}
+      {/* Appearance / Theme Section */}
       <section className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-6">
-        <h4 className="font-bold text-slate-800 border-b border-slate-50 pb-4 text-[10px] uppercase tracking-[0.2em]">Privacy Protocols</h4>
+        <h4 className="font-bold text-slate-800 border-b border-slate-50 pb-4 text-xs uppercase tracking-wide">Appearance</h4>
+
+        <div className="space-y-2">
+          <p className="font-semibold text-slate-800 text-sm">Theme</p>
+          <div className="grid grid-cols-3 gap-2">
+            {([
+              { value: 'light', label: 'Light', icon: '☀️' },
+              { value: 'dark', label: 'Dark', icon: '🌙' },
+              { value: 'system', label: 'System', icon: '💻' }
+            ] as const).map(opt => (
+              <button
+                key={opt.value}
+                onClick={() => onUpdatePreferences({ theme: opt.value })}
+                className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-medium transition-all border ${
+                  (preferences.theme || 'system') === opt.value
+                    ? 'bg-indigo-600 text-white border-indigo-600'
+                    : 'bg-slate-50 text-slate-700 border-slate-200 hover:border-slate-300'
+                }`}
+              >
+                <span>{opt.icon}</span>
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Privacy Section */}
+      <section className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-6">
+        <h4 className="font-bold text-slate-800 border-b border-slate-50 pb-4 text-xs uppercase tracking-wide">Privacy Settings</h4>
         
         <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl hover:bg-slate-100 transition-colors cursor-pointer"
              onClick={() => onUpdatePreferences({ privacyMode: !preferences.privacyMode })}>
           <div className="flex-1">
-            <p className="font-bold text-slate-800 text-sm">Stealth Mode</p>
-            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Blur balances by default</p>
+            <p className="font-bold text-slate-800 text-sm">Privacy Mode</p>
+            <p className="text-xs text-slate-500 font-bold uppercase tracking-wide">Blur balances by default</p>
           </div>
           <div className="shrink-0 ml-4">
             <div className={`w-11 h-6 rounded-full transition-colors relative ${preferences.privacyMode ? 'bg-indigo-600' : 'bg-slate-300'}`}>
@@ -1447,12 +1476,12 @@ Platform: ${navigator.userAgent}
           <span className="text-xl">🚨</span>
           <p className="font-bold text-sm">Reset Application</p>
         </div>
-        <p className="text-[10px] text-rose-600 font-bold uppercase tracking-widest leading-relaxed">Permanently delete all logs and settings.</p>
+        <p className="text-xs text-rose-600 font-bold uppercase tracking-wide leading-relaxed">Permanently delete all logs and settings.</p>
         <button 
           onClick={() => {
             if(confirm('Confirm total data deletion? This action is permanent.')) onClearData();
           }}
-          className="w-full bg-rose-600 text-white px-8 py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-rose-700 transition-all shadow-lg shadow-rose-200"
+          className="w-full bg-rose-600 text-white px-8 py-3 rounded-xl text-xs font-bold uppercase tracking-wide hover:bg-rose-700 transition-all shadow-lg shadow-rose-200"
         >
           Reset All Data
         </button>

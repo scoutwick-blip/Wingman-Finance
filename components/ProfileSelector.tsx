@@ -62,10 +62,10 @@ export const ProfileSelector: React.FC<ProfileSelectorProps> = ({
     <div className="fixed inset-0 bg-slate-900 z-[100] flex items-center justify-center p-6">
       <div className="max-w-4xl w-full">
         <div className="text-center mb-12 space-y-4">
-          <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-indigo-600 text-white text-3xl font-black shadow-2xl shadow-indigo-900/50 mb-4">
+          <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-indigo-600 text-white text-3xl font-semibold shadow-2xl shadow-indigo-900/50 mb-4">
             W
           </div>
-          <h1 className="text-4xl font-black text-white tracking-tighter uppercase">Wingman Finance</h1>
+          <h1 className="text-4xl font-semibold text-white tracking-tighter uppercase">Wingman Finance</h1>
           <p className="text-sm font-bold text-slate-400 uppercase tracking-[0.3em]">Select Account to Login</p>
         </div>
 
@@ -83,7 +83,7 @@ export const ProfileSelector: React.FC<ProfileSelectorProps> = ({
                   {profile.avatar ? (
                     <img src={profile.avatar} alt={profile.name} className="w-full h-full object-cover" />
                   ) : (
-                    <span className="font-black text-slate-400 group-hover:text-white">
+                    <span className="font-semibold text-slate-400 group-hover:text-white">
                       {profile.name[0]?.toUpperCase() || 'P'}
                     </span>
                   )}
@@ -94,10 +94,10 @@ export const ProfileSelector: React.FC<ProfileSelectorProps> = ({
                   )}
                 </div>
                 <div className="text-center">
-                  <h3 className="text-lg font-black text-white uppercase tracking-tight group-hover:text-indigo-400 transition-colors">
+                  <h3 className="text-lg font-semibold text-white uppercase tracking-tight group-hover:text-indigo-400 transition-colors">
                     {profile.name}
                   </h3>
-                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">
+                  <p className="text-xs font-bold text-slate-500 uppercase tracking-wide mt-1">
                     Last Active: {new Date(profile.lastActive).toLocaleDateString()}
                   </p>
                 </div>
@@ -124,7 +124,7 @@ export const ProfileSelector: React.FC<ProfileSelectorProps> = ({
             <div className="w-16 h-16 rounded-full bg-slate-700/50 flex items-center justify-center text-slate-500 group-hover:text-indigo-400 group-hover:bg-indigo-950/30 transition-colors">
               <span className="text-3xl font-light">+</span>
             </div>
-            <span className="text-xs font-black text-slate-500 uppercase tracking-widest group-hover:text-indigo-300">Create Account</span>
+            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide group-hover:text-indigo-300">Create Account</span>
           </button>
         </div>
       </div>
@@ -137,8 +137,8 @@ export const ProfileSelector: React.FC<ProfileSelectorProps> = ({
                 <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center text-3xl mb-4 mx-auto">
                     🔒
                 </div>
-                <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight">Security Check</h3>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Enter access PIN</p>
+                <h3 className="text-xl font-semibold text-slate-900 uppercase tracking-tight">Security Check</h3>
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-wide mt-1">Enter access PIN</p>
              </div>
 
              <div className="flex gap-4 justify-center mb-8">
@@ -148,7 +148,7 @@ export const ProfileSelector: React.FC<ProfileSelectorProps> = ({
              </div>
 
              {error && (
-                 <p className="text-center text-rose-500 text-xs font-black uppercase tracking-widest mb-4">Access Denied</p>
+                 <p className="text-center text-rose-500 text-xs font-semibold uppercase tracking-wide mb-4">Access Denied</p>
              )}
 
             <div className="grid grid-cols-3 gap-3">
@@ -156,7 +156,7 @@ export const ProfileSelector: React.FC<ProfileSelectorProps> = ({
                     <button 
                     key={num} 
                     onClick={() => handlePinEntry(num.toString())}
-                    className="h-14 rounded-2xl bg-slate-50 text-slate-800 font-black text-xl hover:bg-slate-100 active:scale-95 transition-all shadow-sm"
+                    className="h-14 rounded-2xl bg-slate-50 text-slate-800 font-semibold text-xl hover:bg-slate-100 active:scale-95 transition-all shadow-sm"
                     >
                     {num}
                     </button>
@@ -164,13 +164,13 @@ export const ProfileSelector: React.FC<ProfileSelectorProps> = ({
                 <div />
                 <button 
                     onClick={() => handlePinEntry('0')}
-                    className="h-14 rounded-2xl bg-slate-50 text-slate-800 font-black text-xl hover:bg-slate-100 active:scale-95 transition-all shadow-sm"
+                    className="h-14 rounded-2xl bg-slate-50 text-slate-800 font-semibold text-xl hover:bg-slate-100 active:scale-95 transition-all shadow-sm"
                 >
                     0
                 </button>
                 <button 
                     onClick={() => handlePinEntry('back')}
-                    className="h-14 rounded-2xl bg-rose-50 text-rose-500 font-black text-xl hover:bg-rose-100 active:scale-95 transition-all shadow-sm flex items-center justify-center"
+                    className="h-14 rounded-2xl bg-rose-50 text-rose-500 font-semibold text-xl hover:bg-rose-100 active:scale-95 transition-all shadow-sm flex items-center justify-center"
                 >
                     ⌫
                 </button>
@@ -182,7 +182,7 @@ export const ProfileSelector: React.FC<ProfileSelectorProps> = ({
                     setPinInput('');
                     setError(false);
                 }}
-                className="w-full mt-6 py-3 text-slate-400 hover:text-slate-600 text-xs font-bold uppercase tracking-widest"
+                className="w-full mt-6 py-3 text-slate-400 hover:text-slate-600 text-xs font-bold uppercase tracking-wide"
             >
                 Cancel
             </button>

@@ -66,11 +66,11 @@ export const Layout: React.FC<LayoutProps> = ({
           });
         }
       };
-      
+
       updatePos();
       window.addEventListener('resize', updatePos);
       window.addEventListener('scroll', updatePos, true);
-      
+
       return () => {
         window.removeEventListener('resize', updatePos);
         window.removeEventListener('scroll', updatePos, true);
@@ -83,7 +83,6 @@ export const Layout: React.FC<LayoutProps> = ({
   };
 
   const Avatar = ({ size = '8' }: { size?: string }) => {
-    // Explicit mapping to ensure Tailwind generates these classes
     const sizeClasses: Record<string, string> = {
       '6': 'w-6 h-6',
       '8': 'w-8 h-8',
@@ -95,11 +94,12 @@ export const Layout: React.FC<LayoutProps> = ({
     const dimensions = sizeClasses[size] || 'w-8 h-8';
 
     return (
-      <div className={`${dimensions} rounded-full overflow-hidden border-2 border-slate-200 bg-slate-800 flex items-center justify-center shrink-0`}>
+      <div className={`${dimensions} rounded-full overflow-hidden border-2 flex items-center justify-center shrink-0`}
+        style={{ borderColor: 'var(--color-border-primary)', backgroundColor: 'var(--color-bg-sidebar)' }}>
         {preferences.profileImage ? (
           <img src={preferences.profileImage} alt="Profile" className="w-full h-full object-cover block" />
         ) : (
-          <span className="text-[10px] font-black text-white uppercase tracking-tighter">
+          <span className="text-xs font-bold text-white">
             {getInitials(preferences.name || 'User')}
           </span>
         )}
@@ -116,13 +116,18 @@ export const Layout: React.FC<LayoutProps> = ({
     }
   };
 
+  const formatTabLabel = (tab: string) => {
+    return tab.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+  };
+
   return (
-    <div className="flex flex-col md:flex-row h-screen overflow-hidden bg-slate-50">
+    <div className="flex flex-col md:flex-row h-screen overflow-hidden" style={{ backgroundColor: 'var(--color-bg-primary)' }}>
       {/* Sidebar */}
-      <aside className="w-full md:w-64 bg-slate-900 border-r border-slate-800 flex flex-col shrink-0 z-40">
-        <div className="p-6 border-b border-slate-800 flex items-center gap-3">
-          <div 
-            className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-black overflow-hidden shadow-lg"
+      <aside className="w-full md:w-60 flex flex-col shrink-0 z-40"
+        style={{ backgroundColor: 'var(--color-bg-sidebar)', borderRight: '1px solid var(--color-border-primary)' }}>
+        <div className="px-5 py-5 flex items-center gap-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+          <div
+            className="w-9 h-9 rounded-xl flex items-center justify-center text-white font-bold text-sm overflow-hidden"
             style={{ backgroundColor: preferences.accentColor }}
           >
             {preferences.profileImage ? (
@@ -132,43 +137,61 @@ export const Layout: React.FC<LayoutProps> = ({
             )}
           </div>
           <div>
-            <h1 className="text-lg font-black text-white tracking-tighter leading-none">WINGMAN</h1>
-            <p className="text-[10px] text-slate-400 font-bold tracking-[0.2em] uppercase">Finance</p>
+            <h1 className="text-base font-bold text-white leading-none">Wingman</h1>
+            <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-sidebar)' }}>Finance</p>
           </div>
         </div>
-        <nav className="flex-1 p-4 flex md:flex-col gap-1 overflow-x-auto md:overflow-x-visible scrollbar-hide">
+        <nav className="flex-1 px-3 py-3 flex md:flex-col gap-0.5 overflow-x-auto md:overflow-x-visible scrollbar-hide">
           {navItems.map((item) => (
             <button
               key={item.id}
               onClick={() => setActiveTab(item.id)}
-              className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 whitespace-nowrap group ${
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 whitespace-nowrap group ${
                 activeTab === item.id
-                  ? 'bg-indigo-600 text-white font-bold shadow-lg shadow-indigo-900/20'
-                  : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+                  ? 'text-white font-semibold'
+                  : 'hover:text-white'
               }`}
+              style={{
+                backgroundColor: activeTab === item.id ? 'var(--color-bg-sidebar-active)' : 'transparent',
+                color: activeTab === item.id ? 'var(--color-text-sidebar-active)' : 'var(--color-text-sidebar)',
+              }}
+              onMouseEnter={(e) => {
+                if (activeTab !== item.id) {
+                  e.currentTarget.style.backgroundColor = 'var(--color-bg-sidebar-hover)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (activeTab !== item.id) {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                }
+              }}
             >
-              <span className="text-lg">{item.icon}</span>
-              <span className="text-xs font-bold uppercase tracking-widest">{item.label}</span>
+              <span className="text-base">{item.icon}</span>
+              <span className="text-sm font-medium">{item.label}</span>
             </button>
           ))}
         </nav>
-        <div className="p-6 border-t border-slate-800 hidden md:block space-y-4">
+        <div className="px-4 py-4 hidden md:block space-y-3" style={{ borderTop: 'rgba(255,255,255,0.08) 1px solid' }}>
           {onOpenTemplates && (
             <button
               onClick={onOpenTemplates}
-              className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold py-3 px-4 rounded-xl transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2 text-xs uppercase tracking-widest"
+              className="w-full text-white font-semibold py-2.5 px-4 rounded-lg transition-all flex items-center justify-center gap-2 text-sm"
+              style={{ backgroundColor: 'var(--color-accent)' }}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--color-accent-hover)'}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--color-accent)'}
             >
               <span>⚡</span>
               Templates
             </button>
           )}
-          <div className="bg-slate-800 rounded-2xl p-4 border border-slate-700">
-            <p className="text-[10px] text-slate-400 mb-1 uppercase tracking-widest font-black">Profile</p>
-            <p className="text-xs font-bold text-white uppercase truncate">{preferences.name || 'GUEST'}</p>
+          <div className="rounded-xl p-3" style={{ backgroundColor: 'var(--color-bg-sidebar-hover)', border: '1px solid rgba(255,255,255,0.06)' }}>
+            <p className="text-xs" style={{ color: 'var(--color-text-sidebar)' }}>Profile</p>
+            <p className="text-sm font-semibold text-white truncate mt-0.5">{preferences.name || 'Guest'}</p>
           </div>
           <button
             onClick={onSwitchProfile}
-            className="w-full text-center text-[9px] font-bold text-slate-500 hover:text-white uppercase tracking-widest transition-colors py-2"
+            className="w-full text-center text-xs font-medium transition-colors py-1.5 hover:text-white"
+            style={{ color: 'var(--color-text-sidebar)' }}
           >
             Switch Profile
           </button>
@@ -177,16 +200,17 @@ export const Layout: React.FC<LayoutProps> = ({
 
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
-        <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 md:px-8 shrink-0 z-30 relative">
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-            <h2 className="text-xs font-black text-slate-400 uppercase tracking-widest">{activeTab}</h2>
-          </div>
-          <div className="flex items-center gap-2 md:gap-4">
+        <header className="h-14 flex items-center justify-between px-4 md:px-8 shrink-0 z-30 relative"
+          style={{ backgroundColor: 'var(--color-bg-header)', borderBottom: '1px solid var(--color-border-primary)' }}>
+          <h2 className="text-sm font-semibold" style={{ color: 'var(--color-text-secondary)' }}>
+            {formatTabLabel(activeTab)}
+          </h2>
+          <div className="flex items-center gap-2 md:gap-3">
             {onOpenTemplates && (
               <button
                 onClick={onOpenTemplates}
-                className="md:hidden bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold py-2 px-3 rounded-lg text-xs flex items-center gap-1"
+                className="md:hidden text-white font-semibold py-1.5 px-3 rounded-lg text-xs flex items-center gap-1"
+                style={{ backgroundColor: 'var(--color-accent)' }}
                 title="Budget Templates"
               >
                 <span>⚡</span>
@@ -194,58 +218,72 @@ export const Layout: React.FC<LayoutProps> = ({
               </button>
             )}
             <div className="relative" ref={notificationRef}>
-              <button 
+              <button
                 onClick={() => {
                   setShowNotifications(!showNotifications);
                   if (!showNotifications) onMarkRead();
                 }}
-                className={`p-2 rounded-xl transition-colors relative ${showNotifications ? 'bg-slate-100' : 'text-slate-400 hover:bg-slate-50'}`}
+                className="p-2 rounded-lg transition-colors relative"
+                style={{
+                  backgroundColor: showNotifications ? 'var(--color-bg-tertiary)' : 'transparent',
+                  color: 'var(--color-text-tertiary)'
+                }}
               >
-                <span className="text-xl">🔔</span>
+                <span className="text-lg">🔔</span>
                 {unreadCount > 0 && (
-                  <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-white" />
+                  <span className="absolute top-1 right-1 w-2 h-2 bg-rose-500 rounded-full border-2"
+                    style={{ borderColor: 'var(--color-bg-header)' }} />
                 )}
               </button>
 
               {/* Notification Dropdown */}
               {showNotifications && (
-                <div 
-                  className="bg-white rounded-[2rem] border border-slate-200 shadow-2xl overflow-hidden flex flex-col z-[100] animate-in fade-in slide-in-from-top-4 duration-200 fixed max-h-[70vh] md:max-h-[500px] md:w-80"
+                <div
+                  className="rounded-2xl overflow-hidden flex flex-col z-[100] fixed max-h-[70vh] md:max-h-[500px] md:w-80"
                   style={{
                     top: dropdownPos.top,
                     right: dropdownPos.isMobile ? '1rem' : dropdownPos.right,
                     left: dropdownPos.isMobile ? '1rem' : 'auto',
-                    maxWidth: dropdownPos.isMobile ? 'calc(100vw - 2rem)' : 'none'
+                    maxWidth: dropdownPos.isMobile ? 'calc(100vw - 2rem)' : 'none',
+                    backgroundColor: 'var(--color-bg-card)',
+                    border: '1px solid var(--color-border-card)',
+                    boxShadow: 'var(--shadow-lg)'
                   }}
                 >
-                  <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-900 shrink-0">
-                    <h3 className="font-black text-white text-xs tracking-[0.2em] uppercase">Notifications</h3>
-                    <button 
+                  <div className="px-5 py-4 flex items-center justify-between shrink-0"
+                    style={{ borderBottom: '1px solid var(--color-border-primary)', backgroundColor: 'var(--color-bg-sidebar)' }}>
+                    <h3 className="font-semibold text-white text-sm">Notifications</h3>
+                    <button
                       onClick={onClearNotifications}
-                      className="text-[10px] font-black uppercase text-indigo-400 hover:text-indigo-300 tracking-widest"
+                      className="text-xs font-medium"
+                      style={{ color: 'var(--color-accent)' }}
                     >
                       Clear All
                     </button>
                   </div>
-                  <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                  <div className="flex-1 overflow-y-auto p-3 space-y-2">
                     {notifications.length > 0 ? (
                       notifications.map(n => (
-                        <div 
-                          key={n.id} 
-                          className={`p-4 rounded-2xl border transition-all ${n.isRead ? 'opacity-50' : 'opacity-100 border-indigo-100 bg-indigo-50/20'}`}
+                        <div
+                          key={n.id}
+                          className={`p-3 rounded-xl transition-all ${n.isRead ? 'opacity-50' : 'opacity-100'}`}
+                          style={{
+                            border: n.isRead ? '1px solid var(--color-border-secondary)' : '1px solid var(--color-accent-light)',
+                            backgroundColor: n.isRead ? 'transparent' : 'var(--color-bg-notification)'
+                          }}
                         >
                           <div className="flex gap-3">
-                            <span className="text-lg shrink-0">{getNotificationIcon(n.type)}</span>
-                            <div className="space-y-1">
-                              <p className="text-[10px] font-black tracking-tight text-slate-800 uppercase">{n.title}</p>
-                              <p className="text-[11px] leading-relaxed font-medium text-slate-600">{n.message}</p>
+                            <span className="text-base shrink-0">{getNotificationIcon(n.type)}</span>
+                            <div className="space-y-0.5">
+                              <p className="text-xs font-semibold" style={{ color: 'var(--color-text-primary)' }}>{n.title}</p>
+                              <p className="text-xs leading-relaxed" style={{ color: 'var(--color-text-secondary)' }}>{n.message}</p>
                             </div>
                           </div>
                         </div>
                       ))
                     ) : (
-                      <div className="py-12 text-center space-y-3">
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">No notifications.</p>
+                      <div className="py-10 text-center">
+                        <p className="text-sm" style={{ color: 'var(--color-text-tertiary)' }}>No notifications</p>
                       </div>
                     )}
                   </div>
@@ -253,7 +291,7 @@ export const Layout: React.FC<LayoutProps> = ({
               )}
             </div>
 
-            <button 
+            <button
               onClick={() => setActiveTab('settings')}
               className="hover:scale-105 active:scale-95 transition-transform cursor-pointer"
               title="Go to Settings"
@@ -262,7 +300,8 @@ export const Layout: React.FC<LayoutProps> = ({
             </button>
             <button
                onClick={onSwitchProfile}
-               className="md:hidden text-xl text-slate-400 ml-1"
+               className="md:hidden text-lg ml-1"
+               style={{ color: 'var(--color-text-tertiary)' }}
                title="Switch Profile"
             >
               🚪
@@ -270,8 +309,8 @@ export const Layout: React.FC<LayoutProps> = ({
           </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto bg-slate-50">
-          <div className="p-4 md:p-10 max-w-6xl mx-auto w-full">
+        <div className="flex-1 overflow-y-auto" style={{ backgroundColor: 'var(--color-bg-primary)' }}>
+          <div className="p-4 md:p-8 max-w-6xl mx-auto w-full">
             {children}
           </div>
         </div>

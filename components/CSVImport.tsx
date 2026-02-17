@@ -503,7 +503,7 @@ export default function CSVImport({
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h2 className="text-2xl font-black text-slate-900 uppercase tracking-wide">TRANSACTION IMPORT</h2>
+              <h2 className="text-2xl font-semibold text-slate-900 uppercase tracking-wide">TRANSACTION IMPORT</h2>
               <p className="text-sm text-gray-600 mt-1">
                 {step === 'upload' && 'Upload your bank file (CSV, OFX, QFX, QBO)'}
                 {step === 'preview' && `Preview ${importedTransactions.length} imported transactions`}
@@ -716,7 +716,7 @@ export default function CSVImport({
                         </div>
                       </div>
                       <div className="text-center">
-                        <h3 className="text-2xl font-black text-purple-900 mb-2">AI ANALYZING TRANSACTIONS</h3>
+                        <h3 className="text-2xl font-semibold text-purple-900 mb-2">AI ANALYZING TRANSACTIONS</h3>
                         <p className="text-sm text-purple-700 mb-4">
                           Our AI is reading your transactions and finding the best categories...
                         </p>
@@ -923,19 +923,19 @@ export default function CSVImport({
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-3">
                   <p className="text-xs text-blue-600 uppercase font-bold">Total</p>
-                  <p className="text-2xl font-black text-blue-700">{stats.total}</p>
+                  <p className="text-2xl font-semibold text-blue-700">{stats.total}</p>
                 </div>
                 <div className="bg-green-50 border-2 border-green-200 rounded-lg p-3">
                   <p className="text-xs text-green-600 uppercase font-bold">New</p>
-                  <p className="text-2xl font-black text-green-700">{stats.new}</p>
+                  <p className="text-2xl font-semibold text-green-700">{stats.new}</p>
                 </div>
                 <div className="bg-gray-50 border-2 border-gray-200 rounded-lg p-3">
                   <p className="text-xs text-gray-600 uppercase font-bold">Duplicates</p>
-                  <p className="text-2xl font-black text-gray-700">{stats.duplicates}</p>
+                  <p className="text-2xl font-semibold text-gray-700">{stats.duplicates}</p>
                 </div>
                 <div className="bg-yellow-50 border-2 border-yellow-200 rounded-lg p-3">
                   <p className="text-xs text-yellow-600 uppercase font-bold">Selected</p>
-                  <p className="text-2xl font-black text-yellow-700">{stats.selected}</p>
+                  <p className="text-2xl font-semibold text-yellow-700">{stats.selected}</p>
                 </div>
               </div>
 
