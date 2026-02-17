@@ -74,6 +74,10 @@ const App: React.FC = () => {
   useEffect(() => {
     let subscription: { unsubscribe: () => void } | null = null;
 
+    // Timeout helper: resolves with fallback if promise takes too long
+    const withTimeout = <T,>(promise: Promise<T>, ms: number, fallback: T): Promise<T> =>
+      Promise.race([promise, new Promise<T>(resolve => setTimeout(() => resolve(fallback), ms))]);
+
     const initAuth = async () => {
       try {
         // Check for Supabase configuration from environment variables
@@ -90,10 +94,11 @@ const App: React.FC = () => {
 
             // ALWAYS require explicit sign-in - no auto sign-in
             // BUT: Don't sign out if returning from OAuth callback
+            // Use 2s timeout to prevent slow/unreachable Supabase from blocking render
             if (!isOAuthCallback) {
-              const currentUser = await getCurrentUser();
+              const currentUser = await withTimeout(getCurrentUser(), 2000, null);
               if (currentUser) {
-                await signOut();
+                await withTimeout(signOut(), 2000, undefined);
               }
             }
 
@@ -1229,7 +1234,15 @@ const App: React.FC = () => {
   };
 
   if (isLoading || isCheckingAuth) {
-    return null;
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', backgroundColor: 'var(--color-bg-primary)' }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ width: 40, height: 40, border: '3px solid var(--color-border-primary)', borderTopColor: 'var(--color-accent)', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 16px' }} />
+          <p style={{ color: 'var(--color-text-tertiary)', fontSize: 14, fontWeight: 500 }}>Loading...</p>
+        </div>
+        <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
+      </div>
+    );
   }
 
   // Show Auth Screen if user needs to sign in
