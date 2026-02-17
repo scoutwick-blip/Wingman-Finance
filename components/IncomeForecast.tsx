@@ -294,14 +294,14 @@ export default function IncomeForecast({
         <h3 className="text-xl font-bold mb-4">BALANCE PROJECTION</h3>
         <ResponsiveContainer width="100%" height={400}>
           <ComposedChart data={selectedForecast.projectedBalances}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="month" />
-            <YAxis />
+            <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border-secondary)" />
+            <XAxis dataKey="month" tick={{ fontSize: 12, fill: 'var(--color-text-tertiary)' }} axisLine={false} tickLine={false} />
+            <YAxis tick={{ fontSize: 12, fill: 'var(--color-text-tertiary)' }} axisLine={false} tickLine={false} />
             <Tooltip
               formatter={(value: number) => `${currency}${value.toFixed(2)}`}
-              contentStyle={{ backgroundColor: '#fff', border: '2px solid #e5e7eb', borderRadius: '8px' }}
+              contentStyle={{ backgroundColor: 'var(--color-bg-card)', border: '2px solid var(--color-border-card)', borderRadius: '8px', color: 'var(--color-text-primary)' }}
             />
-            <Legend />
+            <Legend wrapperStyle={{ color: 'var(--color-text-secondary)' }} />
             <Area
               type="monotone"
               dataKey="balance"
