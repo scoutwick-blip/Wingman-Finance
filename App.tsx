@@ -1423,7 +1423,17 @@ const App: React.FC = () => {
           />
         );
       case 'advisor':
-        return <AIAdvisor transactions={transactions} categories={categories} />;
+        return (
+          <AIAdvisor
+            transactions={transactions}
+            categories={categories}
+            bills={bills}
+            goals={goals}
+            subscriptions={subscriptions}
+            accounts={accounts}
+            preferences={preferences}
+          />
+        );
       case 'bills':
         return (
           <Bills
