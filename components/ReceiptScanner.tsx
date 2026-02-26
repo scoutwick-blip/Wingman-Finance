@@ -104,17 +104,22 @@ export default function ReceiptScanner({ onReceiptScanned, onCancel }: ReceiptSc
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+      <div className="rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+        style={{ backgroundColor: 'var(--color-bg-secondary)' }}>
         <div className="p-6">
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h2 className="text-2xl font-semibold text-slate-900 uppercase tracking-wide">SCAN RECEIPT</h2>
-              <p className="text-sm text-gray-600 mt-1">Capture or upload a receipt to extract details</p>
+              <h2 className="text-2xl font-semibold uppercase tracking-wide"
+                style={{ color: 'var(--color-text-primary)' }}>SCAN RECEIPT</h2>
+              <p className="text-sm mt-1" style={{ color: 'var(--color-text-secondary)' }}>
+                Capture or upload a receipt to extract details
+              </p>
             </div>
             <button
               onClick={onCancel}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              className="p-2 rounded-lg transition-colors"
+              style={{ color: 'var(--color-text-tertiary)' }}
               disabled={isProcessing}
             >
               <X className="w-6 h-6" />
@@ -147,12 +152,13 @@ export default function ReceiptScanner({ onReceiptScanned, onCancel }: ReceiptSc
               {/* File Upload */}
               <button
                 onClick={() => fileInputRef.current?.click()}
-                className="w-full bg-slate-600 text-white p-8 rounded-2xl hover:bg-slate-700 transition-all flex flex-col items-center gap-4 border-4 border-transparent hover:border-slate-300"
+                className="w-full p-8 rounded-2xl transition-all flex flex-col items-center gap-4 border-4 border-transparent text-white"
+                style={{ backgroundColor: 'var(--color-bg-sidebar)' }}
               >
                 <Upload className="w-16 h-16" />
                 <div className="text-center">
                   <p className="font-bold text-lg">Upload Image</p>
-                  <p className="text-sm text-slate-100">Choose from your device</p>
+                  <p className="text-sm opacity-70">Choose from your device</p>
                 </div>
               </button>
               <input
@@ -172,11 +178,13 @@ export default function ReceiptScanner({ onReceiptScanned, onCancel }: ReceiptSc
           ) : (
             <div className="space-y-4">
               {/* Image Preview */}
-              <div className="relative rounded-xl overflow-hidden border-4 border-gray-200">
+              <div className="relative rounded-xl overflow-hidden"
+                style={{ border: '4px solid var(--color-border-card)' }}>
                 <img
                   src={image}
                   alt="Receipt"
-                  className="w-full h-auto max-h-96 object-contain bg-gray-50"
+                  className="w-full h-auto max-h-96 object-contain"
+                  style={{ backgroundColor: 'var(--color-bg-tertiary)' }}
                 />
               </div>
 
@@ -201,14 +209,15 @@ export default function ReceiptScanner({ onReceiptScanned, onCancel }: ReceiptSc
                 <div className="flex gap-3">
                   <button
                     onClick={handleScan}
-                    className="flex-1 bg-green-600 text-white px-6 py-3 rounded-xl hover:bg-green-700 transition-colors font-bold flex items-center justify-center gap-2"
+                    className="flex-1 bg-emerald-600 text-white px-6 py-3 rounded-xl hover:bg-emerald-700 transition-colors font-bold flex items-center justify-center gap-2"
                   >
                     <Check className="w-5 h-5" />
                     Scan Receipt
                   </button>
                   <button
                     onClick={handleRetake}
-                    className="px-6 py-3 border-2 border-gray-300 rounded-xl hover:bg-gray-100 transition-colors font-medium"
+                    className="px-6 py-3 rounded-xl transition-colors font-medium"
+                    style={{ border: '2px solid var(--color-border-card)', color: 'var(--color-text-secondary)' }}
                   >
                     Retake
                   </button>
@@ -218,9 +227,10 @@ export default function ReceiptScanner({ onReceiptScanned, onCancel }: ReceiptSc
           )}
 
           {/* Instructions */}
-          <div className="mt-6 bg-slate-50 rounded-xl p-4 text-sm text-gray-700">
-            <p className="font-bold mb-2">Tips for best results:</p>
-            <ul className="list-disc list-inside space-y-1 text-gray-600">
+          <div className="mt-6 rounded-xl p-4 text-sm"
+            style={{ backgroundColor: 'var(--color-bg-tertiary)' }}>
+            <p className="font-bold mb-2" style={{ color: 'var(--color-text-primary)' }}>Tips for best results:</p>
+            <ul className="list-disc list-inside space-y-1" style={{ color: 'var(--color-text-secondary)' }}>
               <li>Ensure receipt is well-lit and in focus</li>
               <li>Capture the entire receipt including totals</li>
               <li>Avoid shadows and glare</li>

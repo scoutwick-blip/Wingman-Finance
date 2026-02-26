@@ -152,12 +152,13 @@ export default function AutomationDashboard({
 
   if (totalSuggestions === 0) {
     return (
-      <div className="bg-green-50 border-2 border-green-200 rounded-2xl p-6 mb-6">
+      <div className="rounded-2xl p-6 mb-6"
+        style={{ backgroundColor: 'var(--color-bg-card)', border: '2px solid var(--color-success, #10b981)33' }}>
         <div className="flex items-center gap-3">
-          <CheckCircle className="w-6 h-6 text-green-600" />
+          <CheckCircle className="w-6 h-6 text-emerald-600" />
           <div>
-            <h3 className="font-bold text-green-900">All Caught Up!</h3>
-            <p className="text-sm text-green-700">
+            <h3 className="font-bold text-emerald-600">All Caught Up!</h3>
+            <p className="text-sm" style={{ color: 'var(--color-text-tertiary)' }}>
               No automation suggestions at this time. Keep tracking your transactions!
             </p>
           </div>
@@ -181,18 +182,20 @@ export default function AutomationDashboard({
 
       {/* Recurring Transaction Suggestions */}
       {visibleRecurring.length > 0 && (
-        <div className="bg-white border-2 border-blue-200 rounded-2xl p-4">
+        <div className="rounded-2xl p-4"
+          style={{ backgroundColor: 'var(--color-bg-card)', border: '2px solid var(--color-info, #3b82f6)44' }}>
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <Calendar className="w-5 h-5 text-blue-600" />
-              <h3 className="font-bold text-blue-900">Recurring Bills Detected</h3>
+              <h3 className="font-bold text-blue-600">Recurring Bills Detected</h3>
               <span className="px-2 py-0.5 bg-blue-100 text-blue-800 rounded-full text-xs font-bold">
                 {visibleRecurring.length}
               </span>
             </div>
             <button
               onClick={() => hideType('recurring')}
-              className="flex items-center gap-1 px-2 py-1 text-xs text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+              className="flex items-center gap-1 px-2 py-1 text-xs rounded-lg transition-colors"
+              style={{ color: 'var(--color-text-tertiary)' }}
               title="Don't show recurring bill suggestions again"
             >
               <EyeOff className="w-3 h-3" />
@@ -204,21 +207,22 @@ export default function AutomationDashboard({
             {visibleRecurring.map((suggestion, idx) => {
               const category = categories.find(c => c.id === suggestion.categoryId);
               return (
-                <div key={idx} className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                <div key={idx} className="rounded-xl p-4"
+                  style={{ backgroundColor: 'var(--color-bg-tertiary)', border: '1px solid var(--color-border-card)' }}>
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
                         <span className="text-lg">{category?.icon}</span>
-                        <h4 className="font-bold text-gray-900">{suggestion.merchant}</h4>
+                        <h4 className="font-bold" style={{ color: 'var(--color-text-primary)' }}>{suggestion.merchant}</h4>
                         <span className="px-2 py-0.5 bg-blue-200 text-blue-800 rounded text-xs font-bold">
                           {Math.round(suggestion.confidence * 100)}% confident
                         </span>
                       </div>
-                      <p className="text-sm text-gray-600 mb-2">
+                      <p className="text-sm mb-2" style={{ color: 'var(--color-text-secondary)' }}>
                         {currency}{suggestion.amount.toFixed(2)} · {suggestion.frequency} · {suggestion.transactions.length} transactions detected
                       </p>
                       {suggestion.nextDueDate && (
-                        <p className="text-xs text-gray-500">
+                        <p className="text-xs" style={{ color: 'var(--color-text-tertiary)' }}>
                           Next due: {suggestion.nextDueDate.toLocaleDateString()}
                         </p>
                       )}
@@ -232,7 +236,7 @@ export default function AutomationDashboard({
                       </button>
                       <button
                         onClick={() => setDismissedRecurring(prev => new Set(prev).add(suggestion.merchant))}
-                        className="p-2 hover:bg-red-100 text-gray-600 hover:text-red-600 rounded-lg transition-colors"
+                        className="p-2 hover:bg-red-100 text-rose-500 rounded-lg transition-colors"
                       >
                         <X className="w-4 h-4" />
                       </button>
@@ -247,18 +251,20 @@ export default function AutomationDashboard({
 
       {/* Budget Adjustment Suggestions */}
       {visibleBudgets.length > 0 && (
-        <div className="bg-white border-2 border-green-200 rounded-2xl p-4">
+        <div className="rounded-2xl p-4"
+          style={{ backgroundColor: 'var(--color-bg-card)', border: '2px solid var(--color-success, #10b981)44' }}>
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
-              <TrendingUp className="w-5 h-5 text-green-600" />
-              <h3 className="font-bold text-green-900">Budget Adjustments</h3>
-              <span className="px-2 py-0.5 bg-green-100 text-green-800 rounded-full text-xs font-bold">
+              <TrendingUp className="w-5 h-5 text-emerald-600" />
+              <h3 className="font-bold text-emerald-600">Budget Adjustments</h3>
+              <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-full text-xs font-bold">
                 {visibleBudgets.length}
               </span>
             </div>
             <button
               onClick={() => hideType('budget')}
-              className="flex items-center gap-1 px-2 py-1 text-xs text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+              className="flex items-center gap-1 px-2 py-1 text-xs rounded-lg transition-colors"
+              style={{ color: 'var(--color-text-tertiary)' }}
               title="Don't show budget suggestions again"
             >
               <EyeOff className="w-3 h-3" />
@@ -273,29 +279,34 @@ export default function AutomationDashboard({
               const changePercent = Math.round((change / suggestion.currentBudget) * 100);
 
               return (
-                <div key={idx} className="bg-green-50 border border-green-200 rounded-xl p-4">
+                <div key={idx} className="rounded-xl p-4"
+                  style={{ backgroundColor: 'var(--color-bg-tertiary)', border: '1px solid var(--color-border-card)' }}>
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
                         <span className="text-lg">{category?.icon}</span>
-                        <h4 className="font-bold text-gray-900">{suggestion.categoryName}</h4>
+                        <h4 className="font-bold" style={{ color: 'var(--color-text-primary)' }}>{suggestion.categoryName}</h4>
                         <span className={`px-2 py-0.5 rounded text-xs font-bold ${
                           suggestion.trend === 'increasing' ? 'bg-red-100 text-red-800' :
-                          suggestion.trend === 'decreasing' ? 'bg-green-100 text-green-800' :
-                          'bg-gray-100 text-gray-800'
-                        }`}>
+                          suggestion.trend === 'decreasing' ? 'bg-emerald-100 text-emerald-800' :
+                          ''
+                        }`}
+                          style={suggestion.trend !== 'increasing' && suggestion.trend !== 'decreasing'
+                            ? { backgroundColor: 'var(--color-bg-tertiary)', color: 'var(--color-text-secondary)' }
+                            : {}
+                          }>
                           {suggestion.trend}
                         </span>
                       </div>
-                      <p className="text-sm text-gray-600 mb-2">
+                      <p className="text-sm mb-2" style={{ color: 'var(--color-text-secondary)' }}>
                         {suggestion.reason}
                       </p>
                       <div className="flex items-center gap-3 text-sm">
-                        <span className="text-gray-500">
+                        <span style={{ color: 'var(--color-text-tertiary)' }}>
                           Current: <span className="font-bold">{currency}{suggestion.currentBudget}</span>
                         </span>
-                        <span className="text-gray-400">→</span>
-                        <span className={change > 0 ? 'text-red-600' : 'text-green-600'}>
+                        <span style={{ color: 'var(--color-text-tertiary)' }}>→</span>
+                        <span className={change > 0 ? 'text-rose-500' : 'text-emerald-600'}>
                           Suggested: <span className="font-bold">{currency}{suggestion.suggestedBudget}</span>
                           {' '}({change > 0 ? '+' : ''}{changePercent}%)
                         </span>
@@ -304,13 +315,13 @@ export default function AutomationDashboard({
                     <div className="flex gap-2 flex-shrink-0">
                       <button
                         onClick={() => handleAcceptBudget(suggestion)}
-                        className="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-bold"
+                        className="px-3 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors text-sm font-bold"
                       >
                         Apply
                       </button>
                       <button
                         onClick={() => setDismissedBudgets(prev => new Set(prev).add(suggestion.categoryId))}
-                        className="p-2 hover:bg-red-100 text-gray-600 hover:text-red-600 rounded-lg transition-colors"
+                        className="p-2 hover:bg-red-100 text-rose-500 rounded-lg transition-colors"
                       >
                         <X className="w-4 h-4" />
                       </button>
@@ -325,18 +336,20 @@ export default function AutomationDashboard({
 
       {/* Merchant Mapping Suggestions */}
       {visibleMappings.length > 0 && (
-        <div className="bg-white border-2 border-purple-200 rounded-2xl p-4">
+        <div className="rounded-2xl p-4"
+          style={{ backgroundColor: 'var(--color-bg-card)', border: '2px solid var(--color-accent)44' }}>
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <Zap className="w-5 h-5 text-purple-600" />
-              <h3 className="font-bold text-purple-900">Auto-Categorization</h3>
+              <h3 className="font-bold text-purple-600">Auto-Categorization</h3>
               <span className="px-2 py-0.5 bg-purple-100 text-purple-800 rounded-full text-xs font-bold">
                 {visibleMappings.length}
               </span>
             </div>
             <button
               onClick={() => hideType('mapping')}
-              className="flex items-center gap-1 px-2 py-1 text-xs text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+              className="flex items-center gap-1 px-2 py-1 text-xs rounded-lg transition-colors"
+              style={{ color: 'var(--color-text-tertiary)' }}
               title="Don't show auto-categorization suggestions again"
             >
               <EyeOff className="w-3 h-3" />
@@ -348,17 +361,18 @@ export default function AutomationDashboard({
             {visibleMappings.map((suggestion, idx) => {
               const category = categories.find(c => c.id === suggestion.categoryId);
               return (
-                <div key={idx} className="bg-purple-50 border border-purple-200 rounded-xl p-4">
+                <div key={idx} className="rounded-xl p-4"
+                  style={{ backgroundColor: 'var(--color-bg-tertiary)', border: '1px solid var(--color-border-card)' }}>
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
                         <span className="text-lg">{category?.icon}</span>
-                        <h4 className="font-bold text-gray-900">{suggestion.merchant}</h4>
+                        <h4 className="font-bold" style={{ color: 'var(--color-text-primary)' }}>{suggestion.merchant}</h4>
                         <span className="px-2 py-0.5 bg-purple-200 text-purple-800 rounded text-xs font-bold">
                           {Math.round(suggestion.confidence * 100)}% match
                         </span>
                       </div>
-                      <p className="text-sm text-gray-600">
+                      <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>
                         Automatically categorize as <span className="font-bold">{category?.name}</span> based on {suggestion.timesUsed} past transactions
                       </p>
                     </div>
@@ -371,7 +385,7 @@ export default function AutomationDashboard({
                       </button>
                       <button
                         onClick={() => setDismissedMappings(prev => new Set(prev).add(suggestion.merchant.toLowerCase()))}
-                        className="p-2 hover:bg-red-100 text-gray-600 hover:text-red-600 rounded-lg transition-colors"
+                        className="p-2 hover:bg-red-100 text-rose-500 rounded-lg transition-colors"
                       >
                         <X className="w-4 h-4" />
                       </button>
