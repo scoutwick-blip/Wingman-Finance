@@ -343,13 +343,13 @@ export default function IncomeForecast({
           FORECAST INSIGHTS
         </h3>
         <div className="space-y-3">
-          <div className="bg-white bg-opacity-10 rounded-lg p-3">
+          <div className="rounded-lg p-3" style={{ background: 'rgba(255,255,255,0.1)' }}>
             <p className="font-bold mb-1">In {forecastMonths} months:</p>
             <p className="text-lg">
               You'll have <span className="font-semibold text-2xl">{currency}{finalBalance.balance.toFixed(2)}</span>
             </p>
           </div>
-          <div className="bg-white bg-opacity-10 rounded-lg p-3">
+          <div className="rounded-lg p-3" style={{ background: 'rgba(255,255,255,0.1)' }}>
             <p className="font-bold mb-1">Net Change:</p>
             <p className="text-lg">
               <span className={`font-semibold text-2xl ${finalBalance.balance >= currentBalance ? 'text-green-300' : 'text-red-300'}`}>
@@ -357,7 +357,7 @@ export default function IncomeForecast({
               </span>
             </p>
           </div>
-          <div className="bg-white bg-opacity-10 rounded-lg p-3">
+          <div className="rounded-lg p-3" style={{ background: 'rgba(255,255,255,0.1)' }}>
             <p className="font-bold mb-1">Monthly Net:</p>
             <p className="text-lg">
               <span className="font-semibold text-2xl">
