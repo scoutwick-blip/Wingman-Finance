@@ -190,12 +190,19 @@ export default function Subscriptions({
     return categories.find(c => c.id === categoryId)?.name || 'Unknown';
   };
 
-  const getStatusColor = (status: SubscriptionStatus) => {
+  const getStatusColor = (status: SubscriptionStatus): { className: string; style?: React.CSSProperties } => {
     switch (status) {
-      case SubscriptionStatus.ACTIVE: return 'bg-green-100 text-green-800 border-green-300';
-      case SubscriptionStatus.TRIAL: return 'bg-blue-100 text-blue-800 border-blue-300';
-      case SubscriptionStatus.CANCELLED: return 'bg-gray-100 text-gray-800 border-gray-300';
-      case SubscriptionStatus.EXPIRED: return 'bg-red-100 text-red-800 border-red-300';
+      case SubscriptionStatus.ACTIVE: return { className: 'bg-green-100 text-green-800 border-green-300' };
+      case SubscriptionStatus.TRIAL: return { className: 'bg-blue-100 text-blue-800 border-blue-300' };
+      case SubscriptionStatus.CANCELLED: return {
+        className: 'border',
+        style: {
+          backgroundColor: 'var(--color-bg-tertiary)',
+          color: 'var(--color-text-primary)',
+          borderColor: 'var(--color-border-primary)'
+        }
+      };
+      case SubscriptionStatus.EXPIRED: return { className: 'bg-red-100 text-red-800 border-red-300' };
     }
   };
 
@@ -215,11 +222,13 @@ export default function Subscriptions({
       ? Math.ceil((new Date(sub.trialEndDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
       : null;
 
+    const statusColor = getStatusColor(sub.status);
+
     return (
       <div
         key={sub.id}
-        className={`rounded-xl p-4 border-2 ${getStatusColor(sub.status)} hover:shadow-lg transition-all`}
-        style={{ backgroundColor: 'var(--color-bg-card)' }}
+        className={`rounded-xl p-4 border-2 ${statusColor.className} hover:shadow-lg transition-all`}
+        style={{ backgroundColor: 'var(--color-bg-card)', ...statusColor.style }}
       >
         <div className="flex items-start justify-between mb-3">
           <div className="flex-1">
@@ -282,7 +291,8 @@ export default function Subscriptions({
           </button>
           <button
             onClick={() => handleDelete(sub)}
-            className="bg-gray-600 text-white px-3 py-2 rounded-lg hover:bg-gray-700 transition-colors flex items-center justify-center gap-2 text-sm"
+            className="text-white px-3 py-2 rounded-lg transition-colors flex items-center justify-center gap-2 text-sm"
+            style={{ backgroundColor: 'var(--color-text-tertiary)' }}
           >
             <Trash2 className="w-4 h-4" />
           </button>
