@@ -210,17 +210,17 @@ export default function Goals({
     return (
       <div
         key={goal.id}
-        className="bg-white rounded-2xl p-6 shadow-lg border-2 border-gray-200 hover:shadow-xl transition-all"
-        style={{ borderLeftWidth: '8px', borderLeftColor: goal.color }}
+        className="rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all"
+        style={{ backgroundColor: 'var(--color-bg-card)', border: '2px solid var(--color-border-card)', borderLeftWidth: '8px', borderLeftColor: goal.color }}
       >
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-center gap-3">
             <div className="text-4xl">{goal.icon}</div>
             <div>
-              <h3 className="font-bold text-xl">{goal.name}</h3>
-              <p className="text-sm text-gray-600">{goal.description}</p>
+              <h3 className="font-bold text-xl" style={{ color: 'var(--color-text-primary)' }}>{goal.name}</h3>
+              <p className="text-sm" style={{ color: 'var(--color-text-tertiary)' }}>{goal.description}</p>
               {account && (
-                <p className="text-xs text-gray-500 flex items-center gap-1 mt-1">
+                <p className="text-xs flex items-center gap-1 mt-1" style={{ color: 'var(--color-text-tertiary)' }}>
                   <span>{account.icon}</span>
                   <span>{account.name}</span>
                 </p>
@@ -235,11 +235,11 @@ export default function Goals({
         {/* Progress Bar */}
         <div className="mb-4">
           <div className="flex justify-between text-sm mb-2">
-            <span className="font-medium">{currency}{goal.currentAmount.toFixed(2)}</span>
-            <span className="font-bold text-lg">{progress.toFixed(1)}%</span>
-            <span className="font-medium text-gray-600">{currency}{goal.targetAmount.toFixed(2)}</span>
+            <span className="font-medium" style={{ color: 'var(--color-text-primary)' }}>{currency}{goal.currentAmount.toFixed(2)}</span>
+            <span className="font-bold text-lg" style={{ color: 'var(--color-text-primary)' }}>{progress.toFixed(1)}%</span>
+            <span className="font-medium" style={{ color: 'var(--color-text-tertiary)' }}>{currency}{goal.targetAmount.toFixed(2)}</span>
           </div>
-          <div className="h-4 bg-gray-200 rounded-full overflow-hidden">
+          <div className="h-4 rounded-full overflow-hidden" style={{ backgroundColor: 'var(--color-bg-tertiary)' }}>
             <div
               className="h-full rounded-full transition-all duration-500"
               style={{
@@ -248,7 +248,7 @@ export default function Goals({
               }}
             />
           </div>
-          <p className="text-sm text-gray-600 mt-1">
+          <p className="text-sm mt-1" style={{ color: 'var(--color-text-tertiary)' }}>
             {currency}{remaining.toFixed(2)} remaining
           </p>
         </div>
@@ -261,8 +261,9 @@ export default function Goals({
               className={`flex-1 text-center p-2 rounded-lg text-xs ${
                 milestone.achieved
                   ? 'bg-green-100 text-green-800 border-2 border-green-300'
-                  : 'bg-gray-100 text-gray-600'
+                  : ''
               }`}
+              style={!milestone.achieved ? { backgroundColor: 'var(--color-bg-tertiary)', color: 'var(--color-text-tertiary)' } : undefined}
             >
               {milestone.achieved && <CheckCircle className="w-4 h-4 mx-auto mb-1" />}
               <span className="font-bold">{milestone.percentage}%</span>
@@ -273,7 +274,7 @@ export default function Goals({
         {/* Info Row */}
         <div className="grid grid-cols-2 gap-3 mb-4 text-sm">
           {goal.deadline && (
-            <div className={`flex items-center gap-2 ${isOverdue ? 'text-red-600' : 'text-gray-600'}`}>
+            <div className={`flex items-center gap-2 ${isOverdue ? 'text-red-600' : ''}`} style={!isOverdue ? { color: 'var(--color-text-tertiary)' } : undefined}>
               <Calendar className="w-4 h-4" />
               <span className="font-medium">
                 {isOverdue ? 'Overdue: ' : 'Due: '}
@@ -337,8 +338,8 @@ export default function Goals({
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-semibold text-slate-900 uppercase tracking-wide">FINANCIAL GOALS</h2>
-          <p className="text-sm text-gray-600 mt-1">Track your progress toward financial milestones</p>
+          <h2 className="text-2xl font-semibold uppercase tracking-wide" style={{ color: 'var(--color-text-primary)' }}>FINANCIAL GOALS</h2>
+          <p className="text-sm mt-1" style={{ color: 'var(--color-text-tertiary)' }}>Track your progress toward financial milestones</p>
         </div>
         <button
           onClick={() => setShowForm(true)}
@@ -410,27 +411,29 @@ export default function Goals({
 
       {/* Add/Edit Form */}
       {showForm && (
-        <div className="bg-white rounded-2xl p-6 shadow-lg border-2 border-gray-200">
-          <h3 className="text-xl font-bold mb-4">{editingGoal ? 'Edit Goal' : 'Create New Goal'}</h3>
+        <div className="rounded-2xl p-6 shadow-lg" style={{ backgroundColor: 'var(--color-bg-card)', border: '2px solid var(--color-border-card)' }}>
+          <h3 className="text-xl font-bold mb-4" style={{ color: 'var(--color-text-primary)' }}>{editingGoal ? 'Edit Goal' : 'Create New Goal'}</h3>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Goal Name</label>
+                <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>Goal Name</label>
                 <input
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  style={{ backgroundColor: 'var(--color-bg-tertiary)', color: 'var(--color-text-primary)', borderColor: 'var(--color-border-card)', borderWidth: '1px', borderStyle: 'solid' }}
                   placeholder="Emergency Fund, Vacation, etc."
                   required
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Goal Type</label>
+                <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>Goal Type</label>
                 <select
                   value={formData.type}
                   onChange={(e) => setFormData({ ...formData, type: e.target.value as GoalType })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  style={{ backgroundColor: 'var(--color-bg-tertiary)', color: 'var(--color-text-primary)', borderColor: 'var(--color-border-card)', borderWidth: '1px', borderStyle: 'solid' }}
                 >
                   {Object.values(GoalType).map(type => (
                     <option key={type} value={type}>{getTypeIcon(type)} {type}</option>
@@ -438,54 +441,59 @@ export default function Goals({
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Target Amount</label>
+                <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>Target Amount</label>
                 <input
                   type="number"
                   step="0.01"
                   value={formData.targetAmount}
                   onChange={(e) => setFormData({ ...formData, targetAmount: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  style={{ backgroundColor: 'var(--color-bg-tertiary)', color: 'var(--color-text-primary)', borderColor: 'var(--color-border-card)', borderWidth: '1px', borderStyle: 'solid' }}
                   placeholder="5000"
                   required
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Current Amount</label>
+                <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>Current Amount</label>
                 <input
                   type="number"
                   step="0.01"
                   value={formData.currentAmount}
                   onChange={(e) => setFormData({ ...formData, currentAmount: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  style={{ backgroundColor: 'var(--color-bg-tertiary)', color: 'var(--color-text-primary)', borderColor: 'var(--color-border-card)', borderWidth: '1px', borderStyle: 'solid' }}
                   placeholder="0"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Deadline (Optional)</label>
+                <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>Deadline (Optional)</label>
                 <input
                   type="date"
                   value={formData.deadline}
                   onChange={(e) => setFormData({ ...formData, deadline: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  style={{ backgroundColor: 'var(--color-bg-tertiary)', color: 'var(--color-text-primary)', borderColor: 'var(--color-border-card)', borderWidth: '1px', borderStyle: 'solid' }}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Monthly Contribution (Optional)</label>
+                <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>Monthly Contribution (Optional)</label>
                 <input
                   type="number"
                   step="0.01"
                   value={formData.monthlyContribution}
                   onChange={(e) => setFormData({ ...formData, monthlyContribution: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  style={{ backgroundColor: 'var(--color-bg-tertiary)', color: 'var(--color-text-primary)', borderColor: 'var(--color-border-card)', borderWidth: '1px', borderStyle: 'solid' }}
                   placeholder="200"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Account (Optional)</label>
+                <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>Account (Optional)</label>
                 <select
                   value={formData.accountId}
                   onChange={(e) => setFormData({ ...formData, accountId: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  style={{ backgroundColor: 'var(--color-bg-tertiary)', color: 'var(--color-text-primary)', borderColor: 'var(--color-border-card)', borderWidth: '1px', borderStyle: 'solid' }}
                 >
                   <option value="">None</option>
                   {accounts.filter(a => a.type === 'SAVINGS' || a.type === 'CHECKING').map(acc => (
@@ -496,32 +504,35 @@ export default function Goals({
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Icon</label>
+                <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>Icon</label>
                 <input
                   type="text"
                   value={formData.icon}
                   onChange={(e) => setFormData({ ...formData, icon: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  style={{ backgroundColor: 'var(--color-bg-tertiary)', color: 'var(--color-text-primary)', borderColor: 'var(--color-border-card)', borderWidth: '1px', borderStyle: 'solid' }}
                   placeholder="🎯"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Color</label>
+                <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>Color</label>
                 <input
                   type="color"
                   value={formData.color}
                   onChange={(e) => setFormData({ ...formData, color: e.target.value })}
-                  className="w-full h-10 px-1 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full h-10 px-1 py-1 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  style={{ borderColor: 'var(--color-border-card)', borderWidth: '1px', borderStyle: 'solid' }}
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Description (Optional)</label>
+              <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>Description (Optional)</label>
               <textarea
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                style={{ backgroundColor: 'var(--color-bg-tertiary)', color: 'var(--color-text-primary)', borderColor: 'var(--color-border-card)', borderWidth: '1px', borderStyle: 'solid' }}
                 rows={2}
                 placeholder="What is this goal for?"
               />
@@ -537,7 +548,8 @@ export default function Goals({
               <button
                 type="button"
                 onClick={resetForm}
-                className="px-4 py-2 border-2 border-gray-300 rounded-lg hover:bg-gray-100 transition-colors font-medium"
+                className="px-4 py-2 rounded-lg transition-colors font-medium"
+                style={{ border: '2px solid var(--color-border-card)', color: 'var(--color-text-primary)' }}
               >
                 Cancel
               </button>
@@ -574,10 +586,10 @@ export default function Goals({
 
       {/* Empty State */}
       {goals.length === 0 && (
-        <div className="text-center py-12 bg-white rounded-2xl">
-          <Target className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-xl font-bold text-gray-900 mb-2">No Goals Yet</h3>
-          <p className="text-gray-600 mb-4">Set your first financial goal and start tracking progress</p>
+        <div className="text-center py-12 rounded-2xl" style={{ backgroundColor: 'var(--color-bg-card)' }}>
+          <Target className="w-16 h-16 mx-auto mb-4" style={{ color: 'var(--color-text-tertiary)' }} />
+          <h3 className="text-xl font-bold mb-2" style={{ color: 'var(--color-text-primary)' }}>No Goals Yet</h3>
+          <p className="mb-4" style={{ color: 'var(--color-text-tertiary)' }}>Set your first financial goal and start tracking progress</p>
           <button
             onClick={() => setShowForm(true)}
             className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium"
@@ -590,20 +602,21 @@ export default function Goals({
       {/* Progress Update Modal */}
       {showProgressModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl p-6 max-w-md w-full">
-            <h3 className="text-xl font-bold mb-4">Update Progress: {showProgressModal.name}</h3>
+          <div className="rounded-2xl p-6 max-w-md w-full" style={{ backgroundColor: 'var(--color-bg-card)' }}>
+            <h3 className="text-xl font-bold mb-4" style={{ color: 'var(--color-text-primary)' }}>Update Progress: {showProgressModal.name}</h3>
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Add Amount</label>
+              <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>Add Amount</label>
               <input
                 type="number"
                 step="0.01"
                 value={progressAmount}
                 onChange={(e) => setProgressAmount(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                style={{ backgroundColor: 'var(--color-bg-tertiary)', color: 'var(--color-text-primary)', borderColor: 'var(--color-border-card)', borderWidth: '1px', borderStyle: 'solid' }}
                 placeholder="100.00"
                 autoFocus
               />
-              <p className="text-sm text-gray-600 mt-1">
+              <p className="text-sm mt-1" style={{ color: 'var(--color-text-tertiary)' }}>
                 Current: {currency}{showProgressModal.currentAmount.toFixed(2)} / {currency}{showProgressModal.targetAmount.toFixed(2)}
               </p>
             </div>
@@ -619,7 +632,8 @@ export default function Goals({
                   setShowProgressModal(null);
                   setProgressAmount('');
                 }}
-                className="px-4 py-2 border-2 border-gray-300 rounded-lg hover:bg-gray-100 transition-colors font-medium"
+                className="px-4 py-2 rounded-lg transition-colors font-medium"
+                style={{ border: '2px solid var(--color-border-card)', color: 'var(--color-text-primary)' }}
               >
                 Cancel
               </button>

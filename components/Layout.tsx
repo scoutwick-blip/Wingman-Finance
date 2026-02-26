@@ -26,6 +26,7 @@ export const Layout: React.FC<LayoutProps> = ({
   onOpenTemplates
 }) => {
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showMoreMenu, setShowMoreMenu] = useState(false);
   const notificationRef = useRef<HTMLDivElement>(null);
   const [dropdownPos, setDropdownPos] = useState({ top: 0, right: 0, isMobile: false });
 
@@ -43,6 +44,11 @@ export const Layout: React.FC<LayoutProps> = ({
     { id: 'advisor', label: 'Advisor', icon: '🤖' },
     { id: 'settings', label: 'Settings', icon: '⚙️' },
   ];
+
+  // Mobile bottom bar: 4 primary tabs + More
+  const mobileTabIds = ['dashboard', 'transactions', 'budgets', 'advisor'];
+  const moreMenuItems = navItems.filter(item => !mobileTabIds.includes(item.id));
+  const isMoreTabActive = !mobileTabIds.includes(activeTab);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -120,10 +126,15 @@ export const Layout: React.FC<LayoutProps> = ({
     return tab.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
   };
 
+  const handleMobileTabClick = (tabId: string) => {
+    setActiveTab(tabId);
+    setShowMoreMenu(false);
+  };
+
   return (
     <div className="flex flex-col md:flex-row h-screen overflow-hidden" style={{ backgroundColor: 'var(--color-bg-primary)' }}>
-      {/* Sidebar */}
-      <aside className="w-full md:w-60 flex flex-col shrink-0 z-40"
+      {/* Desktop Sidebar — hidden on mobile */}
+      <aside className="hidden md:flex w-60 flex-col shrink-0 z-40"
         style={{ backgroundColor: 'var(--color-bg-sidebar)', borderRight: '1px solid var(--color-border-primary)' }}>
         <div className="px-5 py-5 flex items-center gap-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
           <div
@@ -141,7 +152,7 @@ export const Layout: React.FC<LayoutProps> = ({
             <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-sidebar)' }}>Finance</p>
           </div>
         </div>
-        <nav className="flex-1 px-3 py-3 flex md:flex-col gap-0.5 overflow-x-auto md:overflow-x-visible scrollbar-hide">
+        <nav className="flex-1 px-3 py-3 flex flex-col gap-0.5 overflow-y-auto scrollbar-hide">
           {navItems.map((item) => (
             <button
               key={item.id}
@@ -171,7 +182,7 @@ export const Layout: React.FC<LayoutProps> = ({
             </button>
           ))}
         </nav>
-        <div className="px-4 py-4 hidden md:block space-y-3" style={{ borderTop: 'rgba(255,255,255,0.08) 1px solid' }}>
+        <div className="px-4 py-4 space-y-3" style={{ borderTop: 'rgba(255,255,255,0.08) 1px solid' }}>
           {onOpenTemplates && (
             <button
               onClick={onOpenTemplates}
@@ -202,9 +213,16 @@ export const Layout: React.FC<LayoutProps> = ({
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
         <header className="h-14 flex items-center justify-between px-4 md:px-8 shrink-0 z-30 relative"
           style={{ backgroundColor: 'var(--color-bg-header)', borderBottom: '1px solid var(--color-border-primary)' }}>
-          <h2 className="text-sm font-semibold" style={{ color: 'var(--color-text-secondary)' }}>
-            {formatTabLabel(activeTab)}
-          </h2>
+          <div className="flex items-center gap-2.5">
+            {/* Mobile: logo + page title */}
+            <div className="md:hidden w-7 h-7 rounded-lg flex items-center justify-center text-white font-bold text-xs shrink-0"
+              style={{ backgroundColor: preferences.accentColor }}>
+              W
+            </div>
+            <h2 className="text-sm font-semibold" style={{ color: 'var(--color-text-secondary)' }}>
+              {formatTabLabel(activeTab)}
+            </h2>
+          </div>
           <div className="flex items-center gap-2 md:gap-3">
             {onOpenTemplates && (
               <button
@@ -214,7 +232,6 @@ export const Layout: React.FC<LayoutProps> = ({
                 title="Budget Templates"
               >
                 <span>⚡</span>
-                <span className="hidden xs:inline">Templates</span>
               </button>
             )}
             <div className="relative" ref={notificationRef}>
@@ -310,11 +327,99 @@ export const Layout: React.FC<LayoutProps> = ({
         </header>
 
         <div className="flex-1 overflow-y-auto" style={{ backgroundColor: 'var(--color-bg-primary)' }}>
-          <div className="p-4 md:p-8 max-w-6xl mx-auto w-full">
+          <div className="p-4 md:p-8 pb-24 md:pb-8 max-w-6xl mx-auto w-full">
             {children}
           </div>
         </div>
       </main>
+
+      {/* Mobile Bottom Tab Bar */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 safe-area-bottom"
+        style={{ backgroundColor: 'var(--color-bg-header)', borderTop: '1px solid var(--color-border-primary)' }}>
+        <div className="flex w-full">
+          {mobileTabIds.map(tabId => {
+            const item = navItems.find(n => n.id === tabId)!;
+            const isActive = activeTab === tabId;
+            return (
+              <button
+                key={tabId}
+                onClick={() => handleMobileTabClick(tabId)}
+                className="flex-1 flex flex-col items-center gap-0.5 py-2.5 transition-all active:scale-95"
+                style={{ color: isActive ? 'var(--color-accent)' : 'var(--color-text-tertiary)' }}
+              >
+                <span className={`text-xl transition-transform ${isActive ? 'scale-110' : ''}`}>{item.icon}</span>
+                <span className={`text-[10px] font-semibold ${isActive ? '' : 'opacity-60'}`}>
+                  {tabId === 'dashboard' ? 'Home' : item.label}
+                </span>
+              </button>
+            );
+          })}
+          {/* More button */}
+          <button
+            onClick={() => setShowMoreMenu(!showMoreMenu)}
+            className="flex-1 flex flex-col items-center gap-0.5 py-2.5 transition-all active:scale-95"
+            style={{ color: isMoreTabActive || showMoreMenu ? 'var(--color-accent)' : 'var(--color-text-tertiary)' }}
+          >
+            <span className={`text-xl transition-transform ${isMoreTabActive ? 'scale-110' : ''}`}>☰</span>
+            <span className={`text-[10px] font-semibold ${isMoreTabActive || showMoreMenu ? '' : 'opacity-60'}`}>More</span>
+          </button>
+        </div>
+      </nav>
+
+      {/* Mobile "More" Menu */}
+      {showMoreMenu && (
+        <>
+          <div
+            className="md:hidden fixed inset-0 z-40 transition-opacity"
+            style={{ backgroundColor: 'rgba(0,0,0,0.4)' }}
+            onClick={() => setShowMoreMenu(false)}
+          />
+          <div className="md:hidden fixed bottom-[61px] left-3 right-3 z-50 rounded-2xl overflow-hidden"
+            style={{
+              backgroundColor: 'var(--color-bg-card)',
+              border: '1px solid var(--color-border-card)',
+              boxShadow: 'var(--shadow-lg)',
+            }}>
+            <div className="grid grid-cols-3 gap-1 p-3">
+              {moreMenuItems.map(item => {
+                const isActive = activeTab === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => handleMobileTabClick(item.id)}
+                    className="flex flex-col items-center gap-1.5 py-3 px-2 rounded-xl transition-all active:scale-95"
+                    style={{
+                      backgroundColor: isActive ? 'var(--color-accent-light)' : 'transparent',
+                      color: isActive ? 'var(--color-accent)' : 'var(--color-text-secondary)',
+                    }}
+                  >
+                    <span className="text-2xl">{item.icon}</span>
+                    <span className="text-[11px] font-semibold">{item.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+            <div className="px-3 pb-3 flex gap-2">
+              {onOpenTemplates && (
+                <button
+                  onClick={() => { onOpenTemplates(); setShowMoreMenu(false); }}
+                  className="flex-1 py-2.5 rounded-xl text-xs font-semibold text-white transition-all"
+                  style={{ backgroundColor: 'var(--color-accent)' }}
+                >
+                  ⚡ Templates
+                </button>
+              )}
+              <button
+                onClick={() => { onSwitchProfile(); setShowMoreMenu(false); }}
+                className="flex-1 py-2.5 rounded-xl text-xs font-semibold transition-all"
+                style={{ backgroundColor: 'var(--color-bg-tertiary)', color: 'var(--color-text-secondary)' }}
+              >
+                Switch Profile
+              </button>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 };

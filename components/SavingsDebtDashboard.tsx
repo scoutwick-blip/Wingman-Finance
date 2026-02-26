@@ -264,8 +264,8 @@ export default function SavingsDebtDashboard({
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <h3 className="text-3xl font-semibold text-slate-900 tracking-tighter uppercase">Financial Health</h3>
-          <p className="text-slate-500 font-bold uppercase text-xs tracking-wide">Savings & Debt Overview</p>
+          <h3 className="text-3xl font-semibold tracking-tighter uppercase" style={{ color: 'var(--color-text-primary)' }}>Financial Health</h3>
+          <p className="font-bold uppercase text-xs tracking-wide" style={{ color: 'var(--color-text-tertiary)' }}>Savings & Debt Overview</p>
         </div>
       </div>
 
@@ -305,15 +305,15 @@ export default function SavingsDebtDashboard({
       </div>
 
       {/* Emergency Fund Progress */}
-      <div className="bg-white border-2 border-amber-200 rounded-2xl p-6 shadow-sm">
+      <div className="border-2 border-amber-200 rounded-2xl p-6 shadow-sm" style={{ backgroundColor: 'var(--color-bg-card)' }}>
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
             <div className="bg-amber-100 p-3 rounded-xl">
               <PiggyBank className="w-6 h-6 text-amber-600" />
             </div>
             <div>
-              <h4 className="text-lg font-semibold text-slate-900">Emergency Fund</h4>
-              <p className="text-sm text-slate-600">
+              <h4 className="text-lg font-semibold" style={{ color: 'var(--color-text-primary)' }}>Emergency Fund</h4>
+              <p className="text-sm" style={{ color: 'var(--color-text-tertiary)' }}>
                 Target: {emergencyFundMonths} months of expenses
               </p>
             </div>
@@ -321,7 +321,8 @@ export default function SavingsDebtDashboard({
           <select
             value={emergencyFundMonths}
             onChange={(e) => setEmergencyFundMonths(parseInt(e.target.value))}
-            className="px-3 py-2 border-2 border-slate-200 rounded-lg text-sm font-bold"
+            className="px-3 py-2 rounded-lg text-sm font-bold"
+            style={{ backgroundColor: 'var(--color-bg-tertiary)', border: '2px solid var(--color-border-primary)', color: 'var(--color-text-primary)' }}
           >
             <option value={3}>3 months</option>
             <option value={6}>6 months</option>
@@ -333,14 +334,14 @@ export default function SavingsDebtDashboard({
         {/* Progress Bar */}
         <div className="mb-4">
           <div className="flex justify-between text-sm font-bold mb-2">
-            <span className="text-slate-600">
+            <span style={{ color: 'var(--color-text-tertiary)' }}>
               <SensitiveValue value={metrics.totalSavings} /> saved
             </span>
-            <span className="text-slate-600">
+            <span style={{ color: 'var(--color-text-tertiary)' }}>
               <SensitiveValue value={metrics.emergencyFundTarget} /> target
             </span>
           </div>
-          <div className="w-full bg-slate-100 rounded-full h-4 overflow-hidden border-2 border-slate-200">
+          <div className="w-full rounded-full h-4 overflow-hidden" style={{ backgroundColor: 'var(--color-bg-tertiary)', border: '2px solid var(--color-border-primary)' }}>
             <div
               className={`h-full transition-all duration-500 ${
                 metrics.emergencyFundProgress >= 100
@@ -352,7 +353,7 @@ export default function SavingsDebtDashboard({
               style={{ width: `${Math.min(100, metrics.emergencyFundProgress)}%` }}
             />
           </div>
-          <p className="text-center text-sm font-bold text-slate-700 mt-2">
+          <p className="text-center text-sm font-bold mt-2" style={{ color: 'var(--color-text-secondary)' }}>
             {metrics.emergencyFundProgress.toFixed(0)}% Complete
           </p>
         </div>
@@ -386,34 +387,35 @@ export default function SavingsDebtDashboard({
 
       {/* Debt Payoff Calculator */}
       {metrics.debtAccounts.length > 0 && debtPayoffPlan && (
-        <div className="bg-white border-2 border-red-200 rounded-2xl p-6 shadow-sm">
+        <div className="border-2 border-red-200 rounded-2xl p-6 shadow-sm" style={{ backgroundColor: 'var(--color-bg-card)' }}>
           <div className="flex items-center gap-3 mb-6">
             <div className="bg-red-100 p-3 rounded-xl">
               <Calculator className="w-6 h-6 text-red-600" />
             </div>
             <div>
-              <h4 className="text-lg font-semibold text-slate-900">Debt Payoff Plan</h4>
-              <p className="text-sm text-slate-600">Optimize your debt elimination strategy</p>
+              <h4 className="text-lg font-semibold" style={{ color: 'var(--color-text-primary)' }}>Debt Payoff Plan</h4>
+              <p className="text-sm" style={{ color: 'var(--color-text-tertiary)' }}>Optimize your debt elimination strategy</p>
             </div>
           </div>
 
           {/* Strategy Selector */}
           <div className="mb-6">
-            <label className="text-sm font-bold text-slate-700 mb-2 block">Payoff Strategy</label>
+            <label className="text-sm font-bold mb-2 block" style={{ color: 'var(--color-text-secondary)' }}>Payoff Strategy</label>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <button
                 onClick={() => setPayoffStrategy('avalanche')}
                 className={`p-4 rounded-xl border-2 transition-all ${
                   payoffStrategy === 'avalanche'
                     ? 'border-red-500 bg-red-50'
-                    : 'border-slate-200 hover:border-red-300'
+                    : ''
                 }`}
+                style={payoffStrategy !== 'avalanche' ? { borderColor: 'var(--color-border-primary)' } : undefined}
               >
                 <div className="flex items-center justify-between mb-2">
-                  <span className="font-semibold text-sm">Avalanche</span>
+                  <span className="font-semibold text-sm" style={{ color: 'var(--color-text-primary)' }}>Avalanche</span>
                   <Zap className="w-4 h-4 text-red-600" />
                 </div>
-                <p className="text-xs text-slate-600">Highest interest first (saves most money)</p>
+                <p className="text-xs" style={{ color: 'var(--color-text-tertiary)' }}>Highest interest first (saves most money)</p>
               </button>
 
               <button
@@ -421,14 +423,15 @@ export default function SavingsDebtDashboard({
                 className={`p-4 rounded-xl border-2 transition-all ${
                   payoffStrategy === 'snowball'
                     ? 'border-blue-500 bg-blue-50'
-                    : 'border-slate-200 hover:border-blue-300'
+                    : ''
                 }`}
+                style={payoffStrategy !== 'snowball' ? { borderColor: 'var(--color-border-primary)' } : undefined}
               >
                 <div className="flex items-center justify-between mb-2">
-                  <span className="font-semibold text-sm">Snowball</span>
+                  <span className="font-semibold text-sm" style={{ color: 'var(--color-text-primary)' }}>Snowball</span>
                   <Target className="w-4 h-4 text-blue-600" />
                 </div>
-                <p className="text-xs text-slate-600">Smallest balance first (quick wins)</p>
+                <p className="text-xs" style={{ color: 'var(--color-text-tertiary)' }}>Smallest balance first (quick wins)</p>
               </button>
 
               <button
@@ -436,21 +439,22 @@ export default function SavingsDebtDashboard({
                 className={`p-4 rounded-xl border-2 transition-all ${
                   payoffStrategy === 'custom'
                     ? 'border-purple-500 bg-purple-50'
-                    : 'border-slate-200 hover:border-purple-300'
+                    : ''
                 }`}
+                style={payoffStrategy !== 'custom' ? { borderColor: 'var(--color-border-primary)' } : undefined}
               >
                 <div className="flex items-center justify-between mb-2">
-                  <span className="font-semibold text-sm">Custom</span>
+                  <span className="font-semibold text-sm" style={{ color: 'var(--color-text-primary)' }}>Custom</span>
                   <DollarSign className="w-4 h-4 text-purple-600" />
                 </div>
-                <p className="text-xs text-slate-600">Your own priority order</p>
+                <p className="text-xs" style={{ color: 'var(--color-text-tertiary)' }}>Your own priority order</p>
               </button>
             </div>
           </div>
 
           {/* Extra Payment Input */}
           <div className="mb-6">
-            <label className="text-sm font-bold text-slate-700 mb-2 block">
+            <label className="text-sm font-bold mb-2 block" style={{ color: 'var(--color-text-secondary)' }}>
               Extra Monthly Payment
             </label>
             <div className="flex items-center gap-3">
@@ -459,11 +463,12 @@ export default function SavingsDebtDashboard({
                   type="number"
                   value={extraPayment}
                   onChange={(e) => setExtraPayment(e.target.value)}
-                  className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl font-bold"
+                  className="w-full px-4 py-3 rounded-xl font-bold"
+                  style={{ backgroundColor: 'var(--color-bg-tertiary)', border: '2px solid var(--color-border-primary)', color: 'var(--color-text-primary)' }}
                   placeholder="200"
                 />
               </div>
-              <div className="text-sm text-slate-600">
+              <div className="text-sm" style={{ color: 'var(--color-text-tertiary)' }}>
                 per month towards debt
               </div>
             </div>
@@ -471,15 +476,15 @@ export default function SavingsDebtDashboard({
 
           {/* Payoff Results */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <div className="bg-slate-50 rounded-xl p-4 border-2 border-slate-200">
+            <div className="rounded-xl p-4" style={{ backgroundColor: 'var(--color-bg-tertiary)', border: '2px solid var(--color-border-primary)' }}>
               <div className="flex items-center gap-2 mb-1">
-                <Calendar className="w-4 h-4 text-slate-600" />
-                <p className="text-xs font-bold text-slate-600">Debt-Free Date</p>
+                <Calendar className="w-4 h-4" style={{ color: 'var(--color-text-tertiary)' }} />
+                <p className="text-xs font-bold" style={{ color: 'var(--color-text-tertiary)' }}>Debt-Free Date</p>
               </div>
-              <p className="text-xl font-semibold text-slate-900">
+              <p className="text-xl font-semibold" style={{ color: 'var(--color-text-primary)' }}>
                 {debtPayoffPlan.debtFreeDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
               </p>
-              <p className="text-xs text-slate-500 mt-1">
+              <p className="text-xs mt-1" style={{ color: 'var(--color-text-tertiary)' }}>
                 {debtPayoffPlan.monthsToPayoff} months ({(debtPayoffPlan.monthsToPayoff / 12).toFixed(1)} years)
               </p>
             </div>
@@ -513,21 +518,21 @@ export default function SavingsDebtDashboard({
 
           {/* Current Debts */}
           <div>
-            <h5 className="text-sm font-semibold text-slate-700 mb-3">Current Debts</h5>
+            <h5 className="text-sm font-semibold mb-3" style={{ color: 'var(--color-text-secondary)' }}>Current Debts</h5>
             <div className="space-y-2">
               {metrics.debtAccounts.map((account, idx) => (
-                <div key={account.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-200">
+                <div key={account.id} className="flex items-center justify-between p-3 rounded-xl" style={{ backgroundColor: 'var(--color-bg-tertiary)', border: '1px solid var(--color-border-primary)' }}>
                   <div className="flex items-center gap-3">
                     <span className="text-xl">{account.icon}</span>
                     <div>
-                      <p className="font-bold text-sm text-slate-900">{account.name}</p>
-                      <p className="text-xs text-slate-500">
+                      <p className="font-bold text-sm" style={{ color: 'var(--color-text-primary)' }}>{account.name}</p>
+                      <p className="text-xs" style={{ color: 'var(--color-text-tertiary)' }}>
                         {(account.interestRate * 100).toFixed(1)}% APR · Min: {preferences.currency}{account.minimumPayment.toFixed(0)}/mo
                       </p>
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="font-semibold text-slate-900">
+                    <p className="font-semibold" style={{ color: 'var(--color-text-primary)' }}>
                       <SensitiveValue value={account.balance} />
                     </p>
                     {payoffStrategy !== 'custom' && idx === 0 && (
@@ -575,7 +580,7 @@ export default function SavingsDebtDashboard({
             <CheckCircle className="w-8 h-8 text-white" />
           </div>
           <h4 className="text-2xl font-semibold text-green-900 mb-2">Debt Free! 🎉</h4>
-          <p className="text-slate-600 max-w-md mx-auto">
+          <p className="max-w-md mx-auto" style={{ color: 'var(--color-text-tertiary)' }}>
             You have no debt! Focus on building your savings and reaching your financial goals.
           </p>
         </div>

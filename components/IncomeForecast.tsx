@@ -141,8 +141,8 @@ export default function IncomeForecast({
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h2 className="text-2xl font-semibold text-slate-900 uppercase tracking-wide">INCOME FORECAST</h2>
-        <p className="text-sm text-gray-600 mt-1">Project your financial future based on current trends</p>
+        <h2 className="text-2xl font-semibold uppercase tracking-wide" style={{ color: 'var(--color-text-primary)' }}>INCOME FORECAST</h2>
+        <p className="text-sm mt-1" style={{ color: 'var(--color-text-tertiary)' }}>Project your financial future based on current trends</p>
       </div>
 
       {/* Current Stats */}
@@ -186,15 +186,16 @@ export default function IncomeForecast({
       </div>
 
       {/* Forecast Controls */}
-      <div className="bg-white rounded-2xl p-6 shadow-lg border-2 border-gray-200">
-        <h3 className="text-xl font-bold mb-4">FORECAST SETTINGS</h3>
+      <div className="rounded-2xl p-6 shadow-lg" style={{ backgroundColor: 'var(--color-bg-card)', border: '2px solid var(--color-border-primary)' }}>
+        <h3 className="text-xl font-bold mb-4" style={{ color: 'var(--color-text-primary)' }}>FORECAST SETTINGS</h3>
 
         <div className="mb-6">
-          <label className="block text-sm font-medium text-gray-700 mb-2">Forecast Period</label>
+          <label className="block text-sm font-medium mb-2" style={{ color: 'var(--color-text-secondary)' }}>Forecast Period</label>
           <select
             value={forecastMonths}
             onChange={(e) => setForecastMonths(parseInt(e.target.value))}
-            className="px-4 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="px-4 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            style={{ backgroundColor: 'var(--color-bg-tertiary)', border: '2px solid var(--color-border-primary)', color: 'var(--color-text-primary)' }}
           >
             <option value={3}>3 Months</option>
             <option value={6}>6 Months</option>
@@ -209,78 +210,85 @@ export default function IncomeForecast({
             className={`p-4 rounded-xl border-2 transition-all ${
               selectedScenario === 'baseline'
                 ? 'border-blue-500 bg-blue-50 shadow-md'
-                : 'border-gray-200 hover:border-blue-300'
+                : ''
             }`}
+            style={selectedScenario !== 'baseline' ? { borderColor: 'var(--color-border-primary)' } : undefined}
           >
-            <h4 className="font-bold text-sm mb-1">Baseline</h4>
-            <p className="text-xs text-gray-600">Current spending continues</p>
+            <h4 className="font-bold text-sm mb-1" style={{ color: 'var(--color-text-primary)' }}>Baseline</h4>
+            <p className="text-xs" style={{ color: 'var(--color-text-tertiary)' }}>Current spending continues</p>
           </button>
           <button
             onClick={() => setSelectedScenario('conservative')}
             className={`p-4 rounded-xl border-2 transition-all ${
               selectedScenario === 'conservative'
                 ? 'border-green-500 bg-green-50 shadow-md'
-                : 'border-gray-200 hover:border-green-300'
+                : ''
             }`}
+            style={selectedScenario !== 'conservative' ? { borderColor: 'var(--color-border-primary)' } : undefined}
           >
-            <h4 className="font-bold text-sm mb-1">Conservative</h4>
-            <p className="text-xs text-gray-600">+10% savings</p>
+            <h4 className="font-bold text-sm mb-1" style={{ color: 'var(--color-text-primary)' }}>Conservative</h4>
+            <p className="text-xs" style={{ color: 'var(--color-text-tertiary)' }}>+10% savings</p>
           </button>
           <button
             onClick={() => setSelectedScenario('aggressive')}
             className={`p-4 rounded-xl border-2 transition-all ${
               selectedScenario === 'aggressive'
                 ? 'border-purple-500 bg-purple-50 shadow-md'
-                : 'border-gray-200 hover:border-purple-300'
+                : ''
             }`}
+            style={selectedScenario !== 'aggressive' ? { borderColor: 'var(--color-border-primary)' } : undefined}
           >
-            <h4 className="font-bold text-sm mb-1">Aggressive</h4>
-            <p className="text-xs text-gray-600">+20% savings, -15% expenses</p>
+            <h4 className="font-bold text-sm mb-1" style={{ color: 'var(--color-text-primary)' }}>Aggressive</h4>
+            <p className="text-xs" style={{ color: 'var(--color-text-tertiary)' }}>+20% savings, -15% expenses</p>
           </button>
           <button
             onClick={() => setSelectedScenario('custom')}
             className={`p-4 rounded-xl border-2 transition-all ${
               selectedScenario === 'custom'
                 ? 'border-orange-500 bg-orange-50 shadow-md'
-                : 'border-gray-200 hover:border-orange-300'
+                : ''
             }`}
+            style={selectedScenario !== 'custom' ? { borderColor: 'var(--color-border-primary)' } : undefined}
           >
-            <h4 className="font-bold text-sm mb-1">Custom</h4>
-            <p className="text-xs text-gray-600">Set your own values</p>
+            <h4 className="font-bold text-sm mb-1" style={{ color: 'var(--color-text-primary)' }}>Custom</h4>
+            <p className="text-xs" style={{ color: 'var(--color-text-tertiary)' }}>Set your own values</p>
           </button>
         </div>
 
         {selectedScenario === 'custom' && (
           <div className="mt-4 bg-orange-50 border-2 border-orange-200 rounded-xl p-4">
-            <h4 className="font-bold text-sm mb-3">CUSTOM SCENARIO</h4>
+            <h4 className="font-bold text-sm mb-3" style={{ color: 'var(--color-text-primary)' }}>CUSTOM SCENARIO</h4>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Additional Savings/Month</label>
+                <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>Additional Savings/Month</label>
                 <input
                   type="number"
                   value={customScenario.monthlyAdditionalSavings}
                   onChange={(e) => setCustomScenario({ ...customScenario, monthlyAdditionalSavings: parseFloat(e.target.value) || 0 })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  className="w-full px-3 py-2 rounded-lg"
+                  style={{ backgroundColor: 'var(--color-bg-card)', border: '1px solid var(--color-border-primary)', color: 'var(--color-text-primary)' }}
                   placeholder="100"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Additional Income/Month</label>
+                <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>Additional Income/Month</label>
                 <input
                   type="number"
                   value={customScenario.monthlyAdditionalIncome}
                   onChange={(e) => setCustomScenario({ ...customScenario, monthlyAdditionalIncome: parseFloat(e.target.value) || 0 })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  className="w-full px-3 py-2 rounded-lg"
+                  style={{ backgroundColor: 'var(--color-bg-card)', border: '1px solid var(--color-border-primary)', color: 'var(--color-text-primary)' }}
                   placeholder="200"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Expense Reduction/Month</label>
+                <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>Expense Reduction/Month</label>
                 <input
                   type="number"
                   value={customScenario.monthlyExpenseReduction}
                   onChange={(e) => setCustomScenario({ ...customScenario, monthlyExpenseReduction: parseFloat(e.target.value) || 0 })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  className="w-full px-3 py-2 rounded-lg"
+                  style={{ backgroundColor: 'var(--color-bg-card)', border: '1px solid var(--color-border-primary)', color: 'var(--color-text-primary)' }}
                   placeholder="150"
                 />
               </div>
@@ -290,8 +298,8 @@ export default function IncomeForecast({
       </div>
 
       {/* Chart */}
-      <div className="bg-white rounded-2xl p-6 shadow-lg border-2 border-gray-200">
-        <h3 className="text-xl font-bold mb-4">BALANCE PROJECTION</h3>
+      <div className="rounded-2xl p-6 shadow-lg" style={{ backgroundColor: 'var(--color-bg-card)', border: '2px solid var(--color-border-primary)' }}>
+        <h3 className="text-xl font-bold mb-4" style={{ color: 'var(--color-text-primary)' }}>BALANCE PROJECTION</h3>
         <ResponsiveContainer width="100%" height={400}>
           <ComposedChart data={selectedForecast.projectedBalances}>
             <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border-secondary)" />
