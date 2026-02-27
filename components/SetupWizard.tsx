@@ -1,5 +1,5 @@
 
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import { UserPreferences } from '../types';
 import { DEFAULT_TRANSACTION_TYPES, DEFAULT_PREFERENCES } from '../constants';
 
@@ -15,7 +15,7 @@ export const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete, onCancel, 
   const [currency, setCurrency] = useState('$');
   const [privacyMode, setPrivacyMode] = useState(false);
   const [pin, setPin] = useState('');
-  
+
   const totalSteps = 5;
 
   const handleNext = () => step < totalSteps ? setStep(step + 1) : handleFinish();
@@ -39,30 +39,36 @@ export const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete, onCancel, 
   };
 
   return (
-    <div className="fixed inset-0 bg-slate-900 z-[100] flex items-center justify-center p-4">
-      <div className="max-w-lg w-full bg-white rounded-[2rem] shadow-2xl p-8 md:p-12 space-y-10 relative overflow-hidden border-t-8 border-indigo-600 animate-in zoom-in-95 duration-300">
-        
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+      style={{ backgroundColor: 'var(--color-bg-primary)' }}>
+      <div className="max-w-lg w-full rounded-[2rem] shadow-2xl p-8 md:p-12 space-y-10 relative overflow-hidden border-t-8 animate-in zoom-in-95 duration-300"
+        style={{ backgroundColor: 'var(--color-bg-secondary)', borderTopColor: 'var(--color-accent)' }}>
+
         {canCancel && (
-          <button 
+          <button
             onClick={onCancel}
-            className="absolute top-6 right-6 text-slate-300 hover:text-slate-500 transition-colors font-bold text-sm uppercase tracking-wide"
+            className="absolute top-6 right-6 transition-colors font-bold text-sm uppercase tracking-wide"
+            style={{ color: 'var(--color-text-tertiary)' }}
           >
             Cancel
           </button>
         )}
 
         <div className="text-center space-y-4">
-          <div className="w-16 h-16 bg-indigo-600 rounded-xl flex items-center justify-center text-white text-2xl font-semibold mx-auto mb-6 shadow-2xl shadow-indigo-900/40">
+          <div className="w-16 h-16 rounded-xl flex items-center justify-center text-white text-2xl font-semibold mx-auto mb-6 shadow-2xl"
+            style={{ backgroundColor: 'var(--color-accent)' }}>
             W
           </div>
-          <h2 className="text-2xl font-semibold text-slate-900 tracking-tighter uppercase">
+          <h2 className="text-2xl font-semibold tracking-tighter uppercase"
+            style={{ color: 'var(--color-text-primary)' }}>
             {step === 1 && "Welcome"}
             {step === 2 && "Currency"}
             {step === 3 && "Privacy"}
             {step === 4 && "Secure Access"}
             {step === 5 && "You're All Set"}
           </h2>
-          <p className="text-xs font-bold text-slate-400 uppercase tracking-wide">
+          <p className="text-xs font-bold uppercase tracking-wide"
+            style={{ color: 'var(--color-text-tertiary)' }}>
             {step === 1 && "Let's set up your profile"}
             {step === 2 && "Choose your preferred symbol"}
             {step === 3 && "Configure your display settings"}
@@ -74,11 +80,16 @@ export const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete, onCancel, 
         <div className="min-h-[200px] flex flex-col justify-center">
           {step === 1 && (
             <div className="space-y-6">
-              <input 
+              <input
                 type="text" autoFocus value={name}
                 onChange={e => setName(e.target.value)}
                 placeholder="Your Name"
-                className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl px-6 py-4 text-sm font-bold text-slate-900 outline-none focus:border-indigo-600 transition-all uppercase"
+                className="w-full rounded-xl px-6 py-4 text-sm font-bold outline-none transition-all uppercase"
+                style={{
+                  backgroundColor: 'var(--color-bg-tertiary)',
+                  border: '2px solid var(--color-border-card)',
+                  color: 'var(--color-text-primary)',
+                }}
               />
             </div>
           )}
@@ -88,9 +99,11 @@ export const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete, onCancel, 
               {['$', '€', '£', '¥', '₹', '₱', '₩', 'R$'].map(c => (
                 <button
                   key={c} onClick={() => setCurrency(c)}
-                  className={`h-14 rounded-xl border-2 text-xl font-semibold transition-all ${
-                    currency === c ? 'border-indigo-600 bg-indigo-50 text-indigo-700' : 'border-slate-50 bg-slate-50 text-slate-400 hover:bg-white'
-                  }`}
+                  className="h-14 rounded-xl border-2 text-xl font-semibold transition-all"
+                  style={currency === c
+                    ? { borderColor: 'var(--color-accent)', backgroundColor: 'var(--color-accent-light)', color: 'var(--color-accent)' }
+                    : { borderColor: 'var(--color-border-card)', backgroundColor: 'var(--color-bg-tertiary)', color: 'var(--color-text-tertiary)' }
+                  }
                 >
                   {c}
                 </button>
@@ -99,14 +112,19 @@ export const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete, onCancel, 
           )}
 
           {step === 3 && (
-            <div className="p-6 bg-slate-50 rounded-2xl border border-slate-100 flex items-center justify-between cursor-pointer"
-                 onClick={() => setPrivacyMode(!privacyMode)}>
+            <div className="p-6 rounded-2xl flex items-center justify-between cursor-pointer"
+                 onClick={() => setPrivacyMode(!privacyMode)}
+                 style={{ backgroundColor: 'var(--color-bg-tertiary)', border: '1px solid var(--color-border-card)' }}>
               <div className="space-y-1">
-                <h4 className="font-semibold text-xs text-slate-800 uppercase tracking-wide">Privacy Mode</h4>
-                <p className="text-xs text-slate-500 uppercase font-bold">Blur sensitive balances by default</p>
+                <h4 className="font-semibold text-xs uppercase tracking-wide"
+                  style={{ color: 'var(--color-text-secondary)' }}>Privacy Mode</h4>
+                <p className="text-xs uppercase font-bold"
+                  style={{ color: 'var(--color-text-tertiary)' }}>Blur sensitive balances by default</p>
               </div>
-              <div className={`w-12 h-7 rounded-full transition-all relative ${privacyMode ? 'bg-indigo-600' : 'bg-slate-300'}`}>
-                <div className={`absolute top-1 w-5 h-5 rounded-full shadow-sm transition-all ${privacyMode ? 'left-6' : 'left-1'}`} style={{ backgroundColor: '#fff' }} />
+              <div className="w-12 h-7 rounded-full transition-all relative"
+                style={{ backgroundColor: privacyMode ? 'var(--color-accent)' : 'var(--color-border-primary)' }}>
+                <div className={`absolute top-1 w-5 h-5 rounded-full shadow-sm transition-all ${privacyMode ? 'left-6' : 'left-1'}`}
+                  style={{ backgroundColor: 'var(--color-bg-secondary)' }} />
               </div>
             </div>
           )}
@@ -115,75 +133,81 @@ export const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete, onCancel, 
             <div className="space-y-6 flex flex-col items-center">
                <div className="flex gap-4 justify-center mb-4">
                   {[0, 1, 2, 3].map(i => (
-                    <div key={i} className={`w-4 h-4 rounded-full border-2 ${pin.length > i ? 'bg-indigo-600 border-indigo-600' : 'border-slate-300'}`} />
+                    <div key={i} className="w-4 h-4 rounded-full border-2"
+                      style={pin.length > i
+                        ? { backgroundColor: 'var(--color-accent)', borderColor: 'var(--color-accent)' }
+                        : { borderColor: 'var(--color-border-primary)' }
+                      } />
                   ))}
                </div>
-               
+
                <div className="grid grid-cols-3 gap-3 w-full max-w-[240px]">
                  {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => (
-                   <button 
-                     key={num} 
+                   <button
+                     key={num}
                      onClick={() => handlePinInput(num.toString())}
-                     className="h-12 rounded-xl bg-slate-50 text-slate-800 font-semibold text-lg hover:bg-slate-100 active:scale-95 transition-all"
+                     className="h-12 rounded-xl font-semibold text-lg active:scale-95 transition-all"
+                     style={{ backgroundColor: 'var(--color-bg-tertiary)', color: 'var(--color-text-secondary)' }}
                    >
                      {num}
                    </button>
                  ))}
                  <div />
-                 <button 
+                 <button
                    onClick={() => handlePinInput('0')}
-                   className="h-12 rounded-xl bg-slate-50 text-slate-800 font-semibold text-lg hover:bg-slate-100 active:scale-95 transition-all"
+                   className="h-12 rounded-xl font-semibold text-lg active:scale-95 transition-all"
+                   style={{ backgroundColor: 'var(--color-bg-tertiary)', color: 'var(--color-text-secondary)' }}
                  >
                    0
                  </button>
-                 <button 
+                 <button
                    onClick={() => handlePinInput('back')}
-                   className="h-12 rounded-xl bg-rose-50 text-rose-500 font-semibold text-lg hover:bg-rose-100 active:scale-95 transition-all flex items-center justify-center"
+                   className="h-12 rounded-xl font-semibold text-lg active:scale-95 transition-all flex items-center justify-center"
+                   style={{ backgroundColor: 'var(--color-danger-light, rgba(239,68,68,0.1))', color: 'var(--color-danger, #ef4444)' }}
                  >
                    ⌫
                  </button>
                </div>
-               <p className="text-xs text-slate-400 font-bold uppercase tracking-wide">Leave empty for no security</p>
+               <p className="text-xs font-bold uppercase tracking-wide"
+                 style={{ color: 'var(--color-text-tertiary)' }}>Leave empty for no security</p>
             </div>
           )}
 
           {step === 5 && (
             <div className="space-y-4">
-              <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 flex gap-4 items-start">
-                <div className="text-2xl">📊</div>
-                <div>
-                  <h4 className="font-semibold text-xs text-slate-900 uppercase tracking-wide">Dashboard</h4>
-                  <p className="text-xs text-slate-500 mt-1 font-medium">Visual overview of your net worth, spending, and recent activity.</p>
+              {[
+                { icon: '📊', title: 'Dashboard', desc: 'Visual overview of your net worth, spending, and recent activity.' },
+                { icon: '🤖', title: 'AI Advisor', desc: 'Chat with an AI advisor that knows your finances inside and out.' },
+                { icon: '⚙️', title: 'Settings', desc: 'Export data to CSV, manage multiple profiles, and customize categories.' },
+              ].map(item => (
+                <div key={item.title} className="p-4 rounded-xl flex gap-4 items-start"
+                  style={{ backgroundColor: 'var(--color-bg-tertiary)', border: '1px solid var(--color-border-card)' }}>
+                  <div className="text-2xl">{item.icon}</div>
+                  <div>
+                    <h4 className="font-semibold text-xs uppercase tracking-wide"
+                      style={{ color: 'var(--color-text-primary)' }}>{item.title}</h4>
+                    <p className="text-xs mt-1 font-medium"
+                      style={{ color: 'var(--color-text-tertiary)' }}>{item.desc}</p>
+                  </div>
                 </div>
-              </div>
-              <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 flex gap-4 items-start">
-                <div className="text-2xl">🤖</div>
-                <div>
-                  <h4 className="font-semibold text-xs text-slate-900 uppercase tracking-wide">AI Advisor</h4>
-                  <p className="text-xs text-slate-500 mt-1 font-medium">Get smart insights and budget alerts powered by Google Gemini.</p>
-                </div>
-              </div>
-              <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 flex gap-4 items-start">
-                <div className="text-2xl">⚙️</div>
-                <div>
-                  <h4 className="font-semibold text-xs text-slate-900 uppercase tracking-wide">Settings</h4>
-                  <p className="text-xs text-slate-500 mt-1 font-medium">Export data to CSV, manage multiple profiles, and customize categories.</p>
-                </div>
-              </div>
+              ))}
             </div>
           )}
         </div>
 
         <div className="flex gap-4">
           {step > 1 && (
-            <button onClick={() => setStep(step - 1)} className="flex-1 bg-slate-100 text-slate-600 py-4 rounded-xl font-semibold uppercase text-xs tracking-wide hover:bg-slate-200 transition-colors">
+            <button onClick={() => setStep(step - 1)}
+              className="flex-1 py-4 rounded-xl font-semibold uppercase text-xs tracking-wide transition-colors"
+              style={{ backgroundColor: 'var(--color-bg-tertiary)', color: 'var(--color-text-secondary)' }}>
               Back
             </button>
           )}
-          <button 
+          <button
             disabled={step === 1 && !name.trim()}
             onClick={handleNext}
-            className="flex-[2] bg-slate-900 text-white py-4 rounded-xl font-semibold uppercase text-xs tracking-wide shadow-xl hover:bg-slate-800 transition-all disabled:opacity-50"
+            className="flex-[2] text-white py-4 rounded-xl font-semibold uppercase text-xs tracking-wide shadow-xl transition-all disabled:opacity-50"
+            style={{ backgroundColor: 'var(--color-bg-sidebar)' }}
           >
             {step === totalSteps ? "Get Started" : "Continue"}
           </button>

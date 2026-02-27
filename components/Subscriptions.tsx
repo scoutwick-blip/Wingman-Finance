@@ -190,12 +190,19 @@ export default function Subscriptions({
     return categories.find(c => c.id === categoryId)?.name || 'Unknown';
   };
 
-  const getStatusColor = (status: SubscriptionStatus) => {
+  const getStatusColor = (status: SubscriptionStatus): { className: string; style?: React.CSSProperties } => {
     switch (status) {
-      case SubscriptionStatus.ACTIVE: return 'bg-green-100 text-green-800 border-green-300';
-      case SubscriptionStatus.TRIAL: return 'bg-blue-100 text-blue-800 border-blue-300';
-      case SubscriptionStatus.CANCELLED: return 'bg-gray-100 text-gray-800 border-gray-300';
-      case SubscriptionStatus.EXPIRED: return 'bg-red-100 text-red-800 border-red-300';
+      case SubscriptionStatus.ACTIVE: return { className: 'bg-green-100 text-green-800 border-green-300' };
+      case SubscriptionStatus.TRIAL: return { className: 'bg-blue-100 text-blue-800 border-blue-300' };
+      case SubscriptionStatus.CANCELLED: return {
+        className: 'border',
+        style: {
+          backgroundColor: 'var(--color-bg-tertiary)',
+          color: 'var(--color-text-primary)',
+          borderColor: 'var(--color-border-primary)'
+        }
+      };
+      case SubscriptionStatus.EXPIRED: return { className: 'bg-red-100 text-red-800 border-red-300' };
     }
   };
 
@@ -215,20 +222,23 @@ export default function Subscriptions({
       ? Math.ceil((new Date(sub.trialEndDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
       : null;
 
+    const statusColor = getStatusColor(sub.status);
+
     return (
       <div
         key={sub.id}
-        className={`bg-white rounded-xl p-4 border-2 ${getStatusColor(sub.status)} hover:shadow-lg transition-all`}
+        className={`rounded-xl p-4 border-2 ${statusColor.className} hover:shadow-lg transition-all`}
+        style={{ backgroundColor: 'var(--color-bg-card)', ...statusColor.style }}
       >
         <div className="flex items-start justify-between mb-3">
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-1">
               <span className="text-2xl">{category?.icon || '📱'}</span>
-              <h3 className="font-bold text-lg">{sub.name}</h3>
+              <h3 className="font-bold text-lg" style={{ color: 'var(--color-text-primary)' }}>{sub.name}</h3>
             </div>
-            <p className="text-sm text-gray-600">{getCategoryName(sub.categoryId)}</p>
+            <p className="text-sm" style={{ color: 'var(--color-text-tertiary)' }}>{getCategoryName(sub.categoryId)}</p>
             {account && (
-              <p className="text-xs text-gray-500 flex items-center gap-1 mt-1">
+              <p className="text-xs flex items-center gap-1 mt-1" style={{ color: 'var(--color-text-tertiary)' }}>
                 <span>{account.icon}</span>
                 <span>{account.name}</span>
               </p>
@@ -240,25 +250,25 @@ export default function Subscriptions({
             )}
           </div>
           <div className="text-right">
-            <span className="font-bold text-xl">{currency}{sub.cost.toFixed(2)}</span>
-            <p className="text-xs text-gray-500">/{sub.billingCycle}</p>
+            <span className="font-bold text-xl" style={{ color: 'var(--color-text-primary)' }}>{currency}{sub.cost.toFixed(2)}</span>
+            <p className="text-xs" style={{ color: 'var(--color-text-tertiary)' }}>/{sub.billingCycle}</p>
           </div>
         </div>
 
         <div className="flex items-center justify-between text-sm mb-3">
           <div className="flex items-center gap-2">
-            <Calendar className="w-4 h-4 text-gray-500" />
-            <span className="font-medium">Next: {new Date(sub.nextBillingDate).toLocaleDateString()}</span>
+            <Calendar className="w-4 h-4" style={{ color: 'var(--color-text-tertiary)' }} />
+            <span className="font-medium" style={{ color: 'var(--color-text-primary)' }}>Next: {new Date(sub.nextBillingDate).toLocaleDateString()}</span>
           </div>
           {sub.status === SubscriptionStatus.ACTIVE && (
-            <span className={`font-medium ${daysUntilBilling <= 7 ? 'text-orange-600' : 'text-gray-600'}`}>
+            <span className={`font-medium ${daysUntilBilling <= 7 ? 'text-orange-600' : ''}`} style={daysUntilBilling <= 7 ? undefined : { color: 'var(--color-text-tertiary)' }}>
               {daysUntilBilling} days
             </span>
           )}
         </div>
 
         {sub.notes && (
-          <p className="text-sm text-gray-600 mb-3 italic">{sub.notes}</p>
+          <p className="text-sm mb-3 italic" style={{ color: 'var(--color-text-tertiary)' }}>{sub.notes}</p>
         )}
 
         <div className="flex gap-2">
@@ -281,7 +291,8 @@ export default function Subscriptions({
           </button>
           <button
             onClick={() => handleDelete(sub)}
-            className="bg-gray-600 text-white px-3 py-2 rounded-lg hover:bg-gray-700 transition-colors flex items-center justify-center gap-2 text-sm"
+            className="text-white px-3 py-2 rounded-lg transition-colors flex items-center justify-center gap-2 text-sm"
+            style={{ backgroundColor: 'var(--color-text-tertiary)' }}
           >
             <Trash2 className="w-4 h-4" />
           </button>
@@ -295,8 +306,8 @@ export default function Subscriptions({
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-semibold text-slate-900 uppercase tracking-wide">SUBSCRIPTIONS</h2>
-          <p className="text-sm text-gray-600 mt-1">Track and manage recurring services</p>
+          <h2 className="text-2xl font-semibold uppercase tracking-wide" style={{ color: 'var(--color-text-primary)' }}>SUBSCRIPTIONS</h2>
+          <p className="text-sm mt-1" style={{ color: 'var(--color-text-tertiary)' }}>Track and manage recurring services</p>
         </div>
         <button
           onClick={() => setShowForm(true)}
@@ -349,39 +360,42 @@ export default function Subscriptions({
 
       {/* Add/Edit Form */}
       {showForm && (
-        <div className="bg-white rounded-2xl p-6 shadow-lg border-2 border-gray-200">
-          <h3 className="text-xl font-bold mb-4">{editingSubscription ? 'Edit Subscription' : 'Add New Subscription'}</h3>
+        <div className="rounded-2xl p-6 shadow-lg" style={{ backgroundColor: 'var(--color-bg-card)', border: '2px solid var(--color-border-card)' }}>
+          <h3 className="text-xl font-bold mb-4" style={{ color: 'var(--color-text-primary)' }}>{editingSubscription ? 'Edit Subscription' : 'Add New Subscription'}</h3>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Service Name</label>
+                <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>Service Name</label>
                 <input
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  style={{ backgroundColor: 'var(--color-bg-tertiary)', color: 'var(--color-text-primary)', border: '1px solid var(--color-border-card)' }}
                   placeholder="Netflix, Spotify, etc."
                   required
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Cost</label>
+                <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>Cost</label>
                 <input
                   type="number"
                   step="0.01"
                   value={formData.cost}
                   onChange={(e) => setFormData({ ...formData, cost: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  style={{ backgroundColor: 'var(--color-bg-tertiary)', color: 'var(--color-text-primary)', border: '1px solid var(--color-border-card)' }}
                   placeholder="9.99"
                   required
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Billing Cycle</label>
+                <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>Billing Cycle</label>
                 <select
                   value={formData.billingCycle}
                   onChange={(e) => setFormData({ ...formData, billingCycle: e.target.value as RecurringFrequency })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  style={{ backgroundColor: 'var(--color-bg-tertiary)', color: 'var(--color-text-primary)', border: '1px solid var(--color-border-card)' }}
                 >
                   {Object.values(RecurringFrequency).map(freq => (
                     <option key={freq} value={freq}>{freq}</option>
@@ -389,11 +403,12 @@ export default function Subscriptions({
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>Category</label>
                 <select
                   value={formData.categoryId}
                   onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  style={{ backgroundColor: 'var(--color-bg-tertiary)', color: 'var(--color-text-primary)', border: '1px solid var(--color-border-card)' }}
                 >
                   {categories.map(cat => (
                     <option key={cat.id} value={cat.id}>
@@ -403,11 +418,12 @@ export default function Subscriptions({
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Account</label>
+                <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>Account</label>
                 <select
                   value={formData.accountId}
                   onChange={(e) => setFormData({ ...formData, accountId: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  style={{ backgroundColor: 'var(--color-bg-tertiary)', color: 'var(--color-text-primary)', border: '1px solid var(--color-border-card)' }}
                 >
                   {accounts.map(acc => (
                     <option key={acc.id} value={acc.id}>
@@ -417,21 +433,23 @@ export default function Subscriptions({
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
+                <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>Start Date</label>
                 <input
                   type="date"
                   value={formData.startDate}
                   onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  style={{ backgroundColor: 'var(--color-bg-tertiary)', color: 'var(--color-text-primary)', border: '1px solid var(--color-border-card)' }}
                   required
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>Status</label>
                 <select
                   value={formData.status}
                   onChange={(e) => setFormData({ ...formData, status: e.target.value as SubscriptionStatus })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  style={{ backgroundColor: 'var(--color-bg-tertiary)', color: 'var(--color-text-primary)', border: '1px solid var(--color-border-card)' }}
                 >
                   {Object.values(SubscriptionStatus).map(status => (
                     <option key={status} value={status}>{status}</option>
@@ -439,32 +457,35 @@ export default function Subscriptions({
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Trial End Date (Optional)</label>
+                <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>Trial End Date (Optional)</label>
                 <input
                   type="date"
                   value={formData.trialEndDate}
                   onChange={(e) => setFormData({ ...formData, trialEndDate: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  style={{ backgroundColor: 'var(--color-bg-tertiary)', color: 'var(--color-text-primary)', border: '1px solid var(--color-border-card)' }}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Cancellation URL (Optional)</label>
+                <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>Cancellation URL (Optional)</label>
                 <input
                   type="url"
                   value={formData.cancellationUrl}
                   onChange={(e) => setFormData({ ...formData, cancellationUrl: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  style={{ backgroundColor: 'var(--color-bg-tertiary)', color: 'var(--color-text-primary)', border: '1px solid var(--color-border-card)' }}
                   placeholder="https://..."
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Notes (Optional)</label>
+              <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>Notes (Optional)</label>
               <textarea
                 value={formData.notes}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                style={{ backgroundColor: 'var(--color-bg-tertiary)', color: 'var(--color-text-primary)', border: '1px solid var(--color-border-card)' }}
                 rows={2}
                 placeholder="Additional details..."
               />
@@ -480,7 +501,8 @@ export default function Subscriptions({
               <button
                 type="button"
                 onClick={resetForm}
-                className="px-4 py-2 border-2 border-gray-300 rounded-lg hover:bg-gray-100 transition-colors font-medium"
+                className="px-4 py-2 rounded-lg transition-colors font-medium"
+                style={{ border: '2px solid var(--color-border-card)', color: 'var(--color-text-primary)', backgroundColor: 'var(--color-bg-card)' }}
               >
                 Cancel
               </button>
@@ -516,7 +538,7 @@ export default function Subscriptions({
 
       {groupedSubscriptions.cancelled.length > 0 && (
         <div>
-          <h3 className="text-lg font-bold text-gray-600 mb-3">CANCELLED</h3>
+          <h3 className="text-lg font-bold mb-3" style={{ color: 'var(--color-text-tertiary)' }}>CANCELLED</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {groupedSubscriptions.cancelled.map(renderSubscriptionCard)}
           </div>
@@ -524,10 +546,10 @@ export default function Subscriptions({
       )}
 
       {subscriptions.length === 0 && (
-        <div className="text-center py-12 bg-white rounded-2xl">
-          <Zap className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-xl font-bold text-gray-900 mb-2">No Subscriptions Yet</h3>
-          <p className="text-gray-600 mb-4">Start tracking your recurring services</p>
+        <div className="text-center py-12 rounded-2xl" style={{ backgroundColor: 'var(--color-bg-card)' }}>
+          <Zap className="w-16 h-16 mx-auto mb-4" style={{ color: 'var(--color-text-tertiary)' }} />
+          <h3 className="text-xl font-bold mb-2" style={{ color: 'var(--color-text-primary)' }}>No Subscriptions Yet</h3>
+          <p className="mb-4" style={{ color: 'var(--color-text-tertiary)' }}>Start tracking your recurring services</p>
           <button
             onClick={() => setShowForm(true)}
             className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium"
