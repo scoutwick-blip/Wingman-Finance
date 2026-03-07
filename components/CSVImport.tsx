@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { Upload, Check, X, AlertCircle, FileText, Download, Sparkles } from 'lucide-react';
+import { Upload, Check, X, AlertCircle, FileText, Download, Sparkles, Camera } from 'lucide-react';
 import { importCSVTransactions, reconcileTransactions, BANK_PRESETS, CSVMapping } from '../services/csvImportService';
 import { parseOFXFile, isOFXFormat } from '../services/ofxParser';
 import { ImportedTransaction, ReconciliationMatch, ReconciliationStatus, Transaction, Category, MerchantMapping, CategorySuggestion, Account } from '../types';
 import { findBestCategoryMatch } from '../services/merchantDatabase';
-import { suggestCategoriesBatch } from '../services/geminiService';
+import { suggestCategoriesBatch, extractBankStatementData } from '../services/geminiService';
 
 interface CSVImportProps {
   transactions: Transaction[];
@@ -41,6 +41,76 @@ export default function CSVImport({
   const [selectedAccountForImport, setSelectedAccountForImport] = useState<string>(
     accounts.find(a => a.isDefault)?.id || accounts[0]?.id || ''
   );
+  const [isProcessingStatement, setIsProcessingStatement] = useState(false);
+  const [statementInfo, setStatementInfo] = useState<{
+    bankName?: string;
+    accountNumber?: string;
+    statementPeriod?: string;
+    openingBalance?: number;
+    closingBalance?: number;
+    totalDeposits?: number;
+    totalWithdrawals?: number;
+    incomeBreakdown?: Array<{ source: string; amount: number; frequency?: string }>;
+    deductionBreakdown?: Array<{ name: string; amount: number; type: string }>;
+  } | null>(null);
+
+  const handleStatementImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setError('');
+    setIsProcessingStatement(true);
+
+    try {
+      // Convert image/PDF to base64
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+
+      const mimeType = file.type || 'image/jpeg';
+      const result = await extractBankStatementData(base64, mimeType);
+
+      if (!result.transactions || result.transactions.length === 0) {
+        setError('No transactions found in the statement image. Try a clearer image or use CSV/OFX import instead.');
+        setIsProcessingStatement(false);
+        return;
+      }
+
+      // Save statement metadata
+      setStatementInfo({
+        bankName: result.bankName,
+        accountNumber: result.accountNumber,
+        statementPeriod: result.statementPeriod,
+        openingBalance: result.openingBalance,
+        closingBalance: result.closingBalance,
+        totalDeposits: result.totalDeposits,
+        totalWithdrawals: result.totalWithdrawals,
+        incomeBreakdown: result.incomeBreakdown,
+        deductionBreakdown: result.deductionBreakdown,
+      });
+
+      // Convert to ImportedTransaction format
+      const imported: ImportedTransaction[] = result.transactions.map(tx => ({
+        date: tx.date,
+        description: tx.description,
+        amount: tx.amount,
+        type: tx.type === 'credit' ? 'income' : 'expense',
+        merchant: tx.merchant || undefined,
+        category: tx.category || undefined,
+      }));
+
+      setImportedTransactions(imported);
+      setFileType('csv'); // Treat as CSV for the rest of the flow
+      setStep('preview');
+    } catch (err) {
+      setError(`Failed to process statement: ${err instanceof Error ? err.message : 'Unknown error'}. Try a clearer image.`);
+    } finally {
+      setIsProcessingStatement(false);
+    }
+  };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -505,7 +575,7 @@ export default function CSVImport({
             <div>
               <h2 className="text-2xl font-semibold text-slate-900 uppercase tracking-wide">TRANSACTION IMPORT</h2>
               <p className="text-sm text-gray-600 mt-1">
-                {step === 'upload' && 'Upload your bank file (CSV, OFX, QFX, QBO)'}
+                {step === 'upload' && 'Upload your bank file or scan a statement image'}
                 {step === 'preview' && `Preview ${importedTransactions.length} imported transactions`}
                 {step === 'categorize' && 'Select categories for transaction groups'}
                 {step === 'reconcile' && 'Review and import transactions'}
@@ -570,27 +640,66 @@ export default function CSVImport({
                 </div>
               )}
 
-              {/* File Upload */}
-              <div className="border-4 border-dashed border-gray-300 rounded-2xl p-12 text-center hover:border-blue-400 transition-colors">
-                <input
-                  type="file"
-                  accept=".csv,.ofx,.qfx,.qbo"
-                  onChange={handleFileUpload}
-                  className="hidden"
-                  id="csv-upload"
-                />
-                <label
-                  htmlFor="csv-upload"
-                  className="cursor-pointer flex flex-col items-center gap-4"
-                >
-                  <Upload className="w-16 h-16 text-blue-600" />
-                  <div>
-                    <p className="font-bold text-lg text-gray-900 mb-1">Upload Bank File</p>
-                    <p className="text-sm text-gray-600">
-                      Supports CSV, OFX, QFX, QBO formats
-                    </p>
-                  </div>
-                </label>
+              {/* File Upload Options */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* CSV/OFX Upload */}
+                <div className="border-4 border-dashed border-gray-300 rounded-2xl p-8 text-center hover:border-blue-400 transition-colors">
+                  <input
+                    type="file"
+                    accept=".csv,.ofx,.qfx,.qbo"
+                    onChange={handleFileUpload}
+                    className="hidden"
+                    id="csv-upload"
+                  />
+                  <label
+                    htmlFor="csv-upload"
+                    className="cursor-pointer flex flex-col items-center gap-4"
+                  >
+                    <Upload className="w-12 h-12 text-blue-600" />
+                    <div>
+                      <p className="font-bold text-lg text-gray-900 mb-1">Upload Bank File</p>
+                      <p className="text-sm text-gray-600">
+                        CSV, OFX, QFX, QBO formats
+                      </p>
+                    </div>
+                  </label>
+                </div>
+
+                {/* Statement Image/PDF Upload */}
+                <div className="border-4 border-dashed border-purple-300 rounded-2xl p-8 text-center hover:border-purple-400 transition-colors">
+                  <input
+                    type="file"
+                    accept="image/*,.pdf"
+                    onChange={handleStatementImageUpload}
+                    className="hidden"
+                    id="statement-upload"
+                    disabled={isProcessingStatement}
+                  />
+                  <label
+                    htmlFor="statement-upload"
+                    className={`flex flex-col items-center gap-4 ${isProcessingStatement ? 'opacity-50' : 'cursor-pointer'}`}
+                  >
+                    {isProcessingStatement ? (
+                      <>
+                        <Sparkles className="w-12 h-12 text-purple-600 animate-pulse" />
+                        <div>
+                          <p className="font-bold text-lg text-gray-900 mb-1">Reading Statement...</p>
+                          <p className="text-sm text-gray-600">AI is extracting transactions</p>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <Camera className="w-12 h-12 text-purple-600" />
+                        <div>
+                          <p className="font-bold text-lg text-gray-900 mb-1">Scan Statement</p>
+                          <p className="text-sm text-gray-600">
+                            Photo or screenshot of bank statement
+                          </p>
+                        </div>
+                      </>
+                    )}
+                  </label>
+                </div>
               </div>
 
               {/* Error Display */}
@@ -629,6 +738,15 @@ export default function CSVImport({
                       <li>No preset selection needed</li>
                     </ul>
                   </div>
+                  <div>
+                    <p className="font-bold">Statement Image/PDF (AI-powered):</p>
+                    <ul className="list-disc list-inside ml-2 space-y-1">
+                      <li>Take a photo or screenshot of your bank statement</li>
+                      <li>AI reads and extracts all transactions automatically</li>
+                      <li>Identifies income sources and deductions</li>
+                      <li>Auto-categorizes each transaction</li>
+                    </ul>
+                  </div>
                 </div>
               </div>
             </div>
@@ -637,6 +755,81 @@ export default function CSVImport({
           {/* Step 2: Preview */}
           {step === 'preview' && (
             <div className="space-y-6">
+              {/* Statement Info (from AI scan) */}
+              {statementInfo && (
+                <div className="bg-purple-50 border-2 border-purple-200 rounded-xl p-4 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="w-5 h-5 text-purple-600" />
+                    <p className="font-bold text-purple-900">
+                      AI Statement Analysis
+                      {statementInfo.bankName && ` — ${statementInfo.bankName}`}
+                      {statementInfo.accountNumber && ` (****${statementInfo.accountNumber})`}
+                    </p>
+                  </div>
+                  {statementInfo.statementPeriod && (
+                    <p className="text-xs text-purple-700">Period: {statementInfo.statementPeriod}</p>
+                  )}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                    {statementInfo.openingBalance != null && (
+                      <div className="bg-white rounded-lg p-2">
+                        <p className="text-xs text-gray-500">Opening Balance</p>
+                        <p className="font-bold text-gray-900">{currency}{statementInfo.openingBalance.toFixed(2)}</p>
+                      </div>
+                    )}
+                    {statementInfo.closingBalance != null && (
+                      <div className="bg-white rounded-lg p-2">
+                        <p className="text-xs text-gray-500">Closing Balance</p>
+                        <p className="font-bold text-gray-900">{currency}{statementInfo.closingBalance.toFixed(2)}</p>
+                      </div>
+                    )}
+                    {statementInfo.totalDeposits != null && (
+                      <div className="bg-white rounded-lg p-2">
+                        <p className="text-xs text-gray-500">Total Deposits</p>
+                        <p className="font-bold text-green-700">+{currency}{statementInfo.totalDeposits.toFixed(2)}</p>
+                      </div>
+                    )}
+                    {statementInfo.totalWithdrawals != null && (
+                      <div className="bg-white rounded-lg p-2">
+                        <p className="text-xs text-gray-500">Total Withdrawals</p>
+                        <p className="font-bold text-red-700">-{currency}{statementInfo.totalWithdrawals.toFixed(2)}</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Income Breakdown */}
+                  {statementInfo.incomeBreakdown && statementInfo.incomeBreakdown.length > 0 && (
+                    <div className="bg-green-50 rounded-lg p-3">
+                      <p className="text-xs font-bold text-green-800 uppercase tracking-wider mb-2">Income Sources</p>
+                      {statementInfo.incomeBreakdown.map((income, i) => (
+                        <div key={i} className="flex justify-between text-sm py-0.5">
+                          <span className="text-green-800">
+                            {income.source}
+                            {income.frequency && <span className="text-xs text-green-600 ml-1">({income.frequency})</span>}
+                          </span>
+                          <span className="font-bold text-green-900">{currency}{income.amount.toFixed(2)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Deduction Breakdown */}
+                  {statementInfo.deductionBreakdown && statementInfo.deductionBreakdown.length > 0 && (
+                    <div className="bg-orange-50 rounded-lg p-3">
+                      <p className="text-xs font-bold text-orange-800 uppercase tracking-wider mb-2">Deductions Detected</p>
+                      {statementInfo.deductionBreakdown.map((ded, i) => (
+                        <div key={i} className="flex justify-between text-sm py-0.5">
+                          <span className="text-orange-800">
+                            {ded.name}
+                            <span className="text-xs text-orange-600 ml-1 capitalize">({ded.type})</span>
+                          </span>
+                          <span className="font-bold text-orange-900">{currency}{ded.amount.toFixed(2)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div className="bg-green-50 border-2 border-green-200 rounded-xl p-4 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <Check className="w-6 h-6 text-green-600" />

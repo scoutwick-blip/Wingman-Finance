@@ -1,6 +1,12 @@
 import React, { useState, useRef } from 'react';
-import { Camera, Upload, X, Check, Loader } from 'lucide-react';
+import { Camera, Upload, X, Check, Loader, ChevronDown, ChevronUp } from 'lucide-react';
 import { extractReceiptData } from '../services/geminiService';
+
+interface ReceiptLineItem {
+  name: string;
+  quantity: number;
+  price: number;
+}
 
 interface ReceiptData {
   merchant?: string;
@@ -8,17 +14,26 @@ interface ReceiptData {
   date?: string;
   description?: string;
   receiptImage: string;
+  lineItems?: ReceiptLineItem[];
+  subtotal?: number;
+  tax?: number;
+  tip?: number;
+  paymentMethod?: string;
+  category?: string;
 }
 
 interface ReceiptScannerProps {
   onReceiptScanned: (data: ReceiptData) => void;
   onCancel: () => void;
+  currency?: string;
 }
 
-export default function ReceiptScanner({ onReceiptScanned, onCancel }: ReceiptScannerProps) {
+export default function ReceiptScanner({ onReceiptScanned, onCancel, currency = '$' }: ReceiptScannerProps) {
   const [image, setImage] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [extractedData, setExtractedData] = useState<Omit<ReceiptData, 'receiptImage'> | null>(null);
+  const [showLineItems, setShowLineItems] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
@@ -73,6 +88,7 @@ export default function ReceiptScanner({ onReceiptScanned, onCancel }: ReceiptSc
       const resizedImage = await resizeImage(file);
       setImage(resizedImage);
       setError(null);
+      setExtractedData(null);
     } catch {
       setError('Failed to process image');
     }
@@ -85,21 +101,27 @@ export default function ReceiptScanner({ onReceiptScanned, onCancel }: ReceiptSc
     setError(null);
 
     try {
-      const extractedData = await extractReceiptData(image);
-
-      onReceiptScanned({
-        ...extractedData,
-        receiptImage: image
-      });
+      const data = await extractReceiptData(image);
+      setExtractedData(data);
     } catch {
       setError('Failed to scan receipt. Please try again or enter details manually.');
+    } finally {
       setIsProcessing(false);
     }
+  };
+
+  const handleConfirm = () => {
+    if (!image || !extractedData) return;
+    onReceiptScanned({
+      ...extractedData,
+      receiptImage: image
+    });
   };
 
   const handleRetake = () => {
     setImage(null);
     setError(null);
+    setExtractedData(null);
   };
 
   return (
@@ -170,7 +192,8 @@ export default function ReceiptScanner({ onReceiptScanned, onCancel }: ReceiptSc
               />
 
               {error && (
-                <div className="bg-red-50 border-2 border-red-200 rounded-xl p-4 text-red-800">
+                <div className="rounded-xl p-4"
+                  style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)', border: '2px solid rgba(239, 68, 68, 0.2)', color: '#ef4444' }}>
                   {error}
                 </div>
               )}
@@ -183,23 +206,130 @@ export default function ReceiptScanner({ onReceiptScanned, onCancel }: ReceiptSc
                 <img
                   src={image}
                   alt="Receipt"
-                  className="w-full h-auto max-h-96 object-contain"
+                  className="w-full h-auto max-h-64 object-contain"
                   style={{ backgroundColor: 'var(--color-bg-tertiary)' }}
                 />
               </div>
 
               {/* Processing State */}
               {isProcessing && (
-                <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-6 text-center">
-                  <Loader className="w-8 h-8 text-blue-600 animate-spin mx-auto mb-3" />
-                  <p className="font-bold text-blue-900">Processing Receipt...</p>
-                  <p className="text-sm text-blue-700">Extracting transaction details</p>
+                <div className="rounded-xl p-6 text-center"
+                  style={{ backgroundColor: 'rgba(59, 130, 246, 0.1)', border: '2px solid rgba(59, 130, 246, 0.2)' }}>
+                  <Loader className="w-8 h-8 animate-spin mx-auto mb-3" style={{ color: 'var(--color-accent)' }} />
+                  <p className="font-bold" style={{ color: 'var(--color-text-primary)' }}>Processing Receipt...</p>
+                  <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>Extracting items, totals, and details</p>
+                </div>
+              )}
+
+              {/* Extracted Data Preview */}
+              {extractedData && (
+                <div className="rounded-xl p-5 space-y-4"
+                  style={{ backgroundColor: 'var(--color-bg-tertiary)', border: '2px solid var(--color-border-card)' }}>
+                  <h3 className="font-bold text-sm uppercase tracking-wider"
+                    style={{ color: 'var(--color-text-secondary)' }}>
+                    Extracted Details
+                  </h3>
+
+                  {/* Main info grid */}
+                  <div className="grid grid-cols-2 gap-3">
+                    {extractedData.merchant && (
+                      <div>
+                        <p className="text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--color-text-tertiary)' }}>Merchant</p>
+                        <p className="font-semibold" style={{ color: 'var(--color-text-primary)' }}>{extractedData.merchant}</p>
+                      </div>
+                    )}
+                    {extractedData.amount != null && (
+                      <div>
+                        <p className="text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--color-text-tertiary)' }}>Total</p>
+                        <p className="font-bold text-lg" style={{ color: 'var(--color-accent)' }}>{currency}{extractedData.amount.toFixed(2)}</p>
+                      </div>
+                    )}
+                    {extractedData.date && (
+                      <div>
+                        <p className="text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--color-text-tertiary)' }}>Date</p>
+                        <p className="font-semibold" style={{ color: 'var(--color-text-primary)' }}>{extractedData.date}</p>
+                      </div>
+                    )}
+                    {extractedData.category && (
+                      <div>
+                        <p className="text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--color-text-tertiary)' }}>Category</p>
+                        <p className="font-semibold" style={{ color: '#10b981' }}>{extractedData.category}</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {extractedData.description && (
+                    <div>
+                      <p className="text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--color-text-tertiary)' }}>Description</p>
+                      <p className="text-sm" style={{ color: 'var(--color-text-primary)' }}>{extractedData.description}</p>
+                    </div>
+                  )}
+
+                  {/* Subtotal / Tax / Tip breakdown */}
+                  {(extractedData.subtotal != null || extractedData.tax != null || extractedData.tip != null) && (
+                    <div className="rounded-lg p-3 space-y-1" style={{ backgroundColor: 'var(--color-bg-secondary)' }}>
+                      {extractedData.subtotal != null && (
+                        <div className="flex justify-between text-sm">
+                          <span style={{ color: 'var(--color-text-secondary)' }}>Subtotal</span>
+                          <span style={{ color: 'var(--color-text-primary)' }}>{currency}{extractedData.subtotal.toFixed(2)}</span>
+                        </div>
+                      )}
+                      {extractedData.tax != null && extractedData.tax > 0 && (
+                        <div className="flex justify-between text-sm">
+                          <span style={{ color: 'var(--color-text-secondary)' }}>Tax</span>
+                          <span style={{ color: 'var(--color-text-primary)' }}>{currency}{extractedData.tax.toFixed(2)}</span>
+                        </div>
+                      )}
+                      {extractedData.tip != null && extractedData.tip > 0 && (
+                        <div className="flex justify-between text-sm">
+                          <span style={{ color: 'var(--color-text-secondary)' }}>Tip</span>
+                          <span style={{ color: 'var(--color-text-primary)' }}>{currency}{extractedData.tip.toFixed(2)}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Payment Method */}
+                  {extractedData.paymentMethod && (
+                    <div className="text-xs" style={{ color: 'var(--color-text-tertiary)' }}>
+                      Paid with: <span className="font-semibold" style={{ color: 'var(--color-text-secondary)' }}>{extractedData.paymentMethod}</span>
+                    </div>
+                  )}
+
+                  {/* Line Items (collapsible) */}
+                  {extractedData.lineItems && extractedData.lineItems.length > 0 && (
+                    <div>
+                      <button
+                        onClick={() => setShowLineItems(!showLineItems)}
+                        className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider w-full"
+                        style={{ color: 'var(--color-accent)' }}
+                      >
+                        {showLineItems ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                        {extractedData.lineItems.length} Line Item{extractedData.lineItems.length > 1 ? 's' : ''}
+                      </button>
+                      {showLineItems && (
+                        <div className="mt-2 space-y-1 rounded-lg p-3" style={{ backgroundColor: 'var(--color-bg-secondary)' }}>
+                          {extractedData.lineItems.map((item, i) => (
+                            <div key={i} className="flex justify-between text-sm">
+                              <span style={{ color: 'var(--color-text-primary)' }}>
+                                {item.quantity > 1 ? `${item.quantity}x ` : ''}{item.name}
+                              </span>
+                              <span className="font-medium" style={{ color: 'var(--color-text-secondary)' }}>
+                                {currency}{item.price.toFixed(2)}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
 
               {/* Error State */}
               {error && (
-                <div className="bg-red-50 border-2 border-red-200 rounded-xl p-4 text-red-800">
+                <div className="rounded-xl p-4"
+                  style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)', border: '2px solid rgba(239, 68, 68, 0.2)', color: '#ef4444' }}>
                   {error}
                 </div>
               )}
@@ -207,13 +337,32 @@ export default function ReceiptScanner({ onReceiptScanned, onCancel }: ReceiptSc
               {/* Action Buttons */}
               {!isProcessing && (
                 <div className="flex gap-3">
-                  <button
-                    onClick={handleScan}
-                    className="flex-1 bg-emerald-600 text-white px-6 py-3 rounded-xl hover:bg-emerald-700 transition-colors font-bold flex items-center justify-center gap-2"
-                  >
-                    <Check className="w-5 h-5" />
-                    Scan Receipt
-                  </button>
+                  {extractedData ? (
+                    <>
+                      <button
+                        onClick={handleConfirm}
+                        className="flex-1 bg-emerald-600 text-white px-6 py-3 rounded-xl hover:bg-emerald-700 transition-colors font-bold flex items-center justify-center gap-2"
+                      >
+                        <Check className="w-5 h-5" />
+                        Use This Data
+                      </button>
+                      <button
+                        onClick={handleScan}
+                        className="px-6 py-3 rounded-xl transition-colors font-medium"
+                        style={{ border: '2px solid var(--color-border-card)', color: 'var(--color-text-secondary)' }}
+                      >
+                        Re-scan
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      onClick={handleScan}
+                      className="flex-1 bg-emerald-600 text-white px-6 py-3 rounded-xl hover:bg-emerald-700 transition-colors font-bold flex items-center justify-center gap-2"
+                    >
+                      <Check className="w-5 h-5" />
+                      Scan Receipt
+                    </button>
+                  )}
                   <button
                     onClick={handleRetake}
                     className="px-6 py-3 rounded-xl transition-colors font-medium"

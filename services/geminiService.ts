@@ -130,17 +130,42 @@ export const getBudgetSuggestions = async (
 
 export const extractReceiptData = async (
   imageBase64: string
-): Promise<{ merchant?: string; amount?: number; date?: string; description?: string }> => {
+): Promise<{
+  merchant?: string;
+  amount?: number;
+  date?: string;
+  description?: string;
+  lineItems?: Array<{ name: string; quantity: number; price: number }>;
+  subtotal?: number;
+  tax?: number;
+  tip?: number;
+  paymentMethod?: string;
+  category?: string;
+}> => {
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
   const prompt = `
-    Analyze this receipt image and extract the following information:
+    Analyze this receipt image thoroughly and extract ALL available information:
+
+    REQUIRED:
     - Merchant/store name
-    - Total amount (the final total, not subtotal)
+    - Total amount (the final total paid, including tax and tip)
     - Date of transaction (in YYYY-MM-DD format)
-    - A brief description of what was purchased
+    - A brief description of what was purchased (e.g., "Groceries", "Coffee and pastry", "Gas fill-up")
+
+    OPTIONAL (extract if visible):
+    - Individual line items: each item name, quantity, and price
+    - Subtotal (before tax)
+    - Tax amount
+    - Tip amount (if applicable)
+    - Payment method (e.g., "Visa ending 1234", "Cash", "Debit", "Apple Pay")
+    - Category suggestion: Based on the merchant and items, suggest one of these categories:
+      Income, Housing, Utilities, Internet/Cable, Phone, Groceries, Dining, Gas, Transport,
+      Healthcare, Fitness, Insurance, Entertainment, Subscriptions, Shopping, Clothing,
+      Personal Care, Pets, Education, Gifts, Travel, Home Improvement, Debt, Savings, Investments
 
     If any information cannot be determined from the image, return null for that field.
+    For lineItems, return an empty array if individual items aren't readable.
   `;
 
   try {
@@ -167,7 +192,24 @@ export const extractReceiptData = async (
             merchant: { type: Type.STRING, nullable: true },
             amount: { type: Type.NUMBER, nullable: true },
             date: { type: Type.STRING, nullable: true },
-            description: { type: Type.STRING, nullable: true }
+            description: { type: Type.STRING, nullable: true },
+            lineItems: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  name: { type: Type.STRING },
+                  quantity: { type: Type.NUMBER },
+                  price: { type: Type.NUMBER }
+                },
+                required: ['name', 'quantity', 'price']
+              }
+            },
+            subtotal: { type: Type.NUMBER, nullable: true },
+            tax: { type: Type.NUMBER, nullable: true },
+            tip: { type: Type.NUMBER, nullable: true },
+            paymentMethod: { type: Type.STRING, nullable: true },
+            category: { type: Type.STRING, nullable: true }
           }
         }
       }
@@ -177,6 +219,152 @@ export const extractReceiptData = async (
     return result;
   } catch {
     throw new Error("Failed to extract receipt data");
+  }
+};
+
+// Extract transactions from a bank statement image/PDF page
+export const extractBankStatementData = async (
+  imageBase64: string,
+  mimeType: string = 'image/jpeg'
+): Promise<{
+  bankName?: string;
+  accountNumber?: string;
+  statementPeriod?: string;
+  transactions: Array<{
+    date: string;
+    description: string;
+    amount: number;
+    type: 'credit' | 'debit';
+    category?: string;
+    merchant?: string;
+  }>;
+  openingBalance?: number;
+  closingBalance?: number;
+  totalDeposits?: number;
+  totalWithdrawals?: number;
+  incomeBreakdown?: Array<{ source: string; amount: number; frequency?: string }>;
+  deductionBreakdown?: Array<{ name: string; amount: number; type: string }>;
+}> => {
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+
+  const prompt = `
+    Analyze this bank statement image and extract ALL transaction and account information.
+
+    ACCOUNT INFO:
+    - Bank name
+    - Account number (last 4 digits only for privacy)
+    - Statement period (e.g., "2024-01-01 to 2024-01-31")
+    - Opening and closing balances
+    - Total deposits and withdrawals
+
+    TRANSACTIONS:
+    For each transaction line, extract:
+    - Date (YYYY-MM-DD format)
+    - Full description as shown
+    - Amount (positive number)
+    - Type: "credit" for deposits/income, "debit" for withdrawals/expenses
+    - Merchant: Clean merchant name extracted from the description (remove reference numbers, check numbers)
+    - Category: Classify each transaction into one of these categories:
+      Income, Housing, Utilities, Internet/Cable, Phone, Groceries, Dining, Gas, Transport,
+      Healthcare, Fitness, Insurance, Entertainment, Subscriptions, Shopping, Clothing,
+      Personal Care, Pets, Education, Gifts, Travel, Home Improvement, Debt, Savings, Investments, Unassigned
+
+    INCOME ANALYSIS:
+    Identify all income sources and provide a breakdown:
+    - source: Description of income (e.g., "Direct Deposit - Employer Name", "Interest Payment")
+    - amount: The dollar amount
+    - frequency: If determinable ("weekly", "bi-weekly", "monthly", "one-time")
+
+    DEDUCTION ANALYSIS:
+    Identify payroll deductions and regular deductions visible on the statement:
+    - name: Name of deduction (e.g., "Federal Tax", "401k", "Health Insurance", "Social Security")
+    - amount: The dollar amount
+    - type: One of "tax", "retirement", "insurance", "benefit", "other"
+
+    IMPORTANT:
+    - Read EVERY transaction line carefully, don't skip any
+    - For amounts, always return positive numbers. Use the "type" field to indicate credit vs debit
+    - If a description mentions payroll or pay stub details, extract deductions separately
+    - Dates must be in YYYY-MM-DD format
+  `;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-flash-preview',
+      contents: [
+        {
+          parts: [
+            { text: prompt },
+            {
+              inlineData: {
+                mimeType: mimeType,
+                data: imageBase64.includes(',') ? imageBase64.split(',')[1] : imageBase64
+              }
+            }
+          ]
+        }
+      ],
+      config: {
+        responseMimeType: 'application/json',
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            bankName: { type: Type.STRING, nullable: true },
+            accountNumber: { type: Type.STRING, nullable: true },
+            statementPeriod: { type: Type.STRING, nullable: true },
+            transactions: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  date: { type: Type.STRING },
+                  description: { type: Type.STRING },
+                  amount: { type: Type.NUMBER },
+                  type: { type: Type.STRING },
+                  category: { type: Type.STRING, nullable: true },
+                  merchant: { type: Type.STRING, nullable: true }
+                },
+                required: ['date', 'description', 'amount', 'type']
+              }
+            },
+            openingBalance: { type: Type.NUMBER, nullable: true },
+            closingBalance: { type: Type.NUMBER, nullable: true },
+            totalDeposits: { type: Type.NUMBER, nullable: true },
+            totalWithdrawals: { type: Type.NUMBER, nullable: true },
+            incomeBreakdown: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  source: { type: Type.STRING },
+                  amount: { type: Type.NUMBER },
+                  frequency: { type: Type.STRING, nullable: true }
+                },
+                required: ['source', 'amount']
+              }
+            },
+            deductionBreakdown: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  name: { type: Type.STRING },
+                  amount: { type: Type.NUMBER },
+                  type: { type: Type.STRING }
+                },
+                required: ['name', 'amount', 'type']
+              }
+            }
+          },
+          required: ['transactions']
+        }
+      }
+    });
+
+    const result = JSON.parse(response.text || '{"transactions":[]}');
+    return result;
+  } catch {
+    throw new Error("Failed to extract bank statement data");
   }
 };
 
@@ -297,12 +485,33 @@ export const suggestCategoriesBatch = async (
     Recent Transaction History (for learning patterns):
     ${JSON.stringify(recentHistory)}
 
-    Be specific and confident. Use merchant names and common sense. Consider:
-    - Starbucks, McDonald's, restaurants → Dining
-    - Walmart, Target, grocery stores → Groceries
-    - Shell, Chevron, gas stations → Gas/Transportation
-    - Netflix, Spotify, streaming → Entertainment
-    - Amazon could be Shopping, depending on amount/description
+    Be specific and confident. Use merchant names, descriptions, amounts, and common sense.
+
+    CATEGORIZATION RULES:
+    - Starbucks, McDonald's, DoorDash, UberEats, restaurants → Dining
+    - Walmart Grocery, Kroger, Safeway, Whole Foods, Trader Joe's → Groceries
+    - Shell, Chevron, Exxon, BP, gas stations → Gas
+    - Netflix, Spotify, Hulu, Disney+, HBO → Subscriptions or Entertainment
+    - Amazon → Shopping (unless description says "Amazon Fresh" → Groceries)
+    - Uber, Lyft → Transport
+    - CVS, Walgreens, pharmacy → Healthcare
+    - Planet Fitness, gym → Fitness
+
+    INCOME DETECTION (use Income category):
+    - Direct deposit, payroll, salary, wages, paycheck
+    - Interest earned, dividend payment
+    - Refund, reimbursement, cashback
+    - Venmo/Zelle/PayPal received (credits)
+    - Tax refund, government payment
+
+    DEDUCTION/DEBT DETECTION (use Debt category):
+    - Loan payment, student loan, auto loan
+    - Credit card payment, minimum payment
+    - Collections, garnishment
+
+    SAVINGS DETECTION:
+    - Transfer to savings, 401k, IRA contribution
+    - Investment purchase, brokerage deposit
   `;
 
   try {

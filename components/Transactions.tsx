@@ -155,6 +155,12 @@ export const Transactions: React.FC<TransactionsProps> = ({
     date?: string;
     description?: string;
     receiptImage: string;
+    category?: string;
+    lineItems?: Array<{ name: string; quantity: number; price: number }>;
+    subtotal?: number;
+    tax?: number;
+    tip?: number;
+    paymentMethod?: string;
   }) => {
     setShowReceiptScanner(false);
     setIsAdding(true);
@@ -167,7 +173,23 @@ export const Transactions: React.FC<TransactionsProps> = ({
       date: receiptData.date || new Date().toISOString().split('T')[0]
     }));
 
-    // Get AI category suggestions if smart categorization is enabled
+    // Try to auto-match category from receipt's AI suggestion
+    if (receiptData.category) {
+      const matchedCategory = categories.find(c =>
+        c.name.toLowerCase() === receiptData.category!.toLowerCase()
+      );
+      if (matchedCategory) {
+        setFormData(prev => ({ ...prev, categoryId: matchedCategory.id }));
+        setCategorySuggestions([{
+          categoryId: matchedCategory.id,
+          confidence: 0.9,
+          reason: `Receipt AI: Detected as ${receiptData.category}`
+        }]);
+        return; // Skip additional AI call since receipt already categorized
+      }
+    }
+
+    // Fall back to AI category suggestions if smart categorization is enabled
     if (preferences.smartCategorizationEnabled && receiptData.description) {
       setIsLoadingSuggestions(true);
       try {
