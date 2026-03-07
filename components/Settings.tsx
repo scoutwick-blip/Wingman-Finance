@@ -3,7 +3,6 @@ import React, { useState, useRef } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import LZString from 'lz-string';
 import { UserPreferences, TransactionBehavior, TransactionTypeDefinition, Category, Transaction, Account, AccountType } from '../types';
-import { uploadToCloud, downloadFromCloud, testConnection } from '../services/supabaseService';
 import { User } from '@supabase/supabase-js';
 import { LogOut, LogIn, User as UserIcon, Wallet, Plus, Edit2, Trash2, CreditCard, PiggyBank, Banknote } from 'lucide-react';
 
@@ -52,13 +51,6 @@ export const Settings: React.FC<SettingsProps> = ({
   const [newTypeBehavior, setNewTypeBehavior] = useState<TransactionBehavior>(TransactionBehavior.OUTFLOW);
   const [importStatus, setImportStatus] = useState<string>('');
   
-  // Cloud Sync State
-  const [showAdvancedSync, setShowAdvancedSync] = useState(false);
-  const [supabaseUrl, setSupabaseUrl] = useState(preferences.supabaseConfig?.url || '');
-  const [supabaseKey, setSupabaseKey] = useState(preferences.supabaseConfig?.key || '');
-  const [syncStatus, setSyncStatus] = useState('');
-  const [isSyncing, setIsSyncing] = useState(false);
-  const [showSqlHelp, setShowSqlHelp] = useState(false);
 
   // QR Transfer State
   const [showQrTransfer, setShowQrTransfer] = useState(false);
@@ -225,60 +217,6 @@ export const Settings: React.FC<SettingsProps> = ({
       setShowQrTransfer(true);
     } catch (e) {
       setQrError("Could not generate transfer code.");
-    }
-  };
-
-  const handleCloudSave = async () => {
-    if (!supabaseUrl || !supabaseKey) {
-      setSyncStatus('Error: Missing credentials');
-      return;
-    }
-    setIsSyncing(true);
-    try {
-      await testConnection(supabaseUrl, supabaseKey);
-      
-      const backupData = {
-        version: '1.0',
-        timestamp: new Date().toISOString(),
-        preferences,
-        categories,
-        transactions
-      };
-
-      await uploadToCloud(supabaseUrl, supabaseKey, activeProfileId, backupData);
-      
-      onUpdatePreferences({
-        supabaseConfig: { url: supabaseUrl, key: supabaseKey, lastSynced: new Date().toISOString() }
-      });
-      setSyncStatus('Success: Data saved to cloud');
-    } catch (e: unknown) {
-      setSyncStatus(`Error: ${e instanceof Error ? e.message : 'Connection failed'}`);
-    } finally {
-      setIsSyncing(false);
-    }
-  };
-
-  const handleCloudLoad = async () => {
-    if (!supabaseUrl || !supabaseKey) {
-      setSyncStatus('Error: Missing credentials');
-      return;
-    }
-    setIsSyncing(true);
-    try {
-      const result = await downloadFromCloud(supabaseUrl, supabaseKey, activeProfileId);
-      if (result && result.content) {
-        onFullRestore(result.content);
-        onUpdatePreferences({
-            supabaseConfig: { url: supabaseUrl, key: supabaseKey, lastSynced: new Date().toISOString() }
-        });
-        setSyncStatus(`Success: Loaded data from ${new Date(result.updatedAt).toLocaleDateString()}`);
-      } else {
-        setSyncStatus('Info: No cloud data found for this profile');
-      }
-    } catch (e: unknown) {
-      setSyncStatus(`Error: ${e instanceof Error ? e.message : 'Download failed'}`);
-    } finally {
-      setIsSyncing(false);
     }
   };
 
@@ -1122,88 +1060,6 @@ Platform: ${navigator.userAgent}
         {importStatus && (
           <div className={`text-xs font-bold uppercase tracking-wide px-3 py-2 rounded-lg text-center ${importStatus.includes('Error') ? 'bg-rose-100 text-rose-600' : 'bg-emerald-100 text-emerald-600'}`}>
             {importStatus}
-          </div>
-        )}
-      </section>
-
-      {/* Cloud Sync Section - Hidden by default */}
-      <section className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
-        <div 
-          className="flex justify-between items-center cursor-pointer"
-          onClick={() => setShowAdvancedSync(!showAdvancedSync)}
-        >
-          <h4 className="font-bold text-slate-400 text-xs uppercase tracking-wide flex items-center gap-2">
-            <span>☁️</span> Advanced Sync (Supabase)
-          </h4>
-          <span className="text-slate-300 text-xl">{showAdvancedSync ? '−' : '+'}</span>
-        </div>
-
-        {showAdvancedSync && (
-          <div className="space-y-4 animate-in slide-in-from-top-2 pt-2">
-            <p className="text-xs text-slate-500 font-medium bg-indigo-50 p-3 rounded-xl border border-indigo-100">
-              <strong className="text-indigo-700">Developer Feature:</strong> Sync your data between devices using your own database.
-              <button onClick={() => setShowSqlHelp(!showSqlHelp)} className="text-indigo-600 underline ml-2 font-bold">View Instructions</button>
-            </p>
-
-            {showSqlHelp && (
-              <div className="bg-slate-900 text-slate-300 p-4 rounded-xl text-xs font-mono space-y-2">
-                <p>1. Create a project at <a href="https://supabase.com" target="_blank" rel="noreferrer" className="text-white underline">supabase.com</a></p>
-                <p>2. Go to SQL Editor and run this query:</p>
-                <div className="bg-black/50 p-2 rounded text-emerald-400 select-all">
-                  create table wingman_backups (<br/>
-                  &nbsp;&nbsp;id text primary key,<br/>
-                  &nbsp;&nbsp;data jsonb,<br/>
-                  &nbsp;&nbsp;updated_at timestamp with time zone<br/>
-                  );
-                </div>
-                <p>3. Copy Project URL & Anon Key below.</p>
-              </div>
-            )}
-
-            <div className="grid grid-cols-1 gap-4">
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-400 uppercase tracking-wide px-1">Project URL</label>
-                <input 
-                  type="text" 
-                  value={supabaseUrl}
-                  onChange={e => setSupabaseUrl(e.target.value)}
-                  placeholder="https://xyz.supabase.co" 
-                  className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 text-xs font-bold text-slate-900 outline-none focus:ring-2 ring-indigo-500/10"
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-400 uppercase tracking-wide px-1">Anon Key</label>
-                <input 
-                  type="password" 
-                  value={supabaseKey}
-                  onChange={e => setSupabaseKey(e.target.value)}
-                  placeholder="eyJh..." 
-                  className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 text-xs font-bold text-slate-900 outline-none focus:ring-2 ring-indigo-500/10"
-                />
-              </div>
-            </div>
-
-            <div className="flex gap-3 pt-2">
-              <button 
-                onClick={handleCloudSave}
-                disabled={isSyncing}
-                className="flex-1 bg-indigo-600 text-white py-3 rounded-xl font-semibold uppercase text-xs tracking-wide hover:bg-indigo-700 transition-all disabled:opacity-50 shadow-md"
-              >
-                {isSyncing ? 'Syncing...' : 'Save to DB'}
-              </button>
-              <button 
-                onClick={handleCloudLoad}
-                disabled={isSyncing}
-                className="flex-1 bg-white border border-indigo-200 text-indigo-700 py-3 rounded-xl font-semibold uppercase text-xs tracking-wide hover:bg-indigo-50 transition-all disabled:opacity-50 shadow-sm"
-              >
-                {isSyncing ? 'Syncing...' : 'Load from DB'}
-              </button>
-            </div>
-            {syncStatus && (
-               <div className={`text-xs font-bold uppercase tracking-wide px-3 py-2 rounded-lg text-center ${syncStatus.includes('Error') ? 'bg-rose-100 text-rose-600' : 'bg-emerald-100 text-emerald-600'}`}>
-                 {syncStatus}
-               </div>
-             )}
           </div>
         )}
       </section>

@@ -12,7 +12,7 @@ import { SetupWizard } from './components/SetupWizard';
 import { ProfileSelector } from './components/ProfileSelector';
 import Auth from './components/Auth';
 import { Transaction, Category, CategoryType, UserPreferences, Notification, NotificationType, TransactionBehavior, UserProfile, Bill, BillStatus, MerchantMapping, Subscription, Goal, GoalStatus, SplitTransaction, Account, AccountType, SubscriptionStatus, RecurringFrequency } from './types';
-import { initSupabase, signIn, signUp, signInWithOAuth, signOut, getCurrentUser, onAuthStateChange, uploadAuthData, downloadAuthData, deleteAuthData, fetchUserProfiles } from './services/supabaseService';
+import { initSupabase, signIn, signUp, signInWithOAuth, signOut, getCurrentUser, onAuthStateChange, uploadAuthData, downloadAuthData, deleteAuthData, fetchUserProfiles, resetPassword } from './services/supabaseService';
 import { User } from '@supabase/supabase-js';
 import {
   INITIAL_CATEGORIES,
@@ -92,29 +92,29 @@ const App: React.FC = () => {
             const isOAuthCallback = window.location.hash.includes('access_token') ||
                                    window.location.search.includes('code=');
 
-            // ALWAYS require explicit sign-in - no auto sign-in
-            // BUT: Don't sign out if returning from OAuth callback
             // Use 2s timeout to prevent slow/unreachable Supabase from blocking render
-            if (!isOAuthCallback) {
-              const currentUser = await withTimeout(getCurrentUser(), 2000, null);
-              if (currentUser) {
-                await withTimeout(signOut(), 2000, undefined);
-              }
-            }
+            const currentUser = await withTimeout(getCurrentUser(), 2000, null);
 
-            // Check if user has chosen local-only mode before
-            const storedPrefs = localStorage.getItem(STORAGE_KEY_PREFERENCES);
-            if (storedPrefs) {
-              const prefs = JSON.parse(storedPrefs);
-              if (prefs.authMode === 'local') {
-                setShowAuthScreen(false);
+            if (currentUser || isOAuthCallback) {
+              // User has an active session or is returning from OAuth — stay signed in
+              if (currentUser) {
+                setUser(currentUser);
+              }
+              setShowAuthScreen(false);
+            } else {
+              // No active session — check if user chose local-only mode
+              const storedPrefs = localStorage.getItem(STORAGE_KEY_PREFERENCES);
+              if (storedPrefs) {
+                const prefs = JSON.parse(storedPrefs);
+                if (prefs.authMode === 'local') {
+                  setShowAuthScreen(false);
+                } else {
+                  setShowAuthScreen(true);
+                }
               } else {
-                // Show auth screen for cloud mode or undecided
+                // New user with no data - show auth screen by default
                 setShowAuthScreen(true);
               }
-            } else {
-              // New user with no data - show auth screen by default
-              setShowAuthScreen(true);
             }
 
             // Listen for auth state changes
@@ -1306,6 +1306,14 @@ const App: React.FC = () => {
     }
   };
 
+  const handleResetPassword = async (email: string) => {
+    try {
+      await resetPassword(email);
+    } catch (error: unknown) {
+      throw new Error(error instanceof Error ? error.message : 'Failed to send reset email');
+    }
+  };
+
   const handleSkipAuth = () => {
     setShowAuthScreen(false);
     setPreferences(prev => ({ ...prev, authMode: 'local' }));
@@ -1331,6 +1339,7 @@ const App: React.FC = () => {
         onSignUp={handleSignUp}
         onOAuthSignIn={handleOAuthSignIn}
         onSkip={handleSkipAuth}
+        onResetPassword={handleResetPassword}
       />
     );
   }

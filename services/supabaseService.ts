@@ -27,52 +27,6 @@ export const getSupabase = (): SupabaseClient | null => {
   return supabaseInstance;
 };
 
-export const uploadToCloud = async (url: string, key: string, profileId: string, data: Record<string, unknown>) => {
-  const supabase = createClient(url, key);
-  
-  // Upsert the data (Insert or Update if exists)
-  const { error } = await supabase
-    .from('wingman_backups')
-    .upsert({ 
-      id: profileId, 
-      data: data, 
-      updated_at: new Date().toISOString() 
-    });
-    
-  if (error) throw error;
-  return true;
-};
-
-export const downloadFromCloud = async (url: string, key: string, profileId: string) => {
-  const supabase = createClient(url, key);
-  
-  const { data, error } = await supabase
-    .from('wingman_backups')
-    .select('data, updated_at')
-    .eq('id', profileId)
-    .single();
-
-  if (error) throw error;
-  
-  if (!data) return null;
-  return {
-    content: data.data,
-    updatedAt: data.updated_at
-  };
-};
-
-export const testConnection = async (url: string, key: string) => {
-  const supabase = createClient(url, key);
-  const { error } = await supabase.from('wingman_backups').select('id').limit(1);
-  if (error && error.code !== 'PGRST116') { // PGRST116 is 'row not found' which is fine
-     if (error.message.includes('relation "wingman_backups" does not exist')) {
-       throw new Error('Table "wingman_backups" missing. Run SQL script.');
-     }
-     if (error.code) throw error;
-  }
-  return true;
-}
-
 // ===== AUTHENTICATION FUNCTIONS =====
 
 export const signUp = async (email: string, password: string) => {
@@ -99,7 +53,7 @@ export const signIn = async (email: string, password: string) => {
   return data;
 };
 
-export const signInWithOAuth = async (provider: 'google' | 'github' | 'facebook') => {
+export const signInWithOAuth = async (provider: 'google' | 'github') => {
   if (!supabaseInstance) throw new Error('Supabase not initialized');
 
   const { data, error } = await supabaseInstance.auth.signInWithOAuth({
