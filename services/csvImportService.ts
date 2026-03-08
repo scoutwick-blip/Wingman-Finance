@@ -503,6 +503,8 @@ export function detectTransactionType(
     }
   }
 
-  // Default: positive amounts are income
-  return 'income';
+  // Default: most bank transactions are expenses
+  // Positive amounts without other signals (no type column, no sign) are ambiguous,
+  // but defaulting to expense is safer since expenses are far more common
+  return 'expense';
 }
