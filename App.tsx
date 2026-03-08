@@ -1554,26 +1554,6 @@ const App: React.FC = () => {
     switch (activeTab) {
       case 'dashboard':
         return (
-          <>
-            <AutomationDashboard
-              transactions={transactions}
-              categories={categories}
-              accounts={accounts}
-              bills={bills}
-              subscriptions={subscriptions}
-              merchantMappings={merchantMappings}
-              onCreateBill={addBill}
-              onUpdateCategoryBudget={(categoryId, newBudget) => {
-                const category = categories.find(c => c.id === categoryId);
-                if (category) {
-                  updateCategory(categoryId, { budget: newBudget });
-                }
-              }}
-              onCreateMerchantMapping={(mapping) => {
-                setMerchantMappings(prev => [...prev, mapping]);
-              }}
-              currency={preferences.currency}
-            />
             <Dashboard
                 transactions={transactions}
                 categories={categories}
@@ -1584,7 +1564,6 @@ const App: React.FC = () => {
                 onNavigateToTab={setActiveTab}
                 onAddTransaction={handleNavigateToTransactionEntry}
             />
-          </>
         );
       case 'transactions':
         return (
@@ -1736,6 +1715,28 @@ const App: React.FC = () => {
         onSwitchProfile={() => setActiveProfileId(null)}
         onOpenTemplates={() => setShowBudgetTemplates(true)}
       >
+        {/* AutomationDashboard is always mounted to preserve dismissed suggestion state across tab switches */}
+        <div style={{ display: activeTab === 'dashboard' ? 'block' : 'none' }}>
+          <AutomationDashboard
+            transactions={transactions}
+            categories={categories}
+            accounts={accounts}
+            bills={bills}
+            subscriptions={subscriptions}
+            merchantMappings={merchantMappings}
+            onCreateBill={addBill}
+            onUpdateCategoryBudget={(categoryId, newBudget) => {
+              const category = categories.find(c => c.id === categoryId);
+              if (category) {
+                updateCategory(categoryId, { budget: newBudget });
+              }
+            }}
+            onCreateMerchantMapping={(mapping) => {
+              setMerchantMappings(prev => [...prev, mapping]);
+            }}
+            currency={preferences.currency}
+          />
+        </div>
         {renderContent()}
         {/* AIAdvisor is always mounted to preserve conversation state across tab switches */}
         <div style={{ display: activeTab === 'advisor' ? 'block' : 'none' }}>
