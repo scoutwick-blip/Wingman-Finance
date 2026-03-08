@@ -105,7 +105,11 @@ export const Budgets: React.FC<BudgetsProps> = ({
 
     // Filter by account if not 'all'
     if (accountFilter !== 'all') {
-      relevantTransactions = relevantTransactions.filter(t => t.accountId === accountFilter);
+      const defaultAccountId = accounts.length > 0 ? accounts[0].id : undefined;
+      relevantTransactions = relevantTransactions.filter(t =>
+        t.accountId === accountFilter ||
+        (!t.accountId && accountFilter === defaultAccountId)
+      );
     }
 
     // For spending categories, scope to current month and compute rollover

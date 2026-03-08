@@ -24,6 +24,26 @@ interface AutomationDashboardProps {
 }
 
 const STORAGE_KEY_HIDDEN_SUGGESTIONS = 'wingman_hidden_suggestion_types';
+const STORAGE_KEY_DISMISSED_RECURRING = 'wingman_dismissed_recurring';
+const STORAGE_KEY_DISMISSED_BUDGETS = 'wingman_dismissed_budgets';
+const STORAGE_KEY_DISMISSED_MAPPINGS = 'wingman_dismissed_mappings';
+
+function loadDismissedSet(key: string): Set<string> {
+  try {
+    const stored = localStorage.getItem(key);
+    return stored ? new Set(JSON.parse(stored)) : new Set();
+  } catch {
+    return new Set();
+  }
+}
+
+function saveDismissedSet(key: string, set: Set<string>) {
+  try {
+    localStorage.setItem(key, JSON.stringify(Array.from(set)));
+  } catch {
+    // Silently handle localStorage save failure
+  }
+}
 
 export default function AutomationDashboard({
   transactions,
@@ -40,9 +60,9 @@ export default function AutomationDashboard({
   const [recurringSuggestions, setRecurringSuggestions] = useState<RecurringTransactionSuggestion[]>([]);
   const [budgetSuggestions, setBudgetSuggestions] = useState<BudgetSuggestion[]>([]);
   const [mappingSuggestions, setMappingSuggestions] = useState<AutoCategorizationSuggestion[]>([]);
-  const [dismissedRecurring, setDismissedRecurring] = useState<Set<string>>(new Set());
-  const [dismissedBudgets, setDismissedBudgets] = useState<Set<string>>(new Set());
-  const [dismissedMappings, setDismissedMappings] = useState<Set<string>>(new Set());
+  const [dismissedRecurring, setDismissedRecurring] = useState<Set<string>>(() => loadDismissedSet(STORAGE_KEY_DISMISSED_RECURRING));
+  const [dismissedBudgets, setDismissedBudgets] = useState<Set<string>>(() => loadDismissedSet(STORAGE_KEY_DISMISSED_BUDGETS));
+  const [dismissedMappings, setDismissedMappings] = useState<Set<string>>(() => loadDismissedSet(STORAGE_KEY_DISMISSED_MAPPINGS));
 
   // Persistent hiding of entire suggestion types
   const [hiddenTypes, setHiddenTypes] = useState<Set<string>>(() => {
@@ -118,12 +138,20 @@ export default function AutomationDashboard({
     };
 
     onCreateBill(newBill);
-    setDismissedRecurring(prev => new Set(prev).add(suggestion.merchant));
+    setDismissedRecurring(prev => {
+      const next = new Set(prev).add(suggestion.merchant);
+      saveDismissedSet(STORAGE_KEY_DISMISSED_RECURRING, next);
+      return next;
+    });
   };
 
   const handleAcceptBudget = (suggestion: BudgetSuggestion) => {
     onUpdateCategoryBudget(suggestion.categoryId, suggestion.suggestedBudget);
-    setDismissedBudgets(prev => new Set(prev).add(suggestion.categoryId));
+    setDismissedBudgets(prev => {
+      const next = new Set(prev).add(suggestion.categoryId);
+      saveDismissedSet(STORAGE_KEY_DISMISSED_BUDGETS, next);
+      return next;
+    });
   };
 
   const handleAcceptMapping = (suggestion: AutoCategorizationSuggestion) => {
@@ -135,7 +163,11 @@ export default function AutomationDashboard({
     };
 
     onCreateMerchantMapping(newMapping);
-    setDismissedMappings(prev => new Set(prev).add(suggestion.merchant.toLowerCase()));
+    setDismissedMappings(prev => {
+      const next = new Set(prev).add(suggestion.merchant.toLowerCase());
+      saveDismissedSet(STORAGE_KEY_DISMISSED_MAPPINGS, next);
+      return next;
+    });
   };
 
   const visibleRecurring = !hiddenTypes.has('recurring')
@@ -235,7 +267,11 @@ export default function AutomationDashboard({
                         Create Bill
                       </button>
                       <button
-                        onClick={() => setDismissedRecurring(prev => new Set(prev).add(suggestion.merchant))}
+                        onClick={() => setDismissedRecurring(prev => {
+                          const next = new Set(prev).add(suggestion.merchant);
+                          saveDismissedSet(STORAGE_KEY_DISMISSED_RECURRING, next);
+                          return next;
+                        })}
                         className="p-2 hover:bg-red-100 text-rose-500 rounded-lg transition-colors"
                       >
                         <X className="w-4 h-4" />
@@ -320,7 +356,11 @@ export default function AutomationDashboard({
                         Apply
                       </button>
                       <button
-                        onClick={() => setDismissedBudgets(prev => new Set(prev).add(suggestion.categoryId))}
+                        onClick={() => setDismissedBudgets(prev => {
+                          const next = new Set(prev).add(suggestion.categoryId);
+                          saveDismissedSet(STORAGE_KEY_DISMISSED_BUDGETS, next);
+                          return next;
+                        })}
                         className="p-2 hover:bg-red-100 text-rose-500 rounded-lg transition-colors"
                       >
                         <X className="w-4 h-4" />
@@ -384,7 +424,11 @@ export default function AutomationDashboard({
                         Enable
                       </button>
                       <button
-                        onClick={() => setDismissedMappings(prev => new Set(prev).add(suggestion.merchant.toLowerCase()))}
+                        onClick={() => setDismissedMappings(prev => {
+                          const next = new Set(prev).add(suggestion.merchant.toLowerCase());
+                          saveDismissedSet(STORAGE_KEY_DISMISSED_MAPPINGS, next);
+                          return next;
+                        })}
                         className="p-2 hover:bg-red-100 text-rose-500 rounded-lg transition-colors"
                       >
                         <X className="w-4 h-4" />
