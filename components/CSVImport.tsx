@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Upload, Check, X, AlertCircle, FileText, Download, Sparkles, Camera } from 'lucide-react';
+import React, { useState, useCallback } from 'react';
+import { Upload, Check, X, AlertCircle, FileText, Sparkles, Camera } from 'lucide-react';
 import { importCSVTransactions, reconcileTransactions, BANK_PRESETS, CSVMapping } from '../services/csvImportService';
 import { parseOFXFile, isOFXFormat } from '../services/ofxParser';
 import { ImportedTransaction, ReconciliationMatch, ReconciliationStatus, Transaction, Category, MerchantMapping, CategorySuggestion, Account } from '../types';
@@ -53,6 +53,84 @@ export default function CSVImport({
     incomeBreakdown?: Array<{ source: string; amount: number; frequency?: string }>;
     deductionBreakdown?: Array<{ name: string; amount: number; type: string }>;
   } | null>(null);
+  const [isDraggingBank, setIsDraggingBank] = useState(false);
+  const [isDraggingStatement, setIsDraggingStatement] = useState(false);
+
+  const handleDroppedFile = useCallback((file: File, type: 'bank' | 'statement') => {
+    if (type === 'bank') {
+      setError('');
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const text = event.target?.result as string;
+        setCsvText(text);
+        const fileExtension = file.name.split('.').pop()?.toLowerCase();
+        const isOFX = fileExtension === 'ofx' || fileExtension === 'qfx' || fileExtension === 'qbo' || isOFXFormat(text);
+        if (isOFX) {
+          setFileType('ofx');
+          handleParseOFX(text);
+        } else {
+          setFileType('csv');
+          handleParse(text, selectedPreset);
+        }
+      };
+      reader.onerror = () => setError('Failed to read file. Please try again.');
+      reader.readAsText(file);
+    } else {
+      // Process statement image directly
+      setError('');
+      setIsProcessingStatement(true);
+      const reader = new FileReader();
+      reader.onload = async () => {
+        try {
+          const base64 = reader.result as string;
+          const mimeType = file.type || 'image/jpeg';
+          const result = await extractBankStatementData(base64, mimeType);
+          if (!result.transactions || result.transactions.length === 0) {
+            setError('No transactions found in the statement image. Try a clearer image or use CSV/OFX import instead.');
+            setIsProcessingStatement(false);
+            return;
+          }
+          setStatementInfo({
+            bankName: result.bankName, accountNumber: result.accountNumber,
+            statementPeriod: result.statementPeriod, openingBalance: result.openingBalance,
+            closingBalance: result.closingBalance, totalDeposits: result.totalDeposits,
+            totalWithdrawals: result.totalWithdrawals, incomeBreakdown: result.incomeBreakdown,
+            deductionBreakdown: result.deductionBreakdown,
+          });
+          const imported: ImportedTransaction[] = result.transactions.map((tx: { date: string; description: string; amount: number; type: string; merchant?: string; category?: string }) => ({
+            date: tx.date, description: tx.description, amount: tx.amount,
+            type: tx.type === 'credit' ? 'income' : 'expense',
+            merchant: tx.merchant || undefined, category: tx.category || undefined,
+          }));
+          setImportedTransactions(imported);
+          setFileType('csv');
+          setStep('preview');
+        } catch (err) {
+          setError(`Failed to process statement: ${err instanceof Error ? err.message : 'Unknown error'}. Try a clearer image.`);
+        } finally {
+          setIsProcessingStatement(false);
+        }
+      };
+      reader.onerror = () => { setError('Failed to read file.'); setIsProcessingStatement(false); };
+      reader.readAsDataURL(file);
+    }
+  }, [selectedPreset]);
+
+  const handleDrop = useCallback((e: React.DragEvent<HTMLDivElement>, type: 'bank' | 'statement') => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDraggingBank(false);
+    setIsDraggingStatement(false);
+
+    const file = e.dataTransfer.files[0];
+    if (!file) return;
+    handleDroppedFile(file, type);
+  }, [handleDroppedFile]);
+
+  const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+  }, []);
 
   const handleStatementImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -591,6 +669,35 @@ export default function CSVImport({
             </button>
           </div>
 
+          {/* Step Indicator */}
+          <div className="flex items-center justify-center gap-1 mb-6">
+            {(['upload', 'preview', 'categorize', 'reconcile'] as const).map((s, i) => {
+              const labels = ['Upload', 'Preview', 'Categorize', 'Import'];
+              const stepIndex = ['upload', 'preview', 'categorize', 'reconcile'].indexOf(step);
+              const isActive = s === step;
+              const isCompleted = i < stepIndex;
+              return (
+                <React.Fragment key={s}>
+                  {i > 0 && (
+                    <div className={`h-0.5 w-8 ${isCompleted ? 'bg-green-500' : 'bg-gray-300'}`} />
+                  )}
+                  <div className="flex flex-col items-center gap-1">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border-2 transition-colors ${
+                      isActive ? 'bg-blue-600 text-white border-blue-600' :
+                      isCompleted ? 'bg-green-500 text-white border-green-500' :
+                      'bg-white text-gray-400 border-gray-300'
+                    }`}>
+                      {isCompleted ? <Check className="w-4 h-4" /> : i + 1}
+                    </div>
+                    <span className={`text-xs font-medium ${isActive ? 'text-blue-600' : isCompleted ? 'text-green-600' : 'text-gray-400'}`}>
+                      {labels[i]}
+                    </span>
+                  </div>
+                </React.Fragment>
+              );
+            })}
+          </div>
+
           {/* Account Selection - Appears on all steps */}
           <div className="mb-6 bg-gradient-to-r from-indigo-50 to-blue-50 border-2 border-indigo-200 rounded-xl p-4">
             <div className="flex items-center gap-4">
@@ -643,7 +750,15 @@ export default function CSVImport({
               {/* File Upload Options */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* CSV/OFX Upload */}
-                <div className="border-4 border-dashed border-gray-300 rounded-2xl p-8 text-center hover:border-blue-400 transition-colors">
+                <div
+                  className={`border-4 border-dashed rounded-2xl p-8 text-center transition-colors ${
+                    isDraggingBank ? 'border-blue-500 bg-blue-50' : 'border-gray-300 hover:border-blue-400'
+                  }`}
+                  onDragOver={handleDragOver}
+                  onDragEnter={(e) => { e.preventDefault(); setIsDraggingBank(true); }}
+                  onDragLeave={(e) => { e.preventDefault(); setIsDraggingBank(false); }}
+                  onDrop={(e) => handleDrop(e, 'bank')}
+                >
                   <input
                     type="file"
                     accept=".csv,.ofx,.qfx,.qbo"
@@ -655,18 +770,27 @@ export default function CSVImport({
                     htmlFor="csv-upload"
                     className="cursor-pointer flex flex-col items-center gap-4"
                   >
-                    <Upload className="w-12 h-12 text-blue-600" />
+                    <Upload className={`w-12 h-12 ${isDraggingBank ? 'text-blue-700 scale-110' : 'text-blue-600'} transition-transform`} />
                     <div>
                       <p className="font-bold text-lg text-gray-900 mb-1">Upload Bank File</p>
                       <p className="text-sm text-gray-600">
-                        CSV, OFX, QFX, QBO formats
+                        {isDraggingBank ? 'Drop file here' : 'Drag & drop or click to browse'}
                       </p>
+                      <p className="text-xs text-gray-500 mt-1">CSV, OFX, QFX, QBO formats</p>
                     </div>
                   </label>
                 </div>
 
                 {/* Statement Image/PDF Upload */}
-                <div className="border-4 border-dashed border-purple-300 rounded-2xl p-8 text-center hover:border-purple-400 transition-colors">
+                <div
+                  className={`border-4 border-dashed rounded-2xl p-8 text-center transition-colors ${
+                    isDraggingStatement ? 'border-purple-500 bg-purple-50' : 'border-purple-300 hover:border-purple-400'
+                  }`}
+                  onDragOver={handleDragOver}
+                  onDragEnter={(e) => { e.preventDefault(); setIsDraggingStatement(true); }}
+                  onDragLeave={(e) => { e.preventDefault(); setIsDraggingStatement(false); }}
+                  onDrop={(e) => handleDrop(e, 'statement')}
+                >
                   <input
                     type="file"
                     accept="image/*,.pdf"
@@ -689,12 +813,13 @@ export default function CSVImport({
                       </>
                     ) : (
                       <>
-                        <Camera className="w-12 h-12 text-purple-600" />
+                        <Camera className={`w-12 h-12 ${isDraggingStatement ? 'text-purple-700 scale-110' : 'text-purple-600'} transition-transform`} />
                         <div>
                           <p className="font-bold text-lg text-gray-900 mb-1">Scan Statement</p>
                           <p className="text-sm text-gray-600">
-                            Photo or screenshot of bank statement
+                            {isDraggingStatement ? 'Drop file here' : 'Drag & drop or click to browse'}
                           </p>
+                          <p className="text-xs text-gray-500 mt-1">Photo or PDF of bank statement</p>
                         </div>
                       </>
                     )}
@@ -1137,6 +1262,27 @@ export default function CSVImport({
                 <p className="text-sm text-blue-800">
                   <strong>New</strong> transactions will be imported. <strong>Duplicates</strong> are already in your system. Review and select which transactions to import.
                 </p>
+              </div>
+
+              {/* Bulk Selection */}
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    const allSelectable = reconciliationMatches
+                      .map((m, i) => m.status !== ReconciliationStatus.DUPLICATE ? i : -1)
+                      .filter(i => i !== -1);
+                    setSelectedMatches(new Set(allSelectable));
+                  }}
+                  className="px-3 py-1.5 text-xs font-bold border-2 border-blue-300 text-blue-700 rounded-lg hover:bg-blue-50 transition-colors"
+                >
+                  Select All
+                </button>
+                <button
+                  onClick={() => setSelectedMatches(new Set())}
+                  className="px-3 py-1.5 text-xs font-bold border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  Deselect All
+                </button>
               </div>
 
               {/* Reconciliation List */}
