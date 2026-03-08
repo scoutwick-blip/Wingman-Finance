@@ -55,6 +55,8 @@ export default function CSVImport({
   } | null>(null);
   const [isDraggingBank, setIsDraggingBank] = useState(false);
   const [isDraggingStatement, setIsDraggingStatement] = useState(false);
+  const [autoImportedCount, setAutoImportedCount] = useState(0);
+  const [autoImportedDetails, setAutoImportedDetails] = useState<Array<{ merchant: string; amount: number; category: string; count: number }>>([]);
 
   const handleDroppedFile = useCallback((file: File, type: 'bank' | 'statement') => {
     if (type === 'bank') {
@@ -408,22 +410,123 @@ export default function CSVImport({
     return recommendations.sort((a, b) => b.confidence - a.confidence).slice(0, 3);
   };
 
+  // Confidence threshold for auto-importing without review
+  const AUTO_IMPORT_CONFIDENCE = 0.75;
+  const AUTO_IMPORT_MIN_USES = 2;
+
   const handleCategorize = async () => {
-    // Group transactions by merchant/description AND similar amounts
-    const groups = new Map<string, { transactions: ImportedTransaction[], categoryId?: string }>();
+    // Split transactions: auto-import recognized merchants, manual review for the rest
+    const autoImportable: ImportedTransaction[] = [];
+    const needsReview: ImportedTransaction[] = [];
 
     importedTransactions.forEach(tx => {
+      const normalizedMerchant = tx.merchant?.toLowerCase() || tx.description.toLowerCase();
+      const existingMapping = merchantMappings.find(m =>
+        m.merchant.toLowerCase() === normalizedMerchant
+      );
+
+      // Check if this is a duplicate of an existing transaction
+      const isDuplicate = transactions.some(
+        ex =>
+          ex.date === tx.date &&
+          ex.description.toLowerCase() === tx.description.toLowerCase() &&
+          Math.abs(ex.amount - tx.amount) < 0.01
+      );
+
+      if (
+        !isDuplicate &&
+        existingMapping &&
+        existingMapping.confidence >= AUTO_IMPORT_CONFIDENCE &&
+        existingMapping.timesUsed >= AUTO_IMPORT_MIN_USES
+      ) {
+        // High-confidence match — auto-import this one
+        autoImportable.push({ ...tx, category: existingMapping.categoryId });
+      } else {
+        needsReview.push(tx);
+      }
+    });
+
+    // Auto-import recognized transactions immediately
+    if (autoImportable.length > 0) {
+      const toAutoImport: Omit<Transaction, 'id'>[] = [];
+      const updatedMappings = [...merchantMappings];
+      const detailsMap = new Map<string, { merchant: string; amount: number; category: string; count: number }>();
+
+      autoImportable.forEach(tx => {
+        const typeId = tx.type === 'income' ? 'type-income' : 'type-expense';
+        const normalizedMerchant = tx.merchant?.toLowerCase() || tx.description.toLowerCase();
+        const mapping = updatedMappings.find(m => m.merchant.toLowerCase() === normalizedMerchant);
+        const categoryId = tx.category || mapping?.categoryId || '';
+
+        // Update mapping confidence
+        if (mapping) {
+          mapping.confidence = Math.min(1, mapping.confidence + 0.05);
+          mapping.timesUsed += 1;
+        }
+
+        // Detect recurring
+        const merchantOrDesc = tx.merchant || tx.description;
+        const similarCount = transactions.filter(t => {
+          const tMerchant = t.merchant || t.description;
+          return tMerchant.toLowerCase() === merchantOrDesc.toLowerCase() &&
+                 Math.abs(t.amount - tx.amount) < 0.01;
+        }).length;
+
+        toAutoImport.push({
+          date: tx.date,
+          description: tx.description,
+          amount: tx.amount,
+          categoryId,
+          typeId,
+          accountId: selectedAccountForImport || undefined,
+          merchant: tx.merchant,
+          isRecurring: similarCount >= 2
+        });
+
+        // Track details for summary
+        const catName = categories.find(c => c.id === categoryId)?.name || 'Unknown';
+        const detailKey = `${normalizedMerchant}||${categoryId}`;
+        const existing = detailsMap.get(detailKey);
+        if (existing) {
+          existing.count += 1;
+          existing.amount += tx.amount;
+        } else {
+          detailsMap.set(detailKey, {
+            merchant: tx.merchant || tx.description,
+            amount: tx.amount,
+            category: catName,
+            count: 1
+          });
+        }
+      });
+
+      // Import them right away
+      onImport(toAutoImport);
+      onUpdateMerchantMappings(updatedMappings);
+      setAutoImportedCount(autoImportable.length);
+      setAutoImportedDetails(Array.from(detailsMap.values()));
+    }
+
+    // If nothing left to review, we're done
+    if (needsReview.length === 0) {
+      // All transactions were auto-imported — show a brief summary then close
+      setImportedTransactions([]);
+      setStep('categorize');
+      return;
+    }
+
+    // Continue with manual flow for remaining transactions
+    setImportedTransactions(needsReview);
+
+    // Group remaining transactions by merchant/description AND similar amounts
+    const groups = new Map<string, { transactions: ImportedTransaction[], categoryId?: string }>();
+
+    needsReview.forEach(tx => {
       const merchantName = (tx.merchant || tx.description).trim();
-
-      // Round amount to nearest $10 for grouping similar transactions
       const amountBucket = Math.round(Math.abs(tx.amount) / 10) * 10;
-
-      // Create a composite key: merchant + amount bucket
-      // This groups "Walmart $45" separately from "Walmart $350"
       const key = `${merchantName}||${amountBucket}`;
 
       if (!groups.has(key)) {
-        // Auto-apply merchant mapping if one exists
         const normalizedMerchant = tx.merchant?.toLowerCase() || tx.description.toLowerCase();
         const existingMapping = merchantMappings.find(m =>
           m.merchant.toLowerCase() === normalizedMerchant
@@ -440,10 +543,10 @@ export default function CSVImport({
     setTransactionGroups(groups);
     setStep('categorize');
 
-    // Fetch AI suggestions in the background for transactions without existing mappings
+    // Fetch AI suggestions for unmapped transactions
     const transactionsNeedingSuggestions = Array.from(groups.entries())
-      .filter(([key, group]) => !group.categoryId) // Only get suggestions for unmapped transactions
-      .map(([key, group]) => ({
+      .filter(([, group]) => !group.categoryId)
+      .map(([, group]) => ({
         description: group.transactions[0].description,
         merchant: group.transactions[0].merchant,
         amount: group.transactions[0].amount
@@ -1016,12 +1119,56 @@ export default function CSVImport({
           {/* Step 3: Categorize */}
           {step === 'categorize' && (
             <div className="space-y-6">
+              {/* Auto-imported summary */}
+              {autoImportedCount > 0 && (
+                <div className="bg-green-50 border-2 border-green-300 rounded-xl p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Check className="w-5 h-5 text-green-600" />
+                    <p className="font-bold text-green-900">
+                      {autoImportedCount} transaction{autoImportedCount !== 1 ? 's' : ''} auto-imported
+                    </p>
+                  </div>
+                  <p className="text-sm text-green-700 mb-2">
+                    These matched previously categorized merchants and were imported automatically.
+                  </p>
+                  {autoImportedDetails.length > 0 && (
+                    <details className="group">
+                      <summary className="cursor-pointer text-xs text-green-700 hover:text-green-900 font-medium">
+                        View details
+                      </summary>
+                      <div className="mt-2 space-y-1">
+                        {autoImportedDetails.map((d, i) => (
+                          <div key={i} className="flex justify-between text-xs text-green-800 bg-green-100 rounded px-2 py-1">
+                            <span>{d.merchant} ({d.count}x) &rarr; {d.category}</span>
+                            <span className="font-bold">{currency}{d.amount.toFixed(2)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </details>
+                  )}
+                  {importedTransactions.length === 0 && (
+                    <div className="mt-3 pt-3 border-t border-green-300">
+                      <p className="text-sm font-bold text-green-900 mb-2">All transactions were recognized! Nothing left to review.</p>
+                      <button
+                        onClick={onClose}
+                        className="bg-green-600 text-white px-6 py-2 rounded-xl hover:bg-green-700 transition-colors font-bold text-sm"
+                      >
+                        Done
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {importedTransactions.length > 0 && (
               <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-4">
                 <p className="text-sm text-blue-800">
                   <strong>Click on recommended categories</strong> to quickly categorize transactions. Transactions are grouped by merchant and similar amounts. AI suggestions are based on merchant names, transaction history, and keywords.
                 </p>
               </div>
+              )}
 
+              {importedTransactions.length > 0 && (<>
               {/* AI Loading Overlay */}
               {isLoadingAI && (
                 <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-[100] backdrop-blur-sm">
@@ -1231,6 +1378,7 @@ export default function CSVImport({
                   Back
                 </button>
               </div>
+              </>)}
             </div>
           )}
 
