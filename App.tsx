@@ -1634,6 +1634,7 @@ const App: React.FC = () => {
           accounts={accounts}
           merchantMappings={merchantMappings}
           onImport={importTransactions}
+          onUpdateTransaction={updateTransaction}
           onUpdateMerchantMappings={setMerchantMappings}
           onClose={() => setShowCSVImport(false)}
           currency={preferences.currency}
