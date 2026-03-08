@@ -1315,7 +1315,7 @@ Platform: ${navigator.userAgent}
       <section className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-6">
         <h4 className="font-bold text-slate-800 border-b border-slate-50 pb-4 text-xs uppercase tracking-wide">Appearance</h4>
 
-        <div className="space-y-2">
+        <div className="space-y-3">
           <p className="font-semibold text-slate-800 text-sm">Theme</p>
           <div className="grid grid-cols-3 gap-2">
             {([
@@ -1334,6 +1334,30 @@ Platform: ${navigator.userAgent}
               >
                 <span>{opt.icon}</span>
                 {opt.label}
+              </button>
+            ))}
+          </div>
+          <div className="grid grid-cols-2 gap-2 mt-2">
+            {([
+              { value: 'glass' as const, label: 'Glass', icon: '🧊', desc: 'Frosted & translucent' },
+              { value: 'premium-dark' as const, label: 'Premium Dark', icon: '✨', desc: 'Neon glow fintech' }
+            ]).map(opt => (
+              <button
+                key={opt.value}
+                onClick={() => onUpdatePreferences({ theme: opt.value })}
+                className={`flex flex-col items-center gap-1 px-4 py-3 rounded-xl text-sm font-medium transition-all border ${
+                  preferences.theme === opt.value
+                    ? opt.value === 'premium-dark'
+                      ? 'bg-violet-600 text-white border-violet-600'
+                      : 'bg-indigo-600 text-white border-indigo-600'
+                    : 'bg-slate-50 text-slate-700 border-slate-200 hover:border-slate-300'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <span>{opt.icon}</span>
+                  {opt.label}
+                </div>
+                <span className={`text-[10px] ${preferences.theme === opt.value ? 'text-white/70' : 'text-slate-400'}`}>{opt.desc}</span>
               </button>
             ))}
           </div>

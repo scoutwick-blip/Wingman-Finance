@@ -422,14 +422,22 @@ const App: React.FC = () => {
     }
   }, [preferences.name, preferences.profileImage, preferences.pin, activeProfileId, isLoading]);
 
-  // Apply theme (dark mode)
+  // Apply theme
   useEffect(() => {
+    const allThemeClasses = ['dark', 'theme-glass', 'theme-premium-dark'];
+
     const applyTheme = (theme: string) => {
+      // Remove all theme classes first
+      document.documentElement.classList.remove(...allThemeClasses);
+
       if (theme === 'dark') {
         document.documentElement.classList.add('dark');
-      } else {
-        document.documentElement.classList.remove('dark');
+      } else if (theme === 'glass') {
+        document.documentElement.classList.add('theme-glass');
+      } else if (theme === 'premium-dark') {
+        document.documentElement.classList.add('theme-premium-dark');
       }
+      // 'light' = no class needed (default)
     };
 
     const themePref = preferences.theme || 'system';

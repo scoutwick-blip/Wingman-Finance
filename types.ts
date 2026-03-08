@@ -143,7 +143,7 @@ export interface UserPreferences {
     lastSynced?: string;
   };
   authMode?: 'local' | 'cloud'; // 'local' = no cloud sync, 'cloud' = use authentication
-  theme?: 'light' | 'dark' | 'system';
+  theme?: 'light' | 'dark' | 'system' | 'glass' | 'premium-dark';
   persona?: 'standard' | 'military'; // 'military' restores aviation/military themed language
   budgetRollover?: boolean; // Carry unspent budget from previous month into current month
   monthlyIncome?: number; // User's monthly take-home income

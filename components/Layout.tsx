@@ -136,7 +136,7 @@ export const Layout: React.FC<LayoutProps> = ({
   return (
     <div className="flex flex-col md:flex-row h-screen overflow-hidden" style={{ backgroundColor: 'var(--color-bg-primary)' }}>
       {/* Desktop Sidebar — hidden on mobile */}
-      <aside className="hidden md:flex w-60 flex-col shrink-0 z-40"
+      <aside className="hidden md:flex w-60 flex-col shrink-0 z-40 glass-sidebar"
         style={{ backgroundColor: 'var(--color-bg-sidebar)', borderRight: '1px solid var(--color-border-primary)' }}>
         <div className="px-5 py-5 flex items-center gap-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
           <div
@@ -241,7 +241,7 @@ export const Layout: React.FC<LayoutProps> = ({
 
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
-        <header className="h-14 flex items-center justify-between px-4 md:px-8 shrink-0 z-30 relative"
+        <header className="h-14 flex items-center justify-between px-4 md:px-8 shrink-0 z-30 relative glass-header"
           style={{ backgroundColor: 'var(--color-bg-header)', borderBottom: '1px solid var(--color-border-primary)' }}>
           <div className="flex items-center gap-2.5">
             {/* Mobile: logo + page title */}
@@ -364,7 +364,7 @@ export const Layout: React.FC<LayoutProps> = ({
       </main>
 
       {/* Mobile Bottom Tab Bar */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 safe-area-bottom"
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 safe-area-bottom glass-header"
         style={{ backgroundColor: 'var(--color-bg-header)', borderTop: '1px solid var(--color-border-primary)' }}>
         <div className="flex w-full">
           {mobileTabIds.map(tabId => {
