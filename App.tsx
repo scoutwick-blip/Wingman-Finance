@@ -1285,7 +1285,7 @@ const App: React.FC = () => {
 
   const handleSignIn = async (email: string, password: string) => {
     if (!supabaseConfigured) {
-      throw new Error('Cloud sync is not configured. Add Supabase credentials to your .env file, or continue without an account.');
+      throw new Error('Cloud sync is not configured. Add your Supabase Project URL and Publishable Key to .env, or continue without an account.');
     }
     try {
       await signIn(email, password);
@@ -1299,7 +1299,7 @@ const App: React.FC = () => {
 
   const handleSignUp = async (email: string, password: string) => {
     if (!supabaseConfigured) {
-      throw new Error('Cloud sync is not configured. Add Supabase credentials to your .env file, or continue without an account.');
+      throw new Error('Cloud sync is not configured. Add your Supabase Project URL and Publishable Key to .env, or continue without an account.');
     }
     try {
       const result = await signUp(email, password);
@@ -1329,7 +1329,7 @@ const App: React.FC = () => {
 
   const handleOAuthSignIn = async (provider: 'google' | 'github') => {
     if (!supabaseConfigured) {
-      throw new Error('Cloud sync is not configured. Add Supabase credentials to your .env file.');
+      throw new Error('Cloud sync is not configured. Add your Supabase Project URL and Publishable Key to .env.');
     }
     try {
       const result = await signInWithOAuth(provider);
@@ -1364,7 +1364,7 @@ const App: React.FC = () => {
 
   const handleResetPassword = async (email: string) => {
     if (!supabaseConfigured) {
-      throw new Error('Cloud sync is not configured. Add Supabase credentials to your .env file.');
+      throw new Error('Cloud sync is not configured. Add your Supabase Project URL and Publishable Key to .env.');
     }
     try {
       await resetPassword(email);
