@@ -188,6 +188,7 @@ export interface Bill {
   lastPaidDate?: string;
   notes?: string;
   linkedTransactionId?: string; // If bill was paid, link to transaction
+  linkedSubscriptionId?: string; // If bill was auto-created from a subscription
 }
 
 export interface BillReminderSettings {
