@@ -2,7 +2,7 @@
 import React, { useState, useRef } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import LZString from 'lz-string';
-import { UserPreferences, TransactionBehavior, TransactionTypeDefinition, Category, Transaction, Account, AccountType } from '../types';
+import { UserPreferences, TransactionBehavior, TransactionTypeDefinition, Category, Transaction, Account, AccountType, UserProfile } from '../types';
 import { User } from '@supabase/supabase-js';
 import { LogOut, LogIn, User as UserIcon, Wallet, Plus, Edit2, Trash2, CreditCard, PiggyBank, Banknote } from 'lucide-react';
 
@@ -23,6 +23,7 @@ interface SettingsProps {
   onAddAccount: (account: Account) => void;
   onUpdateAccount: (account: Account) => void;
   onDeleteAccount: (accountId: string) => void;
+  profiles?: UserProfile[];
 }
 
 export const Settings: React.FC<SettingsProps> = ({
@@ -41,7 +42,8 @@ export const Settings: React.FC<SettingsProps> = ({
   onShowAuth,
   onAddAccount,
   onUpdateAccount,
-  onDeleteAccount
+  onDeleteAccount,
+  profiles = []
 }) => {
   const currencies = ['$', '€', '£', '¥', '₹', '₱', '₩', 'R$'];
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -67,7 +69,8 @@ export const Settings: React.FC<SettingsProps> = ({
     icon: '💳',
     color: '#3b82f6',
     creditLimit: '',
-    isDefault: false
+    isDefault: false,
+    sharedProfileIds: [] as string[]
   });
 
   // PIN State
@@ -145,7 +148,8 @@ export const Settings: React.FC<SettingsProps> = ({
       isDefault: accountForm.isDefault,
       isHidden: false,
       creditLimit: accountForm.creditLimit ? parseFloat(accountForm.creditLimit) : undefined,
-      lastUpdated: new Date().toISOString()
+      lastUpdated: new Date().toISOString(),
+      sharedProfileIds: accountForm.sharedProfileIds.length > 0 ? accountForm.sharedProfileIds : undefined
     };
 
     if (editingAccountId) {
@@ -162,7 +166,8 @@ export const Settings: React.FC<SettingsProps> = ({
       icon: '💳',
       color: '#3b82f6',
       creditLimit: '',
-      isDefault: false
+      isDefault: false,
+      sharedProfileIds: []
     });
     setEditingAccountId(null);
     setShowAccountForm(false);
@@ -176,7 +181,8 @@ export const Settings: React.FC<SettingsProps> = ({
       icon: account.icon || '💳',
       color: account.color || '#3b82f6',
       creditLimit: account.creditLimit?.toString() || '',
-      isDefault: account.isDefault || false
+      isDefault: account.isDefault || false,
+      sharedProfileIds: account.sharedProfileIds || []
     });
     setEditingAccountId(account.id);
     setShowAccountForm(true);
@@ -717,6 +723,32 @@ Platform: ${navigator.userAgent}
                     <span className="text-sm font-bold text-slate-700">Set as default account</span>
                   </label>
                 </div>
+
+                {/* Share with other profiles */}
+                {profiles.filter(p => p.id !== activeProfileId).length > 0 && (
+                  <div>
+                    <label className="block text-sm font-bold text-slate-700 mb-2">Share with Profiles</label>
+                    <p className="text-xs text-slate-500 mb-2">Allow other profiles to see and use this account (e.g. joint checking)</p>
+                    <div className="space-y-2">
+                      {profiles.filter(p => p.id !== activeProfileId).map(profile => (
+                        <label key={profile.id} className="flex items-center gap-3 cursor-pointer p-2 rounded-lg hover:bg-slate-50">
+                          <input
+                            type="checkbox"
+                            checked={accountForm.sharedProfileIds.includes(profile.id)}
+                            onChange={e => {
+                              const updated = e.target.checked
+                                ? [...accountForm.sharedProfileIds, profile.id]
+                                : accountForm.sharedProfileIds.filter(id => id !== profile.id);
+                              setAccountForm({ ...accountForm, sharedProfileIds: updated });
+                            }}
+                            className="w-4 h-4 text-indigo-600 border-slate-300 rounded"
+                          />
+                          <span className="text-sm font-medium text-slate-700">{profile.name}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="flex gap-3">

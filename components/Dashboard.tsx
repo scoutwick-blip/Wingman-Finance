@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, CartesianGrid, AreaChart, Area } from 'recharts';
-import { Transaction, Category, UserPreferences, TransactionBehavior, CategoryType, RecurringFrequency, Bill, BillStatus, Goal, GoalStatus } from '../types';
+import { Transaction, Category, UserPreferences, TransactionBehavior, CategoryType, RecurringFrequency, Bill, BillStatus, Goal, GoalStatus, Account } from '../types';
 
 interface DashboardProps {
   transactions: Transaction[];
@@ -9,11 +9,19 @@ interface DashboardProps {
   preferences: UserPreferences;
   bills?: Bill[];
   goals?: Goal[];
+  accounts?: Account[];
   onNavigateToTab: (tab: string) => void;
   onAddTransaction: (behavior: TransactionBehavior) => void;
 }
 
-export const Dashboard: React.FC<DashboardProps> = ({ transactions, categories, preferences, bills = [], goals = [], onNavigateToTab, onAddTransaction }) => {
+export const Dashboard: React.FC<DashboardProps> = ({ transactions: allTransactions, categories, preferences, bills = [], goals = [], accounts = [], onNavigateToTab, onAddTransaction }) => {
+  const [selectedAccountId, setSelectedAccountId] = React.useState<string>('all');
+
+  // Filter transactions by selected account
+  const transactions = React.useMemo(() => {
+    if (selectedAccountId === 'all') return allTransactions;
+    return allTransactions.filter(t => t.accountId === selectedAccountId);
+  }, [allTransactions, selectedAccountId]);
 
   // Logic to calculate Upcoming Bills
   const upcomingBills = React.useMemo(() => {
@@ -459,9 +467,24 @@ export const Dashboard: React.FC<DashboardProps> = ({ transactions, categories, 
     <div className="space-y-6 pb-12">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
-        <div>
-          <h3 className="text-2xl font-bold" style={{ color: 'var(--color-text-primary)' }}>Overview</h3>
-          <p className="text-sm mt-1" style={{ color: 'var(--color-text-tertiary)' }}>Your financial snapshot</p>
+        <div className="flex items-center gap-4">
+          <div>
+            <h3 className="text-2xl font-bold" style={{ color: 'var(--color-text-primary)' }}>Overview</h3>
+            <p className="text-sm mt-1" style={{ color: 'var(--color-text-tertiary)' }}>Your financial snapshot</p>
+          </div>
+          {accounts.filter(a => !a.isHidden).length > 1 && (
+            <select
+              value={selectedAccountId}
+              onChange={e => setSelectedAccountId(e.target.value)}
+              className="px-3 py-2 rounded-xl text-sm font-semibold"
+              style={{ backgroundColor: 'var(--color-bg-tertiary)', color: 'var(--color-text-primary)', border: '1px solid var(--color-border-card)' }}
+            >
+              <option value="all">All Accounts</option>
+              {accounts.filter(a => !a.isHidden).map(a => (
+                <option key={a.id} value={a.id}>{a.icon} {a.name}</option>
+              ))}
+            </select>
+          )}
         </div>
 
         <div className="flex flex-wrap gap-2">

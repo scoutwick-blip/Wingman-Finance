@@ -365,6 +365,41 @@ const App: React.FC = () => {
     loadProfileData();
   }, [activeProfileId, user]);
 
+  // Load shared accounts from other profiles
+  useEffect(() => {
+    if (!activeProfileId || isLoading || profiles.length <= 1) return;
+
+    const otherProfiles = profiles.filter(p => p.id !== activeProfileId);
+    const sharedFromOthers: Account[] = [];
+
+    for (const profile of otherProfiles) {
+      try {
+        const stored = localStorage.getItem(`${STORAGE_KEY_ACCOUNTS}_${profile.id}`);
+        if (stored) {
+          const otherAccounts: Account[] = JSON.parse(stored);
+          otherAccounts.forEach(acc => {
+            if (acc.sharedProfileIds?.includes(activeProfileId)) {
+              // Only add if not already in current accounts (avoid duplicates)
+              if (!accounts.find(a => a.id === acc.id)) {
+                sharedFromOthers.push({ ...acc, notes: `Shared from ${profile.name}` });
+              }
+            }
+          });
+        }
+      } catch {
+        // Skip invalid data
+      }
+    }
+
+    if (sharedFromOthers.length > 0) {
+      setAccounts(prev => {
+        const existingIds = new Set(prev.map(a => a.id));
+        const newShared = sharedFromOthers.filter(a => !existingIds.has(a.id));
+        return newShared.length > 0 ? [...prev, ...newShared] : prev;
+      });
+    }
+  }, [activeProfileId, isLoading, profiles]);
+
   // Update profile metadata when preferences change (name/avatar/pin)
   useEffect(() => {
     if (!activeProfileId || isLoading) return;
@@ -725,6 +760,52 @@ const App: React.FC = () => {
       amount: Math.abs(newT.amount),
       id: Math.random().toString(36).substring(2, 9)
     };
+
+    // Handle account-to-account transfers: create a paired inflow transaction
+    if (transaction.typeId === 'type-transfer' && transaction.transferToAccountId) {
+      const pairedId = Math.random().toString(36).substring(2, 9);
+      const fromAccount = accounts.find(a => a.id === transaction.accountId);
+      const toAccount = accounts.find(a => a.id === transaction.transferToAccountId);
+
+      // Link both transactions together
+      transaction.linkedTransferId = pairedId;
+
+      const pairedTransaction: Transaction = {
+        id: pairedId,
+        date: transaction.date,
+        description: `Transfer from ${fromAccount?.name || 'account'}`,
+        amount: transaction.amount,
+        categoryId: transaction.categoryId,
+        typeId: 'type-income', // Inflow on receiving side
+        accountId: transaction.transferToAccountId,
+        linkedTransferId: transaction.id,
+        transferToAccountId: undefined
+      };
+
+      // Update account balances
+      setAccounts(prev => prev.map(acc => {
+        if (acc.id === transaction.accountId) {
+          return { ...acc, balance: acc.balance - transaction.amount, lastUpdated: new Date().toISOString() };
+        }
+        if (acc.id === transaction.transferToAccountId) {
+          return { ...acc, balance: acc.balance + transaction.amount, lastUpdated: new Date().toISOString() };
+        }
+        return acc;
+      }));
+
+      setTransactions(prev => [transaction, pairedTransaction, ...prev]);
+
+      const note: Notification = {
+        id: Math.random().toString(36).substring(2, 9),
+        type: NotificationType.SUCCESS,
+        title: 'Transfer Complete',
+        message: `${preferences.currency}${transaction.amount.toFixed(2)} transferred from ${fromAccount?.name} to ${toAccount?.name}`,
+        timestamp: new Date().toISOString(),
+        isRead: false
+      };
+      setNotifications(prev => [note, ...prev]);
+      return; // Skip normal flow for transfers
+    }
 
     const largeThreshold = preferences.notificationSettings?.largeTransactionThreshold ?? 500;
 
@@ -1499,6 +1580,7 @@ const App: React.FC = () => {
                 preferences={preferences}
                 bills={bills}
                 goals={goals}
+                accounts={accounts}
                 onNavigateToTab={setActiveTab}
                 onAddTransaction={handleNavigateToTransactionEntry}
             />
@@ -1622,6 +1704,7 @@ const App: React.FC = () => {
             onAddAccount={addAccount}
             onUpdateAccount={updateAccount}
             onDeleteAccount={deleteAccount}
+            profiles={profiles}
           />
         );
       default:
@@ -1632,6 +1715,7 @@ const App: React.FC = () => {
                 preferences={preferences}
                 bills={bills}
                 goals={goals}
+                accounts={accounts}
                 onNavigateToTab={setActiveTab}
                 onAddTransaction={handleNavigateToTransactionEntry}
             />
@@ -1646,6 +1730,7 @@ const App: React.FC = () => {
         setActiveTab={setActiveTab}
         preferences={preferences}
         notifications={notifications}
+        accounts={accounts}
         onMarkRead={markNotificationsRead}
         onClearNotifications={clearNotifications}
         onSwitchProfile={() => setActiveProfileId(null)}

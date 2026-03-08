@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { UserPreferences, Notification, NotificationType } from '../types';
+import { UserPreferences, Notification, NotificationType, Account } from '../types';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -8,6 +8,7 @@ interface LayoutProps {
   setActiveTab: (tab: string) => void;
   preferences: UserPreferences;
   notifications: Notification[];
+  accounts?: Account[];
   onMarkRead: () => void;
   onClearNotifications: () => void;
   onSwitchProfile: () => void;
@@ -20,6 +21,7 @@ export const Layout: React.FC<LayoutProps> = ({
   setActiveTab,
   preferences,
   notifications,
+  accounts = [],
   onMarkRead,
   onClearNotifications,
   onSwitchProfile,
@@ -182,6 +184,34 @@ export const Layout: React.FC<LayoutProps> = ({
             </button>
           ))}
         </nav>
+        {/* Account Quick View */}
+        {accounts.filter(a => !a.isHidden).length > 0 && (
+          <div className="px-3 py-3" style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+            <p className="text-xs font-bold uppercase tracking-wider mb-2 px-2" style={{ color: 'var(--color-text-sidebar)' }}>Accounts</p>
+            <div className="space-y-1 max-h-40 overflow-y-auto scrollbar-hide">
+              {accounts.filter(a => !a.isHidden).map(account => (
+                <button
+                  key={account.id}
+                  onClick={() => setActiveTab('transactions')}
+                  className="w-full flex items-center justify-between px-2 py-1.5 rounded-lg transition-all text-left group"
+                  style={{ color: 'var(--color-text-sidebar)' }}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--color-bg-sidebar-hover)'}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                  title={account.name}
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="text-sm shrink-0">{account.icon || '💳'}</span>
+                    <span className="text-xs font-medium truncate">{account.name}</span>
+                  </div>
+                  <span className="text-xs font-bold shrink-0 ml-1" style={{ color: account.balance >= 0 ? '#10b981' : '#ef4444' }}>
+                    {preferences.currency}{Math.abs(account.balance).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="px-4 py-4 space-y-3" style={{ borderTop: 'rgba(255,255,255,0.08) 1px solid' }}>
           {onOpenTemplates && (
             <button

@@ -61,7 +61,8 @@ export const Transactions: React.FC<TransactionsProps> = ({
     date: new Date().toISOString().split('T')[0],
     isRecurring: false,
     frequency: RecurringFrequency.MONTHLY,
-    recurringEndDate: ''
+    recurringEndDate: '',
+    transferToAccountId: ''
   };
 
   const [formData, setFormData] = useState(defaultFormState);
@@ -136,7 +137,8 @@ export const Transactions: React.FC<TransactionsProps> = ({
       date: t.date,
       isRecurring: t.isRecurring || false,
       frequency: t.frequency || RecurringFrequency.MONTHLY,
-      recurringEndDate: t.recurringEndDate || ''
+      recurringEndDate: t.recurringEndDate || '',
+      transferToAccountId: t.transferToAccountId || ''
     });
     setIsAdding(true);
     // Scroll to top to see form
@@ -243,8 +245,11 @@ export const Transactions: React.FC<TransactionsProps> = ({
     e.preventDefault();
     if (!formData.description || !formData.amount || !formData.typeId) return;
 
+    const isTransfer = formData.typeId === 'type-transfer';
     const payload = {
-      description: formData.description,
+      description: isTransfer && !formData.description
+        ? `Transfer to ${accounts.find(a => a.id === formData.transferToAccountId)?.name || 'account'}`
+        : formData.description,
       amount: Math.abs(parseFloat(formData.amount)),
       categoryId: formData.categoryId,
       typeId: formData.typeId,
@@ -252,7 +257,8 @@ export const Transactions: React.FC<TransactionsProps> = ({
       date: formData.date,
       isRecurring: formData.isRecurring,
       frequency: formData.isRecurring ? formData.frequency : undefined,
-      recurringEndDate: formData.isRecurring && formData.recurringEndDate ? formData.recurringEndDate : undefined
+      recurringEndDate: formData.isRecurring && formData.recurringEndDate ? formData.recurringEndDate : undefined,
+      transferToAccountId: isTransfer ? formData.transferToAccountId || undefined : undefined
     };
 
     if (editingId) {
@@ -513,7 +519,7 @@ export const Transactions: React.FC<TransactionsProps> = ({
               <label className="text-xs font-bold uppercase tracking-wide px-2" style={{ color: 'var(--color-text-tertiary)' }}>Account</label>
               <select
                 value={formData.accountId || ''}
-                onChange={e => setFormData({...formData, accountId: e.target.value || undefined})}
+                onChange={e => setFormData({...formData, accountId: e.target.value})}
                 className="border-none rounded-2xl px-4 py-3 text-sm font-semibold outline-none focus:ring-2"
                 style={{ backgroundColor: 'var(--color-bg-tertiary)', color: 'var(--color-text-primary)' }}
               >
@@ -523,6 +529,25 @@ export const Transactions: React.FC<TransactionsProps> = ({
                 ))}
               </select>
             </div>
+
+            {/* Transfer destination account - only shown when type is Transfer */}
+            {formData.typeId === 'type-transfer' && (
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-bold uppercase tracking-wide px-2" style={{ color: 'var(--color-text-tertiary)' }}>To Account</label>
+                <select
+                  value={formData.transferToAccountId || ''}
+                  onChange={e => setFormData({...formData, transferToAccountId: e.target.value})}
+                  className="border-none rounded-2xl px-4 py-3 text-sm font-semibold outline-none focus:ring-2"
+                  style={{ backgroundColor: 'var(--color-bg-tertiary)', color: 'var(--color-text-primary)' }}
+                  required
+                >
+                  <option value="">Select destination...</option>
+                  {accounts.filter(a => !a.isHidden && a.id !== formData.accountId).map(a => (
+                    <option key={a.id} value={a.id}>{a.icon} {a.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             <div className="flex flex-col gap-1">
               <label className="text-xs font-bold uppercase tracking-wide px-2" style={{ color: 'var(--color-text-tertiary)' }}>
