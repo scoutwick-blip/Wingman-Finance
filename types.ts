@@ -50,6 +50,7 @@ export interface Account {
   interestRate?: number; // For loans/credit cards
   notes?: string;
   lastUpdated: string;
+  sharedProfileIds?: string[]; // Profile IDs that can also see/use this account
 }
 
 export interface Category {
@@ -79,6 +80,8 @@ export interface Transaction {
   isSplit?: boolean; // Is this a split transaction
   splitTransactionId?: string; // Parent split transaction ID
   linkedSubscriptionId?: string; // Link to auto-created subscription
+  linkedTransferId?: string; // Links paired transfer transactions together
+  transferToAccountId?: string; // For transfers: the destination account
 }
 
 // Split Transactions
