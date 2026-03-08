@@ -469,8 +469,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ transactions: allTransacti
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div className="flex items-center gap-4">
           <div>
-            <h3 className="text-2xl font-bold" style={{ color: 'var(--color-text-primary)' }}>Overview</h3>
-            <p className="text-sm mt-1" style={{ color: 'var(--color-text-tertiary)' }}>Your financial snapshot</p>
+            <h3 className="text-2xl font-extrabold tracking-tight" style={{ color: 'var(--color-text-primary)' }}>Overview</h3>
+            <p className="text-sm mt-1 font-medium" style={{ color: 'var(--color-text-tertiary)' }}>Your financial snapshot</p>
+            <div className="premium-accent-line mt-2 w-16 rounded-full" style={{ height: '2px' }} />
           </div>
           {accounts.filter(a => !a.isHidden).length > 1 && (
             <select
@@ -507,27 +508,39 @@ export const Dashboard: React.FC<DashboardProps> = ({ transactions: allTransacti
 
       {/* Snapshot Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-        <div className="p-5 rounded-xl" style={{ backgroundColor: 'var(--color-bg-card)', border: '1px solid var(--color-border-card)', borderLeft: '3px solid #10b981' }}>
-          <p className="text-xs font-medium mb-2" style={{ color: 'var(--color-text-tertiary)' }}>Total Income</p>
-          <h3 className="text-lg font-bold" style={{ color: 'var(--color-text-primary)' }}>
+        <div className="p-5 rounded-xl neon-border-top relative overflow-hidden transition-all duration-300"
+          style={{ backgroundColor: 'var(--color-bg-card)', border: '1px solid var(--color-border-card)', borderTop: '2px solid var(--color-success, #10b981)' }}>
+          <div className="absolute top-0 right-0 w-16 h-16 rounded-full opacity-[0.04]"
+            style={{ background: 'var(--color-success, #10b981)', filter: 'blur(20px)', transform: 'translate(30%, -30%)' }} />
+          <p className="text-[11px] font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--color-text-tertiary)' }}>Income</p>
+          <h3 className="text-xl font-bold" style={{ color: 'var(--color-text-primary)' }}>
             <SensitiveValue value={stats.totalIncome} />
           </h3>
         </div>
-        <div className="p-5 rounded-xl" style={{ backgroundColor: 'var(--color-bg-card)', border: '1px solid var(--color-border-card)', borderLeft: '3px solid var(--color-accent)' }}>
-          <p className="text-xs font-medium mb-2" style={{ color: 'var(--color-text-tertiary)' }}>Savings</p>
-          <h3 className="text-lg font-bold" style={{ color: 'var(--color-text-primary)' }}>
+        <div className="p-5 rounded-xl neon-border-top relative overflow-hidden transition-all duration-300"
+          style={{ backgroundColor: 'var(--color-bg-card)', border: '1px solid var(--color-border-card)', borderTop: '2px solid var(--color-accent)' }}>
+          <div className="absolute top-0 right-0 w-16 h-16 rounded-full opacity-[0.04]"
+            style={{ background: 'var(--color-accent)', filter: 'blur(20px)', transform: 'translate(30%, -30%)' }} />
+          <p className="text-[11px] font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--color-text-tertiary)' }}>Savings</p>
+          <h3 className="text-xl font-bold" style={{ color: 'var(--color-text-primary)' }}>
             <SensitiveValue value={stats.totalSavings} />
           </h3>
         </div>
-        <div className="p-5 rounded-xl" style={{ backgroundColor: 'var(--color-bg-card)', border: '1px solid var(--color-border-card)', borderLeft: '3px solid #ef4444' }}>
-          <p className="text-xs font-medium mb-2" style={{ color: 'var(--color-text-tertiary)' }}>Total Debt</p>
-          <h3 className="text-lg font-bold" style={{ color: 'var(--color-text-primary)' }}>
+        <div className="p-5 rounded-xl neon-border-top relative overflow-hidden transition-all duration-300"
+          style={{ backgroundColor: 'var(--color-bg-card)', border: '1px solid var(--color-border-card)', borderTop: '2px solid var(--color-danger, #ef4444)' }}>
+          <div className="absolute top-0 right-0 w-16 h-16 rounded-full opacity-[0.04]"
+            style={{ background: 'var(--color-danger, #ef4444)', filter: 'blur(20px)', transform: 'translate(30%, -30%)' }} />
+          <p className="text-[11px] font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--color-text-tertiary)' }}>Debt</p>
+          <h3 className="text-xl font-bold" style={{ color: 'var(--color-text-primary)' }}>
             <SensitiveValue value={stats.totalDebt} />
           </h3>
         </div>
-        <div className="p-5 rounded-xl col-span-2 lg:col-span-1" style={{ backgroundColor: 'var(--color-bg-sidebar)', color: 'white' }}>
-          <p className="text-xs font-medium mb-2 opacity-70">Net Worth</p>
-          <h3 className="text-lg font-bold">
+        <div className="p-5 rounded-xl col-span-2 lg:col-span-1 relative overflow-hidden transition-all duration-300"
+          style={{ backgroundColor: 'var(--color-bg-sidebar)', color: 'white' }}>
+          <div className="absolute inset-0 opacity-[0.06]"
+            style={{ background: 'linear-gradient(135deg, var(--color-accent) 0%, transparent 60%)' }} />
+          <p className="text-[11px] font-semibold uppercase tracking-wider mb-2 opacity-60 relative z-10">Net Worth</p>
+          <h3 className="text-xl font-bold relative z-10">
             <SensitiveValue value={stats.netWorth} />
           </h3>
         </div>
@@ -686,27 +699,35 @@ export const Dashboard: React.FC<DashboardProps> = ({ transactions: allTransacti
       {/* Financial Health Score + Spending Trends */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Health Score */}
-        <div className="p-5 rounded-xl flex flex-col items-center justify-center text-center"
+        <div className="p-5 rounded-xl flex flex-col items-center justify-center text-center relative overflow-hidden"
           style={{ backgroundColor: 'var(--color-bg-card)', border: '1px solid var(--color-border-card)' }}>
-          <h4 className="text-sm font-semibold mb-3 flex items-center gap-2 self-start" style={{ color: 'var(--color-text-primary)' }}>
-            <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+          {/* Background glow effect */}
+          <div className="absolute inset-0 opacity-[0.03]"
+            style={{ background: `radial-gradient(circle at 50% 50%, ${healthScore.score >= 70 ? 'var(--color-success, #10b981)' : healthScore.score >= 50 ? 'var(--color-warning, #f59e0b)' : 'var(--color-danger, #ef4444)'} 0%, transparent 70%)` }} />
+          <h4 className="text-[11px] font-semibold uppercase tracking-wider mb-4 flex items-center gap-2 self-start relative z-10" style={{ color: 'var(--color-text-tertiary)' }}>
             Financial Health
           </h4>
-          <div className="relative w-20 h-20 mb-3">
+          <div className="relative w-24 h-24 mb-3">
             <svg viewBox="0 0 36 36" className="w-full h-full -rotate-90">
-              <circle cx="18" cy="18" r="15.9" fill="none" stroke="var(--color-border-card)" strokeWidth="3" />
+              <circle cx="18" cy="18" r="15.9" fill="none" stroke="var(--color-border-card)" strokeWidth="2.5" />
               <circle cx="18" cy="18" r="15.9" fill="none"
-                stroke={healthScore.score >= 70 ? '#10b981' : healthScore.score >= 50 ? '#f59e0b' : '#ef4444'}
-                strokeWidth="3" strokeDasharray={`${healthScore.score} ${100 - healthScore.score}`} strokeLinecap="round" />
+                stroke={healthScore.score >= 70 ? 'var(--color-success, #10b981)' : healthScore.score >= 50 ? 'var(--color-warning, #f59e0b)' : 'var(--color-danger, #ef4444)'}
+                strokeWidth="2.5" strokeDasharray={`${healthScore.score} ${100 - healthScore.score}`} strokeLinecap="round"
+                style={{ filter: `drop-shadow(0 0 6px ${healthScore.score >= 70 ? 'var(--color-success, #10b981)' : healthScore.score >= 50 ? 'var(--color-warning, #f59e0b)' : 'var(--color-danger, #ef4444)'}40)` }} />
             </svg>
             <div className="absolute inset-0 flex items-center justify-center">
-              <span className="text-xl font-bold" style={{ color: 'var(--color-text-primary)' }}>{healthScore.grade}</span>
+              <span className="text-2xl font-black" style={{ color: 'var(--color-text-primary)' }}>{healthScore.grade}</span>
             </div>
           </div>
-          <p className="text-2xl font-bold" style={{ color: 'var(--color-text-primary)' }}>{healthScore.score}/100</p>
-          <p className="text-xs mt-1" style={{ color: 'var(--color-text-tertiary)' }}>
-            Savings rate: {healthScore.savingsRate}%
+          <p className="text-3xl font-extrabold tracking-tight relative z-10" style={{ color: 'var(--color-text-primary)' }}>{healthScore.score}</p>
+          <p className="text-[10px] font-semibold uppercase tracking-widest mt-1 relative z-10" style={{ color: 'var(--color-text-tertiary)' }}>
+            out of 100
           </p>
+          <div className="mt-3 px-3 py-1.5 rounded-lg relative z-10" style={{ backgroundColor: 'var(--color-bg-tertiary)' }}>
+            <p className="text-[11px] font-semibold" style={{ color: 'var(--color-text-secondary)' }}>
+              Savings rate: {healthScore.savingsRate}%
+            </p>
+          </div>
         </div>
 
         {/* Spending Trends */}

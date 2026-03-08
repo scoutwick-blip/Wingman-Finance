@@ -138,10 +138,11 @@ export const Layout: React.FC<LayoutProps> = ({
       {/* Desktop Sidebar — hidden on mobile */}
       <aside className="hidden md:flex w-60 flex-col shrink-0 z-40 glass-sidebar"
         style={{ backgroundColor: 'var(--color-bg-sidebar)', borderRight: '1px solid var(--color-border-primary)' }}>
-        <div className="px-5 py-5 flex items-center gap-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+        {/* Sidebar Logo */}
+        <div className="px-5 py-5 flex items-center gap-3 relative" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
           <div
-            className="w-9 h-9 rounded-xl flex items-center justify-center text-white font-bold text-sm overflow-hidden"
-            style={{ backgroundColor: preferences.accentColor }}
+            className="w-10 h-10 rounded-2xl flex items-center justify-center text-white font-bold text-sm overflow-hidden shadow-lg"
+            style={{ backgroundColor: preferences.accentColor, boxShadow: `0 4px 15px ${preferences.accentColor}40` }}
           >
             {preferences.profileImage ? (
               <img src={preferences.profileImage} alt="Logo" className="w-full h-full object-cover block" />
@@ -150,50 +151,65 @@ export const Layout: React.FC<LayoutProps> = ({
             )}
           </div>
           <div>
-            <h1 className="text-base font-bold text-white leading-none">Wingman</h1>
-            <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-sidebar)' }}>Finance</p>
+            <h1 className="text-base font-bold text-white leading-none tracking-tight">Wingman</h1>
+            <p className="text-[11px] mt-0.5 font-medium tracking-wider uppercase" style={{ color: 'var(--color-text-sidebar)' }}>Finance</p>
           </div>
         </div>
+
+        {/* Gradient divider line */}
+        <div className="premium-accent-line mx-4" />
+
         <nav className="flex-1 px-3 py-3 flex flex-col gap-0.5 overflow-y-auto scrollbar-hide">
-          {navItems.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => setActiveTab(item.id)}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 whitespace-nowrap group ${
-                activeTab === item.id
-                  ? 'text-white font-semibold'
-                  : 'hover:text-white'
-              }`}
-              style={{
-                backgroundColor: activeTab === item.id ? 'var(--color-bg-sidebar-active)' : 'transparent',
-                color: activeTab === item.id ? 'var(--color-text-sidebar-active)' : 'var(--color-text-sidebar)',
-              }}
-              onMouseEnter={(e) => {
-                if (activeTab !== item.id) {
-                  e.currentTarget.style.backgroundColor = 'var(--color-bg-sidebar-hover)';
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (activeTab !== item.id) {
-                  e.currentTarget.style.backgroundColor = 'transparent';
-                }
-              }}
-            >
-              <span className="text-base">{item.icon}</span>
-              <span className="text-sm font-medium">{item.label}</span>
-            </button>
-          ))}
+          {navItems.map((item) => {
+            const isActive = activeTab === item.id;
+            return (
+              <button
+                key={item.id}
+                onClick={() => setActiveTab(item.id)}
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 whitespace-nowrap group relative overflow-hidden ${
+                  isActive
+                    ? 'text-white font-semibold'
+                    : 'hover:text-white'
+                }`}
+                style={{
+                  backgroundColor: isActive ? 'var(--color-bg-sidebar-active)' : 'transparent',
+                  color: isActive ? 'var(--color-text-sidebar-active)' : 'var(--color-text-sidebar)',
+                  ...(isActive ? { boxShadow: `0 2px 12px ${preferences.accentColor || 'var(--color-accent)'}30` } : {})
+                }}
+                onMouseEnter={(e) => {
+                  if (!isActive) {
+                    e.currentTarget.style.backgroundColor = 'var(--color-bg-sidebar-hover)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!isActive) {
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                  }
+                }}
+              >
+                {/* Active indicator bar */}
+                {isActive && (
+                  <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full"
+                    style={{ backgroundColor: '#fff', opacity: 0.7 }} />
+                )}
+                <span className={`text-base transition-transform duration-200 ${isActive ? 'scale-110' : 'group-hover:scale-105'}`}>{item.icon}</span>
+                <span className="text-sm font-medium">{item.label}</span>
+              </button>
+            );
+          })}
         </nav>
+
         {/* Account Quick View */}
         {accounts.filter(a => !a.isHidden).length > 0 && (
-          <div className="px-3 py-3" style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
-            <p className="text-xs font-bold uppercase tracking-wider mb-2 px-2" style={{ color: 'var(--color-text-sidebar)' }}>Accounts</p>
+          <div className="px-3 py-3" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+            <div className="premium-accent-line mb-3" />
+            <p className="text-[10px] font-bold uppercase tracking-widest mb-2 px-2" style={{ color: 'var(--color-text-sidebar)' }}>Accounts</p>
             <div className="space-y-1 max-h-40 overflow-y-auto scrollbar-hide">
               {accounts.filter(a => !a.isHidden).map(account => (
                 <button
                   key={account.id}
                   onClick={() => setActiveTab('transactions')}
-                  className="w-full flex items-center justify-between px-2 py-1.5 rounded-lg transition-all text-left group"
+                  className="w-full flex items-center justify-between px-2.5 py-2 rounded-xl transition-all text-left group"
                   style={{ color: 'var(--color-text-sidebar)' }}
                   onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--color-bg-sidebar-hover)'}
                   onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
@@ -203,7 +219,8 @@ export const Layout: React.FC<LayoutProps> = ({
                     <span className="text-sm shrink-0">{account.icon || '💳'}</span>
                     <span className="text-xs font-medium truncate">{account.name}</span>
                   </div>
-                  <span className="text-xs font-bold shrink-0 ml-1" style={{ color: account.balance >= 0 ? '#10b981' : '#ef4444' }}>
+                  <span className="text-xs font-bold shrink-0 ml-1 tabular-nums"
+                    style={{ color: account.balance >= 0 ? 'var(--color-success, #10b981)' : 'var(--color-danger, #ef4444)' }}>
                     {preferences.currency}{Math.abs(account.balance).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                   </span>
                 </button>
@@ -212,12 +229,12 @@ export const Layout: React.FC<LayoutProps> = ({
           </div>
         )}
 
-        <div className="px-4 py-4 space-y-3" style={{ borderTop: 'rgba(255,255,255,0.08) 1px solid' }}>
+        <div className="px-4 py-4 space-y-3" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
           {onOpenTemplates && (
             <button
               onClick={onOpenTemplates}
-              className="w-full text-white font-semibold py-2.5 px-4 rounded-lg transition-all flex items-center justify-center gap-2 text-sm"
-              style={{ backgroundColor: 'var(--color-accent)' }}
+              className="w-full text-white font-semibold py-2.5 px-4 rounded-xl transition-all flex items-center justify-center gap-2 text-sm"
+              style={{ backgroundColor: 'var(--color-accent)', boxShadow: `0 2px 10px var(--color-accent)30` }}
               onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--color-accent-hover)'}
               onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--color-accent)'}
             >
@@ -226,12 +243,12 @@ export const Layout: React.FC<LayoutProps> = ({
             </button>
           )}
           <div className="rounded-xl p-3" style={{ backgroundColor: 'var(--color-bg-sidebar-hover)', border: '1px solid rgba(255,255,255,0.06)' }}>
-            <p className="text-xs" style={{ color: 'var(--color-text-sidebar)' }}>Profile</p>
+            <p className="text-[10px] uppercase tracking-wider" style={{ color: 'var(--color-text-sidebar)' }}>Profile</p>
             <p className="text-sm font-semibold text-white truncate mt-0.5">{preferences.name || 'Guest'}</p>
           </div>
           <button
             onClick={onSwitchProfile}
-            className="w-full text-center text-xs font-medium transition-colors py-1.5 hover:text-white"
+            className="w-full text-center text-xs font-medium transition-colors py-1.5 hover:text-white rounded-lg"
             style={{ color: 'var(--color-text-sidebar)' }}
           >
             Switch Profile
@@ -364,7 +381,7 @@ export const Layout: React.FC<LayoutProps> = ({
       </main>
 
       {/* Mobile Bottom Tab Bar */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 safe-area-bottom glass-header"
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 safe-area-bottom glass-mobile-bar"
         style={{ backgroundColor: 'var(--color-bg-header)', borderTop: '1px solid var(--color-border-primary)' }}>
         <div className="flex w-full">
           {mobileTabIds.map(tabId => {
