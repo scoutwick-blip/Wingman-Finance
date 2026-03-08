@@ -457,7 +457,11 @@ const App: React.FC = () => {
     localStorage.setItem(STORAGE_KEY_PROFILES, JSON.stringify(updatedProfiles));
   };
 
-  const handleCreateProfile = async (prefs: UserPreferences) => {
+  const handleCreateProfile = async (
+    prefs: UserPreferences,
+    initialBills?: Omit<Bill, 'id'>[],
+    initialSubscriptions?: Omit<Subscription, 'id'>[]
+  ) => {
     // Generate unique profile ID for each profile
     // If authenticated: user-{userId}-profile-{timestamp} for multiple profiles per account
     // If local: user-{timestamp}
@@ -486,12 +490,40 @@ const App: React.FC = () => {
       setCategories(zeroedCategories);
       setTransactions([]);
       setNotifications([]);
-      setBills([]);
       setMerchantMappings([]);
-      setSubscriptions([]);
       setGoals([]);
       setSplitTransactions([]);
       setAccounts(DEFAULT_ACCOUNTS);
+
+      // Resolve initial bills from setup wizard — match categoryHint to actual category IDs
+      const resolvedBills: Bill[] = (initialBills || []).map((bill, i) => {
+        const hintMatch = bill.notes?.match(/\(([^)]+)\)$/);
+        const categoryHint = hintMatch ? hintMatch[1] : '';
+        const matchedCategory = zeroedCategories.find(c =>
+          c.name.toLowerCase() === categoryHint.toLowerCase()
+        );
+        return {
+          ...bill,
+          id: `bill-setup-${timestamp}-${i}`,
+          categoryId: matchedCategory?.id || zeroedCategories.find(c => c.name === 'Unassigned')?.id || '',
+        };
+      });
+      setBills(resolvedBills);
+
+      // Resolve initial subscriptions from setup wizard
+      const resolvedSubs: Subscription[] = (initialSubscriptions || []).map((sub, i) => {
+        const hintMatch = sub.notes?.match(/\(([^)]+)\)$/);
+        const categoryHint = hintMatch ? hintMatch[1] : '';
+        const matchedCategory = zeroedCategories.find(c =>
+          c.name.toLowerCase() === categoryHint.toLowerCase()
+        );
+        return {
+          ...sub,
+          id: `sub-setup-${timestamp}-${i}`,
+          categoryId: matchedCategory?.id || zeroedCategories.find(c => c.name === 'Subscriptions')?.id || '',
+        };
+      });
+      setSubscriptions(resolvedSubs);
 
       setActiveProfileId(newId);
       setIsSetupMode(false);
@@ -504,9 +536,9 @@ const App: React.FC = () => {
           preferences: prefs,
           categories: zeroedCategories,
           transactions: [],
-          bills: [],
+          bills: resolvedBills,
           merchantMappings: [],
-          subscriptions: [],
+          subscriptions: resolvedSubs,
           goals: [],
           splitTransactions: [],
           accounts: DEFAULT_ACCOUNTS

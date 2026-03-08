@@ -143,6 +143,8 @@ export interface UserPreferences {
   theme?: 'light' | 'dark' | 'system';
   persona?: 'standard' | 'military'; // 'military' restores aviation/military themed language
   budgetRollover?: boolean; // Carry unspent budget from previous month into current month
+  monthlyIncome?: number; // User's monthly take-home income
+  budgetTemplate?: string; // Selected budget template ID
 }
 
 export interface UserProfile {
