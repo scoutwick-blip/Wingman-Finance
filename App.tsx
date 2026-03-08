@@ -1491,17 +1491,7 @@ const App: React.FC = () => {
           />
         );
       case 'advisor':
-        return (
-          <AIAdvisor
-            transactions={transactions}
-            categories={categories}
-            bills={bills}
-            goals={goals}
-            subscriptions={subscriptions}
-            accounts={accounts}
-            preferences={preferences}
-          />
-        );
+        return null; // AIAdvisor is always mounted below to preserve conversation state
       case 'bills':
         return (
           <Bills
@@ -1616,6 +1606,18 @@ const App: React.FC = () => {
         onOpenTemplates={() => setShowBudgetTemplates(true)}
       >
         {renderContent()}
+        {/* AIAdvisor is always mounted to preserve conversation state across tab switches */}
+        <div style={{ display: activeTab === 'advisor' ? 'block' : 'none' }}>
+          <AIAdvisor
+            transactions={transactions}
+            categories={categories}
+            bills={bills}
+            goals={goals}
+            subscriptions={subscriptions}
+            accounts={accounts}
+            preferences={preferences}
+          />
+        </div>
       </Layout>
 
       {showBudgetTemplates && (
@@ -1634,6 +1636,7 @@ const App: React.FC = () => {
           accounts={accounts}
           merchantMappings={merchantMappings}
           onImport={importTransactions}
+          onUpdateTransaction={updateTransaction}
           onUpdateMerchantMappings={setMerchantMappings}
           onClose={() => setShowCSVImport(false)}
           currency={preferences.currency}

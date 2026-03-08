@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { Upload, Check, X, AlertCircle, FileText, Sparkles, Camera } from 'lucide-react';
-import { importCSVTransactions, reconcileTransactions, BANK_PRESETS, CSVMapping } from '../services/csvImportService';
+import { importCSVTransactions, reconcileTransactions, BANK_PRESETS, CSVMapping, isAggregatorDescription } from '../services/csvImportService';
 import { parseOFXFile, isOFXFormat } from '../services/ofxParser';
 import { ImportedTransaction, ReconciliationMatch, ReconciliationStatus, Transaction, Category, MerchantMapping, CategorySuggestion, Account } from '../types';
 import { findBestCategoryMatch } from '../services/merchantDatabase';
@@ -12,6 +12,7 @@ interface CSVImportProps {
   merchantMappings: MerchantMapping[];
   accounts: Account[];
   onImport: (transactions: Omit<Transaction, 'id'>[]) => void;
+  onUpdateTransaction: (id: string, updates: Partial<Transaction>) => void;
   onUpdateMerchantMappings: (mappings: MerchantMapping[]) => void;
   onClose: () => void;
   currency: string;
@@ -23,6 +24,7 @@ export default function CSVImport({
   merchantMappings,
   accounts,
   onImport,
+  onUpdateTransaction,
   onUpdateMerchantMappings,
   onClose,
   currency
@@ -57,6 +59,8 @@ export default function CSVImport({
   const [isDraggingStatement, setIsDraggingStatement] = useState(false);
   const [autoImportedCount, setAutoImportedCount] = useState(0);
   const [autoImportedDetails, setAutoImportedDetails] = useState<Array<{ merchant: string; amount: number; category: string; count: number }>>([]);
+  const [autoEnrichedCount, setAutoEnrichedCount] = useState(0);
+  const [autoEnrichedDetails, setAutoEnrichedDetails] = useState<Array<{ oldDescription: string; newDescription: string; amount: number }>>([]);
 
   const handleDroppedFile = useCallback((file: File, type: 'bank' | 'statement') => {
     if (type === 'bank') {
@@ -415,9 +419,14 @@ export default function CSVImport({
   const AUTO_IMPORT_MIN_USES = 2;
 
   const handleCategorize = async () => {
-    // Split transactions: auto-import recognized merchants, manual review for the rest
+    // Split transactions: auto-import recognized merchants, enrich aggregators, manual review for the rest
     const autoImportable: ImportedTransaction[] = [];
     const needsReview: ImportedTransaction[] = [];
+    const enrichedDetails: Array<{ oldDescription: string; newDescription: string; amount: number }> = [];
+
+    // Track which existing transactions we've already matched for enrichment
+    // to avoid matching the same existing transaction to multiple imports
+    const enrichedExistingIds = new Set<string>();
 
     importedTransactions.forEach(tx => {
       const normalizedMerchant = tx.merchant?.toLowerCase() || tx.description.toLowerCase();
@@ -433,7 +442,37 @@ export default function CSVImport({
           Math.abs(ex.amount - tx.amount) < 0.01
       );
 
-      if (
+      // Check if this can enrich an existing aggregator transaction
+      // (e.g., PayPal statement enriching a bank-side "PAYPAL *SOMETHING" entry)
+      const enrichTarget = !isDuplicate && !isAggregatorDescription(tx.description)
+        ? transactions.find(ex =>
+            !enrichedExistingIds.has(ex.id) &&
+            ex.date === tx.date &&
+            Math.abs(ex.amount - tx.amount) < 0.01 &&
+            isAggregatorDescription(ex.description)
+          )
+        : undefined;
+
+      if (enrichTarget) {
+        // Auto-enrich: update the existing transaction with the detailed info
+        enrichedExistingIds.add(enrichTarget.id);
+        const updates: Partial<Transaction> = {
+          description: tx.description,
+          merchant: tx.merchant || enrichTarget.merchant,
+        };
+        // If the imported tx has a category from AI/mapping, apply it too
+        if (tx.category) {
+          updates.categoryId = tx.category;
+        } else if (existingMapping?.categoryId) {
+          updates.categoryId = existingMapping.categoryId;
+        }
+        onUpdateTransaction(enrichTarget.id, updates);
+        enrichedDetails.push({
+          oldDescription: enrichTarget.description,
+          newDescription: tx.description,
+          amount: tx.amount
+        });
+      } else if (
         !isDuplicate &&
         existingMapping &&
         existingMapping.confidence >= AUTO_IMPORT_CONFIDENCE &&
@@ -445,6 +484,12 @@ export default function CSVImport({
         needsReview.push(tx);
       }
     });
+
+    // Track enrichments
+    if (enrichedDetails.length > 0) {
+      setAutoEnrichedCount(enrichedDetails.length);
+      setAutoEnrichedDetails(enrichedDetails);
+    }
 
     // Auto-import recognized transactions immediately
     if (autoImportable.length > 0) {
@@ -509,7 +554,7 @@ export default function CSVImport({
 
     // If nothing left to review, we're done
     if (needsReview.length === 0) {
-      // All transactions were auto-imported — show a brief summary then close
+      // All transactions were auto-imported/enriched — show a brief summary then close
       setImportedTransactions([]);
       setStep('categorize');
       return;
@@ -597,11 +642,11 @@ export default function CSVImport({
     const matches = reconcileTransactions(updatedTransactions, transactions, categories);
     setReconciliationMatches(matches);
 
-    // Auto-select only NEW transactions
-    const newIndices = matches
-      .map((match, index) => (match.status === ReconciliationStatus.NEW ? index : -1))
+    // Auto-select NEW and ENRICHABLE transactions
+    const selectableIndices = matches
+      .map((match, index) => (match.status === ReconciliationStatus.NEW || match.status === ReconciliationStatus.ENRICHABLE ? index : -1))
       .filter(i => i !== -1);
-    setSelectedMatches(new Set(newIndices));
+    setSelectedMatches(new Set(selectableIndices));
 
     setStep('reconcile');
   };
@@ -615,6 +660,16 @@ export default function CSVImport({
       if (!match || match.status === ReconciliationStatus.DUPLICATE) return;
 
       const imported = match.importedTransaction;
+
+      // Handle enrichable matches: update the existing transaction with detailed info
+      if (match.status === ReconciliationStatus.ENRICHABLE && match.existingTransaction) {
+        const updates: Partial<Transaction> = {
+          description: imported.description,
+          merchant: imported.merchant || match.existingTransaction.merchant,
+        };
+        onUpdateTransaction(match.existingTransaction.id, updates);
+        return;
+      }
 
       // Use detected type, default to expense if not detected
       const typeId = imported.type === 'income' ? 'type-income' : 'type-expense';
@@ -727,6 +782,7 @@ export default function CSVImport({
       case ReconciliationStatus.NEW: return 'bg-green-100 text-green-800 border-green-300';
       case ReconciliationStatus.MATCHED: return 'bg-yellow-100 text-yellow-800 border-yellow-300';
       case ReconciliationStatus.DUPLICATE: return 'bg-gray-100 text-gray-800 border-gray-300';
+      case ReconciliationStatus.ENRICHABLE: return 'bg-purple-100 text-purple-800 border-purple-300';
       default: return 'bg-blue-100 text-blue-800 border-blue-300';
     }
   };
@@ -735,6 +791,7 @@ export default function CSVImport({
     switch (status) {
       case ReconciliationStatus.NEW: return <Check className="w-4 h-4" />;
       case ReconciliationStatus.DUPLICATE: return <X className="w-4 h-4" />;
+      case ReconciliationStatus.ENRICHABLE: return <Sparkles className="w-4 h-4" />;
       default: return <AlertCircle className="w-4 h-4" />;
     }
   };
@@ -1146,12 +1203,53 @@ export default function CSVImport({
                       </div>
                     </details>
                   )}
-                  {importedTransactions.length === 0 && (
+                  {importedTransactions.length === 0 && autoEnrichedCount === 0 && (
                     <div className="mt-3 pt-3 border-t border-green-300">
                       <p className="text-sm font-bold text-green-900 mb-2">All transactions were recognized! Nothing left to review.</p>
                       <button
                         onClick={onClose}
                         className="bg-green-600 text-white px-6 py-2 rounded-xl hover:bg-green-700 transition-colors font-bold text-sm"
+                      >
+                        Done
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Auto-enriched summary */}
+              {autoEnrichedCount > 0 && (
+                <div className="bg-purple-50 border-2 border-purple-300 rounded-xl p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Sparkles className="w-5 h-5 text-purple-600" />
+                    <p className="font-bold text-purple-900">
+                      {autoEnrichedCount} transaction{autoEnrichedCount !== 1 ? 's' : ''} enriched
+                    </p>
+                  </div>
+                  <p className="text-sm text-purple-700 mb-2">
+                    Existing transactions with generic descriptions (PayPal, Venmo, etc.) were updated with detailed merchant info.
+                  </p>
+                  {autoEnrichedDetails.length > 0 && (
+                    <details className="group">
+                      <summary className="cursor-pointer text-xs text-purple-700 hover:text-purple-900 font-medium">
+                        View details
+                      </summary>
+                      <div className="mt-2 space-y-1">
+                        {autoEnrichedDetails.map((d, i) => (
+                          <div key={i} className="flex justify-between text-xs text-purple-800 bg-purple-100 rounded px-2 py-1">
+                            <span>{d.oldDescription} &rarr; {d.newDescription}</span>
+                            <span className="font-bold">{currency}{d.amount.toFixed(2)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </details>
+                  )}
+                  {importedTransactions.length === 0 && autoImportedCount === 0 && (
+                    <div className="mt-3 pt-3 border-t border-purple-300">
+                      <p className="text-sm font-bold text-purple-900 mb-2">All transactions were matched and enriched! Nothing left to review.</p>
+                      <button
+                        onClick={onClose}
+                        className="bg-purple-600 text-white px-6 py-2 rounded-xl hover:bg-purple-700 transition-colors font-bold text-sm"
                       >
                         Done
                       </button>
@@ -1502,13 +1600,25 @@ export default function CSVImport({
                         </div>
 
                         {match.existingTransaction && (
-                          <div className="mt-2 bg-yellow-50 border border-yellow-200 rounded-lg p-2 text-xs">
-                            <p className="font-medium text-yellow-800">
-                              {match.status === ReconciliationStatus.DUPLICATE ? 'Duplicate of:' : 'Similar to:'}
+                          <div className={`mt-2 border rounded-lg p-2 text-xs ${
+                            match.status === ReconciliationStatus.ENRICHABLE
+                              ? 'bg-purple-50 border-purple-200'
+                              : 'bg-yellow-50 border-yellow-200'
+                          }`}>
+                            <p className={`font-medium ${
+                              match.status === ReconciliationStatus.ENRICHABLE ? 'text-purple-800' : 'text-yellow-800'
+                            }`}>
+                              {match.status === ReconciliationStatus.DUPLICATE ? 'Duplicate of:' :
+                               match.status === ReconciliationStatus.ENRICHABLE ? 'Will update existing:' : 'Similar to:'}
                             </p>
                             <p className="text-gray-700">
                               {match.existingTransaction.description} - {currency}{match.existingTransaction.amount.toFixed(2)}
                             </p>
+                            {match.status === ReconciliationStatus.ENRICHABLE && (
+                              <p className="text-purple-600 mt-1">
+                                Description will be updated with the more detailed info above
+                              </p>
+                            )}
                           </div>
                         )}
                       </div>

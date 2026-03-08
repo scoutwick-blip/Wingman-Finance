@@ -328,7 +328,8 @@ export enum ReconciliationStatus {
   NEW = 'NEW',
   MATCHED = 'MATCHED',
   DUPLICATE = 'DUPLICATE',
-  CONFLICT = 'CONFLICT'
+  CONFLICT = 'CONFLICT',
+  ENRICHABLE = 'ENRICHABLE' // Existing transaction can be enriched with more detail (e.g., PayPal → actual merchant)
 }
 
 export interface ReconciliationMatch {

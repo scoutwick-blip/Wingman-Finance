@@ -75,6 +75,11 @@ export function detectDateFormat(dateStr: string): string {
   if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return 'YYYY-MM-DD';
   if (/^\d{2}-\d{2}-\d{4}$/.test(dateStr)) return 'MM-DD-YYYY';
   if (/^\d{2}\/\d{2}\/\d{2}$/.test(dateStr)) return 'MM/DD/YY';
+  if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(dateStr)) return 'M/D/YYYY';
+  if (/^\d{1,2}\/\d{1,2}\/\d{2}$/.test(dateStr)) return 'M/D/YY';
+  if (/^\d{1,2}-\d{1,2}-\d{4}$/.test(dateStr)) return 'M-D-YYYY';
+  // Try JS native Date as last resort
+  if (!isNaN(new Date(dateStr).getTime())) return 'NATIVE';
   return 'UNKNOWN';
 }
 
@@ -94,19 +99,44 @@ export function parseDate(dateStr: string, format: string): string {
         day = parseInt(parts[1], 10);
         year = parseInt(parts[2], 10);
         break;
+      case 'M/D/YYYY':
+      case 'M-D-YYYY':
+        month = parseInt(parts[0], 10);
+        day = parseInt(parts[1], 10);
+        year = parseInt(parts[2], 10);
+        break;
       case 'MM/DD/YY':
+      case 'M/D/YY':
         month = parseInt(parts[0], 10);
         day = parseInt(parts[1], 10);
         year = parseInt(parts[2], 10) + 2000;
         break;
+      case 'NATIVE': {
+        // JS native Date parser as fallback for formats like "Jan 15, 2024"
+        const parsed = new Date(dateStr);
+        if (!isNaN(parsed.getTime())) {
+          return parsed.toISOString().split('T')[0];
+        }
+        // If native parse fails, preserve original string as-is
+        return dateStr;
+      }
       default:
-        return new Date().toISOString().split('T')[0];
+        // UNKNOWN format: try native Date, otherwise preserve original
+        const attempted = new Date(dateStr);
+        if (!isNaN(attempted.getTime())) {
+          return attempted.toISOString().split('T')[0];
+        }
+        return dateStr;
     }
 
     const date = new Date(year, month - 1, day);
+    if (isNaN(date.getTime())) {
+      return dateStr; // Preserve original if parsing fails
+    }
     return date.toISOString().split('T')[0];
   } catch {
-    return new Date().toISOString().split('T')[0];
+    // Never silently replace with today's date — preserve the original
+    return dateStr;
   }
 }
 
@@ -241,6 +271,20 @@ export function reconcileTransactions(
       continue;
     }
 
+    // Try enrichment match: existing transaction has a generic aggregator description
+    // (e.g., "PAYPAL *SOMETHING") and imported transaction has more detail from the
+    // aggregator's own statement (e.g., "Payment to Amazon Store")
+    const enrichMatch = findEnrichableMatch(importedTx, existing);
+    if (enrichMatch) {
+      matches.push({
+        importedTransaction: importedTx,
+        existingTransaction: enrichMatch,
+        status: ReconciliationStatus.ENRICHABLE,
+        confidence: 0.9
+      });
+      continue;
+    }
+
     // Try fuzzy match (same date, similar amount)
     const fuzzyMatch = existing.find(
       ex =>
@@ -291,6 +335,60 @@ export function reconcileTransactions(
   }
 
   return matches;
+}
+
+/**
+ * Payment aggregators and platforms whose bank-side descriptions are generic.
+ * When a user imports the aggregator's own statement, we can enrich the
+ * bank-side transaction with the detailed merchant/description.
+ */
+const AGGREGATOR_PATTERNS = [
+  /^paypal\b/i,
+  /^venmo\b/i,
+  /^square\b/i,
+  /^zelle\b/i,
+  /^cash\s?app\b/i,
+  /^apple\s?pay\b/i,
+  /^google\s?pay\b/i,
+  /^stripe\b/i,
+  /^klarna\b/i,
+  /^afterpay\b/i,
+  /^affirm\b/i,
+];
+
+/**
+ * Check if a transaction description looks like a generic aggregator entry
+ * (e.g., "PAYPAL *MERCHANTNAME", "VENMO PAYMENT", "SQ *COFFEE SHOP")
+ */
+export function isAggregatorDescription(description: string): boolean {
+  const desc = description.trim();
+  return AGGREGATOR_PATTERNS.some(pattern => pattern.test(desc));
+}
+
+/**
+ * Find an existing transaction that can be enriched by the imported one.
+ * Matches by: same date, same amount (within 1 cent), and the existing
+ * transaction has a generic aggregator description while the imported one
+ * has more specific detail.
+ */
+function findEnrichableMatch(
+  importedTx: ImportedTransaction,
+  existing: Transaction[]
+): Transaction | undefined {
+  return existing.find(ex => {
+    // Must match on date and amount
+    if (ex.date !== importedTx.date) return false;
+    if (Math.abs(ex.amount - importedTx.amount) > 0.01) return false;
+
+    // The existing transaction should have an aggregator-style description
+    if (!isAggregatorDescription(ex.description)) return false;
+
+    // The imported transaction should NOT be another aggregator description
+    // (otherwise we'd just be matching two generic entries)
+    if (isAggregatorDescription(importedTx.description)) return false;
+
+    return true;
+  });
 }
 
 function similarity(s1: string, s2: string): number {
