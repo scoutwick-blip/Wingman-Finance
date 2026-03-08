@@ -722,6 +722,7 @@ const App: React.FC = () => {
   const addTransaction = (newT: Omit<Transaction, 'id'>) => {
     const transaction: Transaction = {
       ...newT,
+      amount: Math.abs(newT.amount),
       id: Math.random().toString(36).substring(2, 9)
     };
 
@@ -1204,6 +1205,49 @@ const App: React.FC = () => {
     setSubscriptions(prev => prev.filter(s => s.id !== subscriptionId));
   };
 
+  // Auto-generate upcoming bills from active subscriptions
+  useEffect(() => {
+    const activeSubscriptions = subscriptions.filter(s => s.status === SubscriptionStatus.ACTIVE);
+    if (activeSubscriptions.length === 0) return;
+
+    const newBills: Bill[] = [];
+
+    activeSubscriptions.forEach(sub => {
+      // Check if a bill already exists for this subscription's next billing date
+      const existingBill = bills.find(b =>
+        b.linkedSubscriptionId === sub.id &&
+        b.status !== BillStatus.PAID
+      );
+
+      if (!existingBill) {
+        // Only create if the next billing date is within 30 days
+        const daysUntilBilling = Math.ceil(
+          (new Date(sub.nextBillingDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
+        );
+
+        if (daysUntilBilling <= 30 && daysUntilBilling >= -7) {
+          newBills.push({
+            id: `bill-sub-${sub.id}-${Date.now()}`,
+            name: sub.name,
+            amount: sub.cost,
+            dueDate: sub.nextBillingDate,
+            categoryId: sub.categoryId,
+            accountId: sub.accountId,
+            isRecurring: true,
+            frequency: sub.billingCycle,
+            status: BillStatus.UPCOMING,
+            notes: `Auto-created from subscription`,
+            linkedSubscriptionId: sub.id
+          });
+        }
+      }
+    });
+
+    if (newBills.length > 0) {
+      setBills(prev => [...newBills, ...prev]);
+    }
+  }, [subscriptions]);
+
   // Account Management
   const addAccount = (account: Account) => {
     setAccounts(prev => [...prev, account]);
@@ -1553,6 +1597,8 @@ const App: React.FC = () => {
             accounts={accounts}
             goals={goals}
             preferences={preferences}
+            bills={bills}
+            subscriptions={subscriptions}
             onNavigateToGoals={() => setActiveTab('goals')}
             onNavigateToBudgets={() => setActiveTab('budgets')}
           />

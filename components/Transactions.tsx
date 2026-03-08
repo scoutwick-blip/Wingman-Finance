@@ -245,7 +245,7 @@ export const Transactions: React.FC<TransactionsProps> = ({
 
     const payload = {
       description: formData.description,
-      amount: parseFloat(formData.amount),
+      amount: Math.abs(parseFloat(formData.amount)),
       categoryId: formData.categoryId,
       typeId: formData.typeId,
       accountId: formData.accountId || undefined,
@@ -811,7 +811,7 @@ export const Transactions: React.FC<TransactionsProps> = ({
                             </span>
                           </td>
                           <td className={`px-4 py-4 text-sm font-semibold ${behaviorColor} ${preferences.privacyMode ? 'blur-sm hover:blur-none' : ''}`} style={typeDef?.behavior !== TransactionBehavior.INFLOW && typeDef?.behavior !== TransactionBehavior.OUTFLOW ? { color: 'var(--color-text-tertiary)' } : typeDef?.behavior === TransactionBehavior.OUTFLOW ? { color: 'var(--color-text-secondary)' } : undefined}>
-                            {behaviorIcon}{preferences.currency}{t.amount.toFixed(2)}
+                            {behaviorIcon}{preferences.currency}{Math.abs(t.amount).toFixed(2)}
                           </td>
                           <td className="px-4 py-4 text-right">
                             <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all">

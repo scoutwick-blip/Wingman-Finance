@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { TrendingUp, TrendingDown, Target, Zap, Calculator, Calendar, Award, AlertCircle, CheckCircle, DollarSign, PiggyBank } from 'lucide-react';
-import { Transaction, Category, CategoryType, Goal, GoalStatus, UserPreferences, TransactionBehavior, Account, AccountType } from '../types';
+import { Transaction, Category, CategoryType, Goal, GoalStatus, UserPreferences, TransactionBehavior, Account, AccountType, Bill, BillStatus, Subscription, SubscriptionStatus } from '../types';
 
 interface SavingsDebtDashboardProps {
   transactions: Transaction[];
@@ -8,6 +8,8 @@ interface SavingsDebtDashboardProps {
   accounts: Account[];
   goals: Goal[];
   preferences: UserPreferences;
+  bills?: Bill[];
+  subscriptions?: Subscription[];
   onNavigateToGoals: () => void;
   onNavigateToBudgets: () => void;
 }
@@ -30,6 +32,8 @@ export default function SavingsDebtDashboard({
   accounts,
   goals,
   preferences,
+  bills = [],
+  subscriptions = [],
   onNavigateToGoals,
   onNavigateToBudgets
 }: SavingsDebtDashboardProps) {
@@ -543,6 +547,80 @@ export default function SavingsDebtDashboard({
               ))}
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Monthly Obligations Summary */}
+      {(bills.length > 0 || subscriptions.length > 0) && (
+        <div className="border-2 rounded-2xl p-6 shadow-sm" style={{ backgroundColor: 'var(--color-bg-card)', borderColor: 'var(--color-border-card)' }}>
+          <div className="flex items-center gap-3 mb-4">
+            <div className="bg-indigo-100 p-3 rounded-xl">
+              <Calendar className="w-6 h-6 text-indigo-600" />
+            </div>
+            <div>
+              <h4 className="text-lg font-semibold" style={{ color: 'var(--color-text-primary)' }}>Monthly Obligations</h4>
+              <p className="text-sm" style={{ color: 'var(--color-text-tertiary)' }}>Bills and subscriptions due</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+            <div className="rounded-xl p-4" style={{ backgroundColor: 'var(--color-bg-tertiary)', border: '2px solid var(--color-border-primary)' }}>
+              <p className="text-xs font-bold" style={{ color: 'var(--color-text-tertiary)' }}>Upcoming Bills</p>
+              <p className="text-xl font-semibold" style={{ color: 'var(--color-text-primary)' }}>
+                {preferences.currency}{bills.filter(b => b.status !== BillStatus.PAID).reduce((sum, b) => sum + b.amount, 0).toFixed(2)}
+              </p>
+              <p className="text-xs mt-1" style={{ color: 'var(--color-text-tertiary)' }}>
+                {bills.filter(b => b.status !== BillStatus.PAID).length} pending
+              </p>
+            </div>
+            <div className="rounded-xl p-4" style={{ backgroundColor: 'var(--color-bg-tertiary)', border: '2px solid var(--color-border-primary)' }}>
+              <p className="text-xs font-bold" style={{ color: 'var(--color-text-tertiary)' }}>Active Subscriptions</p>
+              <p className="text-xl font-semibold" style={{ color: 'var(--color-text-primary)' }}>
+                {preferences.currency}{subscriptions.filter(s => s.status === SubscriptionStatus.ACTIVE).reduce((sum, s) => sum + s.cost, 0).toFixed(2)}
+              </p>
+              <p className="text-xs mt-1" style={{ color: 'var(--color-text-tertiary)' }}>
+                {subscriptions.filter(s => s.status === SubscriptionStatus.ACTIVE).length} active
+              </p>
+            </div>
+            <div className="rounded-xl p-4" style={{ backgroundColor: 'var(--color-bg-tertiary)', border: '2px solid var(--color-border-primary)' }}>
+              <p className="text-xs font-bold" style={{ color: 'var(--color-text-tertiary)' }}>Total Monthly Cost</p>
+              <p className="text-xl font-semibold" style={{ color: 'var(--color-text-primary)' }}>
+                {preferences.currency}{(
+                  bills.filter(b => b.status !== BillStatus.PAID).reduce((sum, b) => sum + b.amount, 0) +
+                  subscriptions.filter(s => s.status === SubscriptionStatus.ACTIVE).reduce((sum, s) => sum + s.cost, 0)
+                ).toFixed(2)}
+              </p>
+              <p className="text-xs mt-1" style={{ color: 'var(--color-text-tertiary)' }}>
+                bills + subscriptions
+              </p>
+            </div>
+          </div>
+
+          {/* Overdue bills warning */}
+          {bills.filter(b => {
+            const daysUntilDue = Math.ceil((new Date(b.dueDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+            return daysUntilDue < 0 && b.status !== BillStatus.PAID;
+          }).length > 0 && (
+            <div className="bg-red-50 border border-red-200 rounded-xl p-4">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-bold text-red-900">
+                    {bills.filter(b => {
+                      const daysUntilDue = Math.ceil((new Date(b.dueDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+                      return daysUntilDue < 0 && b.status !== BillStatus.PAID;
+                    }).length} overdue bill(s)
+                  </p>
+                  <p className="text-xs text-red-700 mt-1">
+                    Total: {preferences.currency}{bills.filter(b => {
+                      const daysUntilDue = Math.ceil((new Date(b.dueDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+                      return daysUntilDue < 0 && b.status !== BillStatus.PAID;
+                    }).reduce((sum, b) => sum + b.amount, 0).toFixed(2)} overdue
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
