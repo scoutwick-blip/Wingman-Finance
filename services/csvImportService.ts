@@ -75,6 +75,11 @@ export function detectDateFormat(dateStr: string): string {
   if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return 'YYYY-MM-DD';
   if (/^\d{2}-\d{2}-\d{4}$/.test(dateStr)) return 'MM-DD-YYYY';
   if (/^\d{2}\/\d{2}\/\d{2}$/.test(dateStr)) return 'MM/DD/YY';
+  if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(dateStr)) return 'M/D/YYYY';
+  if (/^\d{1,2}\/\d{1,2}\/\d{2}$/.test(dateStr)) return 'M/D/YY';
+  if (/^\d{1,2}-\d{1,2}-\d{4}$/.test(dateStr)) return 'M-D-YYYY';
+  // Try JS native Date as last resort
+  if (!isNaN(new Date(dateStr).getTime())) return 'NATIVE';
   return 'UNKNOWN';
 }
 
@@ -94,19 +99,44 @@ export function parseDate(dateStr: string, format: string): string {
         day = parseInt(parts[1], 10);
         year = parseInt(parts[2], 10);
         break;
+      case 'M/D/YYYY':
+      case 'M-D-YYYY':
+        month = parseInt(parts[0], 10);
+        day = parseInt(parts[1], 10);
+        year = parseInt(parts[2], 10);
+        break;
       case 'MM/DD/YY':
+      case 'M/D/YY':
         month = parseInt(parts[0], 10);
         day = parseInt(parts[1], 10);
         year = parseInt(parts[2], 10) + 2000;
         break;
+      case 'NATIVE': {
+        // JS native Date parser as fallback for formats like "Jan 15, 2024"
+        const parsed = new Date(dateStr);
+        if (!isNaN(parsed.getTime())) {
+          return parsed.toISOString().split('T')[0];
+        }
+        // If native parse fails, preserve original string as-is
+        return dateStr;
+      }
       default:
-        return new Date().toISOString().split('T')[0];
+        // UNKNOWN format: try native Date, otherwise preserve original
+        const attempted = new Date(dateStr);
+        if (!isNaN(attempted.getTime())) {
+          return attempted.toISOString().split('T')[0];
+        }
+        return dateStr;
     }
 
     const date = new Date(year, month - 1, day);
+    if (isNaN(date.getTime())) {
+      return dateStr; // Preserve original if parsing fails
+    }
     return date.toISOString().split('T')[0];
   } catch {
-    return new Date().toISOString().split('T')[0];
+    // Never silently replace with today's date — preserve the original
+    return dateStr;
   }
 }
 
